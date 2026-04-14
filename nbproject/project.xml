@@ -11,5 +11,8 @@
                 <root id="test.src.dir"/>
             </test-roots>
         </data>
+        <libraries xmlns="http://www.netbeans.org/ns/ant-project-libraries/1">
+            <definitions>C:\Users\jesus\OneDrive\Escritorio\sqldeveloper-24.3.1.347.1826-x64\sqldeveloper\sqldeveloper\extensions\oracle.sqldeveloper.pgql\lib\nblibraries.properties</definitions>
+        </libraries>
     </configuration>
 </project>
