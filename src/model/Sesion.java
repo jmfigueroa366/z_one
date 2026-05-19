@@ -31,6 +31,11 @@ public class Sesion {
         this.costoTotal = costoTotal;
     }
 
+    public double calcularCosto(){
+        costoTotal=duracionHoras*productor.getTarifaHora();
+        return costoTotal;
+    }
+    
     public int getIdentificador() {
         return identificador;
     }
