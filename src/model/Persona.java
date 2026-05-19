@@ -10,7 +10,7 @@ package model;
  */
 public abstract class Persona {
     
-    private int id;
+    private int identificacion;
     private String nombre;
     private String correo;
     private String telefono;
@@ -18,19 +18,19 @@ public abstract class Persona {
     public Persona() {
     }
 
-    public Persona(int id, String nombre, String correo, String telefono) {
-        this.id = id;
+    public Persona(int identificacion, String nombre, String correo, String telefono) {
+        this.identificacion = identificacion;
         this.nombre = nombre;
         this.correo = correo;
         this.telefono = telefono;
     }
 
-    public int getId() {
-        return id;
+    public int getIdentificacion() {
+        return identificacion;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public void setIdentificacion(int identificacion) {
+        this.identificacion = identificacion;
     }
 
     public String getNombre() {
