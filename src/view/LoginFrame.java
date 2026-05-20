@@ -2,7 +2,6 @@ package view;
 
 import model.Usuario;
 import services.UsuarioService;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;

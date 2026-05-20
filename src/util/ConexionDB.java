@@ -20,7 +20,7 @@ public class ConexionDB {
     private static final String PORT     = "1521";
     private static final String SID      = "XE";           // o el nombre de tu BD
     private static final String DB_USER  = "system";       // tu usuario Oracle
-    private static final String DB_PASS  = "Jesusrey25*";       // tu contraseña Oracle
+    private static final String DB_PASS  = "system123";       // tu contraseña Oracle
     // ─────────────────────────────────────────────────────────────────────
 
     private static final String URL =
