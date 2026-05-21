@@ -21,21 +21,25 @@ public class UsuarioDAO {
         }
     }
 
-    public Usuario buscarPorCredenciales(String username, String passwordHash) throws SQLException {
-        String sql = "SELECT * FROM usuarios WHERE username = ? AND password_hash = ? AND activo = 1";
-        try (Connection conn = ConexionDB.getConexion();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, username);
-            ps.setString(2, passwordHash);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    actualizarUltimoLogin(username);
-                    return mapear(rs);
-                }
+   
+public Usuario buscarPorCredenciales(String username, String passwordHash) throws SQLException {
+    String sql = "SELECT * FROM usuarios WHERE username = ? AND password_hash = ? AND activo = 1";
+    Usuario u = null;
+    try (Connection conn = ConexionDB.getConexion();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setString(1, username);
+        ps.setString(2, passwordHash);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                u = mapear(rs);   // ← PRIMERO mapeas (mientras la conexión vive)
             }
         }
-        return null;
     }
+    if (u != null) {
+        actualizarUltimoLogin(username);  // ← DESPUÉS de cerrar la primera conexión
+    }
+    return u;
+}
 
     public Usuario buscarPorUsername(String username) throws SQLException {
         String sql = "SELECT * FROM usuarios WHERE username = ?";

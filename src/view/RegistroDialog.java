@@ -1,111 +1,140 @@
 package view;
 
 import services.UsuarioService;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.*;
-
+import static view.ModernUI.*;
+/**
+ * RegistroDialog — Formulario de creación de cuenta moderno.
+ * Mantiene el mismo tema visual que LoginFrame (gradiente, tarjeta,
+ * inputs redondeados, botón con hover).
+ */
 public class RegistroDialog extends JDialog {
-
-    private static final Color BG_DARK       = new Color(15, 15, 35);
-    private static final Color BG_INPUT      = new Color(26, 26, 62);
-    private static final Color COLOR_PRIMARY = new Color(124, 58, 237);
-    private static final Color COLOR_ACCENT  = new Color(233, 69, 96);
-    private static final Color TEXT_PRIMARY  = new Color(241, 245, 249);
-    private static final Color TEXT_MUTED    = new Color(148, 163, 184);
-    private static final Color BORDER_COLOR  = new Color(79, 70, 229, 100);
-
-    private JTextField     txtNombre;
-    private JTextField     txtUsername;
-    private JTextField     txtCorreo;
-    private JPasswordField txtPassword;
-    private JPasswordField txtConfirmar;
-    private JComboBox<String> cmbRol;
-    private JLabel         lblEstado;
+    private ModernUI.RoundedTextField     txtNombre;
+    private ModernUI.RoundedTextField     txtUsername;
+    private ModernUI.RoundedTextField     txtCorreo;
+    private ModernUI.RoundedPasswordField txtPassword;
+    private ModernUI.RoundedPasswordField txtConfirmar;
+    private JComboBox<String>             cmbRol;
+    private JLabel                        lblEstado;
 
     private final UsuarioService service;
 
     public RegistroDialog(Frame parent, UsuarioService service) {
-        super(parent, "Registro — Z-One", true);
+        super(parent, "Crear cuenta — Z-One", true);
         this.service = service;
         inicializarUI();
     }
 
     private void inicializarUI() {
-        setSize(400, 560);
+        setSize(480, 760);
         setLocationRelativeTo(getParent());
         setResizable(false);
 
-        JPanel panel = new JPanel();
-        panel.setBackground(BG_DARK);
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBorder(new EmptyBorder(28, 36, 20, 36));
+        // ===== Panel raíz con gradiente =====
+        ModernUI.GradientPanel root = new ModernUI.GradientPanel();
+        root.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        // ===== Tarjeta central =====
+        ModernUI.CardPanel card = new ModernUI.CardPanel(24);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(new EmptyBorder(32, 40, 24, 40));
+        card.setPreferredSize(new Dimension(400, 700));
+        card.setMaximumSize(new Dimension(400, 700));
 
+        // --- Encabezado ---
         JLabel titulo = new JLabel("Crear cuenta nueva");
-        titulo.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        titulo.setFont(new Font("Segoe UI", Font.BOLD, 22));
         titulo.setForeground(TEXT_PRIMARY);
         titulo.setAlignmentX(CENTER_ALIGNMENT);
 
-        panel.add(titulo);
-        panel.add(Box.createVerticalStrut(22));
+        JLabel subtitulo = new JLabel("Únete a la familia Z-One");
+        subtitulo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        subtitulo.setForeground(TEXT_MUTED);
+        subtitulo.setAlignmentX(CENTER_ALIGNMENT);
 
-        txtNombre    = agregarCampo(panel, "Nombre completo");
-        txtUsername  = agregarCampo(panel, "Nombre de usuario");
-        txtCorreo    = agregarCampo(panel, "Correo electronico");
-        txtPassword  = agregarCampoPass(panel, "Contrasena (minimo 4 caracteres)");
-        txtConfirmar = agregarCampoPass(panel, "Confirmar contrasena");
+        // --- Campos ---
+        txtNombre    = nuevoCampo("Tu nombre completo");
+        txtUsername  = nuevoCampo("Nombre de usuario único");
+        txtCorreo    = nuevoCampo("correo@ejemplo.com");
+        txtPassword  = nuevoPass("Mínimo 4 caracteres");
+        txtConfirmar = nuevoPass("Repite tu contraseña");
 
-        panel.add(etiqueta("Rol en la plataforma"));
-        panel.add(Box.createVerticalStrut(6));
-        cmbRol = new JComboBox<>(new String[]{"ARTISTA", "PRODUCTOR", "USUARIO"});
-        cmbRol.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        cmbRol.setBackground(BG_INPUT);
-        cmbRol.setForeground(TEXT_PRIMARY);
-        cmbRol.setMaximumSize(new Dimension(328, 42));
+        cmbRol = ModernUI.roundedCombo(new String[]{"ARTISTA", "PRODUCTOR", "USUARIO"});
+        cmbRol.setMaximumSize(new Dimension(320, 44));
         cmbRol.setAlignmentX(LEFT_ALIGNMENT);
-        panel.add(cmbRol);
-        panel.add(Box.createVerticalStrut(22));
 
-        JButton btnGuardar = new JButton("Crear cuenta");
-        btnGuardar.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnGuardar.setForeground(Color.WHITE);
-        btnGuardar.setBackground(COLOR_PRIMARY);
-        btnGuardar.setOpaque(true);
-        btnGuardar.setBorderPainted(false);
-        btnGuardar.setFocusPainted(false);
-        btnGuardar.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
-        btnGuardar.setMaximumSize(new Dimension(328, 46));
-        btnGuardar.setAlignmentX(LEFT_ALIGNMENT);
-        btnGuardar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        // --- Botones ---
+        ModernUI.RoundedButton btnGuardar  = new ModernUI.RoundedButton("Crear cuenta", true);
+        btnGuardar.setMaximumSize(new Dimension(320, 48));
+        btnGuardar.setAlignmentX(CENTER_ALIGNMENT);
         btnGuardar.addActionListener(e -> registrar());
-        panel.add(btnGuardar);
-        panel.add(Box.createVerticalStrut(12));
 
-        JButton btnCancelar = new JButton("Cancelar");
-        btnCancelar.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnCancelar.setForeground(TEXT_MUTED);
-        btnCancelar.setOpaque(false);
-        btnCancelar.setContentAreaFilled(false);
-        btnCancelar.setBorderPainted(false);
-        btnCancelar.setAlignmentX(LEFT_ALIGNMENT);
+        ModernUI.RoundedButton btnCancelar = new ModernUI.RoundedButton("Cancelar", false);
+        btnCancelar.setMaximumSize(new Dimension(320, 36));
+        btnCancelar.setAlignmentX(CENTER_ALIGNMENT);
         btnCancelar.addActionListener(e -> dispose());
-        panel.add(btnCancelar);
-        panel.add(Box.createVerticalStrut(10));
 
+        // --- Mensaje de estado ---
         lblEstado = new JLabel(" ");
         lblEstado.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblEstado.setForeground(COLOR_ACCENT);
+        lblEstado.setForeground(ACCENT_PINK);
         lblEstado.setAlignmentX(CENTER_ALIGNMENT);
-        panel.add(lblEstado);
+        // --- Ensamblado ---
+        card.add(titulo);
+        card.add(Box.createVerticalStrut(4));
+        card.add(subtitulo);
+        card.add(Box.createVerticalStrut(22));
+        agregarCampo(card, "NOMBRE COMPLETO", txtNombre);
+        agregarCampo(card, "USUARIO",         txtUsername);
+        agregarCampo(card, "CORREO",          txtCorreo);
+        agregarCampo(card, "CONTRASEÑA",      txtPassword);
+        agregarCampo(card, "CONFIRMAR",       txtConfirmar);
 
-        JScrollPane scroll = new JScrollPane(panel);
+        card.add(formLabel("ROL EN LA PLATAFORMA"));
+        card.add(Box.createVerticalStrut(8));
+        card.add(cmbRol);
+        card.add(Box.createVerticalStrut(24));
+
+        card.add(btnGuardar);
+        card.add(Box.createVerticalStrut(8));
+        card.add(btnCancelar);
+        card.add(Box.createVerticalStrut(12));
+        card.add(lblEstado);
+
+        // Scroll por si la pantalla del usuario es pequeña
+        JScrollPane scroll = new JScrollPane(card);
         scroll.setBorder(null);
-        scroll.getViewport().setBackground(BG_DARK);
-        setContentPane(scroll);
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+
+        root.add(scroll, gbc);
+        setContentPane(root);
     }
 
+    // -------- helpers --------
+    private ModernUI.RoundedTextField nuevoCampo(String placeholder) {
+        ModernUI.RoundedTextField c = new ModernUI.RoundedTextField(placeholder);
+        c.setMaximumSize(new Dimension(320, 44));
+        c.setAlignmentX(LEFT_ALIGNMENT);
+        return c;
+    }
+    private ModernUI.RoundedPasswordField nuevoPass(String placeholder) {
+        ModernUI.RoundedPasswordField c = new ModernUI.RoundedPasswordField(placeholder);
+        c.setMaximumSize(new Dimension(320, 44));
+        c.setAlignmentX(LEFT_ALIGNMENT);
+        return c;
+    }
+    private void agregarCampo(JPanel p, String label, JComponent input) {
+        p.add(formLabel(label));
+        p.add(Box.createVerticalStrut(8));
+        p.add(input);
+        p.add(Box.createVerticalStrut(14));
+    }
     private void registrar() {
         String nombre    = txtNombre.getText().trim();
         String username  = txtUsername.getText().trim();
@@ -113,16 +142,11 @@ public class RegistroDialog extends JDialog {
         String pass      = new String(txtPassword.getPassword());
         String confirmar = new String(txtConfirmar.getPassword());
         String rol       = (String) cmbRol.getSelectedItem();
-
         if (!pass.equals(confirmar)) {
-            lblEstado.setText("Las contrasenas no coinciden.");
-            lblEstado.setForeground(COLOR_ACCENT);
+            mostrarEstado("Las contraseñas no coinciden.", ACCENT_PINK);
             return;
         }
-
-        lblEstado.setText("Registrando usuario...");
-        lblEstado.setForeground(TEXT_MUTED);
-
+        mostrarEstado("Registrando usuario...", TEXT_MUTED);
         new SwingWorker<Void, Void>() {
             protected Void doInBackground() throws Exception {
                 service.registrar(username, pass, nombre, correo, rol);
@@ -132,56 +156,20 @@ public class RegistroDialog extends JDialog {
                 try {
                     get();
                     JOptionPane.showMessageDialog(RegistroDialog.this,
-                        "Cuenta creada exitosamente!\nYa puedes iniciar sesion.",
+                        "¡Cuenta creada exitosamente!\nYa puedes iniciar sesión.",
                         "Registro exitoso", JOptionPane.INFORMATION_MESSAGE);
                     dispose();
                 } catch (Exception ex) {
                     String msg = ex.getCause() != null
                         ? ex.getCause().getMessage() : ex.getMessage();
-                    lblEstado.setText(msg);
-                    lblEstado.setForeground(COLOR_ACCENT);
+                    mostrarEstado(msg, ACCENT_PINK);
                 }
             }
         }.execute();
     }
 
-    private JTextField agregarCampo(JPanel p, String label) {
-        p.add(etiqueta(label));
-        p.add(Box.createVerticalStrut(6));
-        JTextField c = new JTextField();
-        estilizar(c);
-        p.add(c);
-        p.add(Box.createVerticalStrut(14));
-        return c;
-    }
-
-    private JPasswordField agregarCampoPass(JPanel p, String label) {
-        p.add(etiqueta(label));
-        p.add(Box.createVerticalStrut(6));
-        JPasswordField c = new JPasswordField();
-        estilizar(c);
-        p.add(c);
-        p.add(Box.createVerticalStrut(14));
-        return c;
-    }
-
-    private void estilizar(JTextField c) {
-        c.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        c.setForeground(TEXT_PRIMARY);
-        c.setBackground(BG_INPUT);
-        c.setCaretColor(COLOR_PRIMARY);
-        c.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_COLOR, 1),
-            BorderFactory.createEmptyBorder(9, 12, 9, 12)));
-        c.setMaximumSize(new Dimension(328, 42));
-        c.setAlignmentX(LEFT_ALIGNMENT);
-    }
-
-    private JLabel etiqueta(String texto) {
-        JLabel l = new JLabel(texto);
-        l.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        l.setForeground(TEXT_MUTED);
-        l.setAlignmentX(LEFT_ALIGNMENT);
-        return l;
+    private void mostrarEstado(String msg, Color color) {
+        lblEstado.setText(msg);
+        lblEstado.setForeground(color);
     }
 }

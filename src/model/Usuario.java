@@ -25,6 +25,10 @@ public class Usuario {
                    String nombre, String correo, String rol) {
         this(null, username, passwordHash, nombre, correo, rol, true);
     }
+
+ public Usuario() {
+    // constructor vacío
+}
     
     public String  getIdUsuario()    { return idUsuario; }
     public String  getUsername()     { return username; }
