@@ -43,7 +43,6 @@ public class RegistroDialog extends JDialog {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(28, 36, 20, 36));
 
-        // Titulo
         JLabel titulo = new JLabel("Crear cuenta nueva");
         titulo.setFont(new Font("Segoe UI", Font.BOLD, 20));
         titulo.setForeground(TEXT_PRIMARY);
@@ -52,14 +51,12 @@ public class RegistroDialog extends JDialog {
         panel.add(titulo);
         panel.add(Box.createVerticalStrut(22));
 
-        // Campos
         txtNombre    = agregarCampo(panel, "Nombre completo");
         txtUsername  = agregarCampo(panel, "Nombre de usuario");
         txtCorreo    = agregarCampo(panel, "Correo electronico");
         txtPassword  = agregarCampoPass(panel, "Contrasena (minimo 4 caracteres)");
         txtConfirmar = agregarCampoPass(panel, "Confirmar contrasena");
 
-        // Rol
         panel.add(etiqueta("Rol en la plataforma"));
         panel.add(Box.createVerticalStrut(6));
         cmbRol = new JComboBox<>(new String[]{"ARTISTA", "PRODUCTOR", "USUARIO"});
@@ -71,7 +68,6 @@ public class RegistroDialog extends JDialog {
         panel.add(cmbRol);
         panel.add(Box.createVerticalStrut(22));
 
-        // Boton guardar
         JButton btnGuardar = new JButton("Crear cuenta");
         btnGuardar.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btnGuardar.setForeground(Color.WHITE);
@@ -87,7 +83,6 @@ public class RegistroDialog extends JDialog {
         panel.add(btnGuardar);
         panel.add(Box.createVerticalStrut(12));
 
-        // Boton cancelar
         JButton btnCancelar = new JButton("Cancelar");
         btnCancelar.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnCancelar.setForeground(TEXT_MUTED);
@@ -99,7 +94,6 @@ public class RegistroDialog extends JDialog {
         panel.add(btnCancelar);
         panel.add(Box.createVerticalStrut(10));
 
-        // Estado
         lblEstado = new JLabel(" ");
         lblEstado.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblEstado.setForeground(COLOR_ACCENT);

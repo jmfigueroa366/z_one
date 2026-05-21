@@ -1,11 +1,8 @@
 package services;
-
 import dao.UsuarioDAO;
 import model.Usuario;
 import util.PasswordUtil;
-
 import java.sql.SQLException;
-
 public class UsuarioService {
 
     private final UsuarioDAO dao = new UsuarioDAO();

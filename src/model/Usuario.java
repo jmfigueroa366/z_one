@@ -25,8 +25,7 @@ public class Usuario {
                    String nombre, String correo, String rol) {
         this(null, username, passwordHash, nombre, correo, rol, true);
     }
-
-    // Getters
+    
     public String  getIdUsuario()    { return idUsuario; }
     public String  getUsername()     { return username; }
     public String  getPasswordHash() { return passwordHash; }
@@ -35,7 +34,6 @@ public class Usuario {
     public String  getRol()          { return rol; }
     public boolean isActivo()        { return activo; }
 
-    // Setters
     public void setIdUsuario(String idUsuario)   { this.idUsuario = idUsuario; }
     public void setPasswordHash(String hash)     { this.passwordHash = hash; }
     public void setActivo(boolean activo)        { this.activo = activo; }
