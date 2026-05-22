@@ -37,7 +37,7 @@ public class MascotPanel extends JPanel {
             vy = -(0.7f + (float) Math.random() * 1.1f);
             alpha = 1f;
             size = 10 + (float) Math.random() * 8;
-            String[] s = {"♪","♫","♬","♩"};
+            String[] s = {"♪", "♫", "♩", "♪"};
             g = s[(int)(Math.random() * s.length)];
         }
         boolean tick() {
@@ -82,12 +82,12 @@ public class MascotPanel extends JPanel {
                 exciteTicks--;
                 if (exciteTicks <= 0) excited = false;
                 if (noteCool <= 0) {
-                    notes.add(new Note(60 + (float)Math.random() * 110, 60 + (float)Math.random() * 40));
-                    noteCool = 6;
+                    int pw = getWidth() > 0 ? getWidth() : 290; notes.add(new Note(40 + (float)Math.random() * (pw-80), 120 + (float)Math.random() * 50));
+                    noteCool = 8;
                 }
             } else {
                 if (noteCool <= 0 && Math.random() < 0.018) {
-                    notes.add(new Note(75 + (float)Math.random() * 80, 70 + (float)Math.random() * 30));
+                    int pw2 = getWidth() > 0 ? getWidth() : 290; notes.add(new Note(50 + (float)Math.random() * (pw2-100), 130 + (float)Math.random() * 40));
                     noteCool = 38;
                 }
             }
@@ -120,11 +120,15 @@ public class MascotPanel extends JPanel {
         int cx = getWidth() / 2;
         int cy = getHeight() / 2;
 
-        // Aplicar transform: flotar + wobble + scale
+        // Escala automática según el tamaño real del panel
+        float autoScale = Math.min(getWidth(), getHeight()) / 310f;
+        float finalScale = scale * autoScale;
+
+        // Aplicar transform: flotar + wobble + scale automático
         AffineTransform base = g2.getTransform();
         g2.translate(cx, cy + floatY);
         g2.rotate(Math.toRadians(wobble));
-        g2.scale(scale, scale);
+        g2.scale(finalScale, finalScale);
         g2.translate(-cx, -cy);
 
         drawShadow(g2, cx);
@@ -397,7 +401,6 @@ public class MascotPanel extends JPanel {
         g2.setColor(SKIN);
         g2.fillOval(cx + 60, cy + 28, 16, 18);
     }
-
     private void drawArm(Graphics2D g2, int x1, int y1, int x2, int y2, boolean left) {
         // Manga del hoodie
         g2.setColor(HOODIE);
@@ -409,34 +412,34 @@ public class MascotPanel extends JPanel {
         // sombra en el borde
         g2.drawLine(x1 + (left ? -2 : 2), y1, x2 + (left ? -2 : 2), y2);
     }
-
     // ── Notas musicales ────────────────────────────────────────────────
     private void drawNotes(Graphics2D g2) {
         for (Note n : notes) {
-            g2.setFont(new Font("Segoe UI", Font.PLAIN, (int) n.size));
+            g2.setFont(new Font("Segoe UI Symbol", Font.PLAIN, (int) n.size));
             g2.setColor(new Color(NOTE_COL.getRed(), NOTE_COL.getGreen(),
                 NOTE_COL.getBlue(), (int)(n.alpha * 220)));
             g2.drawString(n.g, (int) n.x, (int) n.y);
         }
     }
-
-    // ── Globo de saludo ────────────────────────────────────────────────
+    // ── Globo de saludo — siempre dentro del panel ────────────────────
     private void drawBubble(Graphics2D g2, int cx, int baseY) {
         float alpha = Math.min(1f, (exciteTicks - 28) / 30f);
-        int bx = cx + 28, by = baseY - 80;
+        int bw = 82, bh = 28;
+        // Calcular posición: a la derecha del centro, pero sin salirse
+        int bx = Math.min(cx + 20, getWidth() - bw - 6);
+        int by = Math.max(10, baseY - 90);
         // Fondo
         g2.setColor(new Color(PURPLE.getRed(), PURPLE.getGreen(), PURPLE.getBlue(),
             (int)(alpha * 190)));
-        g2.fillRoundRect(bx, by, 82, 28, 12, 12);
+        g2.fillRoundRect(bx, by, bw, bh, 12, 12);
         // Colita
-        int[] px = {bx + 6, bx - 4, bx + 14};
-        int[] py = {by + 26, by + 34, by + 26};
+        int[] px = {bx + 10, bx + 2, bx + 20};
+        int[] py = {by + bh, by + bh + 8, by + bh};
         g2.fillPolygon(px, py, 3);
         // Texto
         g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
         g2.setColor(new Color(255, 255, 255, (int)(alpha * 230)));
-        g2.drawString("¡Hola! ♪", bx + 10, by + 18);
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        g2.drawString("Hola! :)", bx + 8, by + 18);
     }
-
-
 }
