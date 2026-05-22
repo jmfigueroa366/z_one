@@ -47,7 +47,7 @@ public class MainFrame extends JFrame {
         contentPanel.setBorder(new EmptyBorder(24, 24, 24, 24));
         // Registrar cada panel — los compañeros reemplazan los stubs
         contentPanel.add(new DashboardPanel(usuarioActual), "dashboard");
-        contentPanel.add(stubPanel("Artistas", "Gestión de artistas, bandas y colaboraciones"), "artistas");
+        contentPanel.add(new formArtista(), "artistas");
         contentPanel.add(stubPanel("Productores", "Productores, equipo técnico y especialidades"), "productores");
         contentPanel.add(stubPanel("Sesiones", "Sesiones de grabación, cabinas y agenda"), "sesiones");
         contentPanel.add(stubPanel("Catálogo", "Catálogo musical, álbumes y canciones"), "catalogo");
