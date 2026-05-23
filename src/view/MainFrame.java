@@ -58,7 +58,7 @@ public class MainFrame extends JFrame {
         JPanel statusBar = construirStatusBar();
         root.add(statusBar, BorderLayout.SOUTH);
         setContentPane(root);
-    }
+    }   
     // =================================================================
     // SIDEBAR
     // =================================================================
