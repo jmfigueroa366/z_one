@@ -1,52 +1,34 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package model;
 
 /**
- *
- * @author alvar
+ * Productor — modelo de dominio. Hereda de Persona los datos básicos
+ * (identificacion, nombre, correo, telefono) y agrega especialidad y tarifa.
  */
-public class Productor extends Persona{
-    
+public class Productor extends Persona {
+
     private String especialidad;
     private double tarifaHora;
 
     public Productor() {
     }
 
-    public Productor(String especialidad, double tarifaHora, int identificacion, String nombre, String correo, String telefono) {
+    public Productor(int identificacion, String nombre, String correo, String telefono,
+                     String especialidad, double tarifaHora) {
         super(identificacion, nombre, correo, telefono);
         this.especialidad = especialidad;
-        this.tarifaHora = tarifaHora;
+        this.tarifaHora   = tarifaHora;
     }
+
+    public String getEspecialidad()                  { return especialidad; }
+    public void   setEspecialidad(String especialidad) { this.especialidad = especialidad; }
+    public double getTarifaHora()                    { return tarifaHora; }
+    public void   setTarifaHora(double tarifaHora)   { this.tarifaHora = tarifaHora; }
 
     @Override
     public String toString() {
-        return "ID: " + getIdentificacion() + 
-               ", Nombre: " + getNombre() + 
-               ", Correo: " + getCorreo() + 
-               ", Telefono: " + getTelefono() + 
-               ", Especialidad: " + especialidad;
+        return "Productor{id=" + getIdentificacion()
+             + ", nombre='" + getNombre() + '\''
+             + ", especialidad='" + especialidad + '\''
+             + ", tarifa=" + tarifaHora + "}";
     }
-    
-    public String getEspecialidad() {
-        return especialidad;
-    }
-
-    public void setEspecialidad(String especialidad) {
-        this.especialidad = especialidad;
-    }
-
-    public double getTarifaHora() {
-        return tarifaHora;
-    }
-
-    public void setTarifaHora(double tarifaHora) {
-        this.tarifaHora = tarifaHora;
-    }
-    
-    
-    
 }
