@@ -98,12 +98,12 @@ public class formProductor extends JPanel {
             public void changedUpdate(javax.swing.event.DocumentEvent e) { filtrarTabla(); }
         });
 
-        ModernUI.RoundedButton btnNuevo = new ModernUI.RoundedButton("+ Nuevo productor", true);
-        btnNuevo.setPreferredSize(new Dimension(170, 36));
-        btnNuevo.addActionListener(e -> abrirFormulario(null));
+        ModernUI.RoundedButton botonNuevo = new ModernUI.RoundedButton("+ Nuevo productor", true);
+        botonNuevo.setPreferredSize(new Dimension(170, 36));
+        botonNuevo.addActionListener(e -> abrirFormulario(null));
 
         toolbar.add(txtBuscar, BorderLayout.WEST);
-        toolbar.add(btnNuevo,  BorderLayout.EAST);
+        toolbar.add(botonNuevo,  BorderLayout.EAST);
         return toolbar;
     }
 
@@ -135,17 +135,17 @@ public class formProductor extends JPanel {
         acciones.setOpaque(false);
         acciones.setBorder(new EmptyBorder(12, 0, 0, 0));
 
-        ModernUI.RoundedButton btnEditar   = new ModernUI.RoundedButton("Editar",   false);
-        ModernUI.RoundedButton btnEliminar = new ModernUI.RoundedButton("Eliminar", false);
-        btnEliminar.setForeground(new Color(255, 80, 120));
+        ModernUI.RoundedButton botonEditar   = new ModernUI.RoundedButton("Editar",   false);
+        ModernUI.RoundedButton botonEliminar = new ModernUI.RoundedButton("Eliminar", false);
+        botonEliminar.setForeground(new Color(255, 80, 120));
 
-        btnEditar.addActionListener(e -> {
+        botonEditar.addActionListener(e -> {
             int fila = tabla.getSelectedRow();
             if (fila < 0) { toast("Selecciona un productor primero", MainFrame.ToastType.INFO); return; }
             abrirFormulario(fila);
         });
 
-        btnEliminar.addActionListener(e -> {
+        botonEliminar.addActionListener(e -> {
             int fila = tabla.getSelectedRow();
             if (fila < 0) { toast("Selecciona un productor primero", MainFrame.ToastType.INFO); return; }
             String nombre = (String) tableModel.getValueAt(fila, 1);
@@ -154,16 +154,16 @@ public class formProductor extends JPanel {
             if (op == JOptionPane.YES_OPTION) eliminarProductor(fila);
         });
 
-        ModernUI.RoundedButton btnRefrescar = new ModernUI.RoundedButton("↻ Refrescar", false);
-        btnRefrescar.addActionListener(e -> {
+        ModernUI.RoundedButton botonRefrescar = new ModernUI.RoundedButton("Refrescar", false);
+        botonRefrescar.addActionListener(e -> {
             txtBuscar.setText("");
             refrescarTabla(productoresData);
             toast("Lista actualizada", MainFrame.ToastType.INFO);
         });
 
-        acciones.add(btnEditar);
-        acciones.add(btnEliminar);
-        acciones.add(btnRefrescar);
+        acciones.add(botonEditar);
+        acciones.add(botonEliminar);
+        acciones.add(botonRefrescar);
         return acciones;
     }
 
