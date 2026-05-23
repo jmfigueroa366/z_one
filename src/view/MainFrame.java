@@ -48,7 +48,7 @@ public class MainFrame extends JFrame {
         // Registrar cada panel — los compañeros reemplazan los stubs
         contentPanel.add(new DashboardPanel(usuarioActual), "dashboard");
         contentPanel.add(new formArtista(), "artistas");
-        contentPanel.add(stubPanel("Productores", "Productores, equipo técnico y especialidades"), "productores");
+        contentPanel.add(new formProductor(), "productores");
         contentPanel.add(stubPanel("Sesiones", "Sesiones de grabación, cabinas y agenda"), "sesiones");
         contentPanel.add(stubPanel("Catálogo", "Catálogo musical, álbumes y canciones"), "catalogo");
         contentPanel.add(stubPanel("Bot", "Chatbot asistencial — Z-One IA"), "bot");
@@ -357,16 +357,16 @@ public class MainFrame extends JFrame {
     // =================================================================
     // MAIN — para probar la ventana sin pasar por el login
     // =================================================================
-public static void main(String[] args) {
-    try {
-        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-    } catch (Exception ex) { ex.printStackTrace(); }
+    public static void main(String[] args) {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception ex) { ex.printStackTrace(); }
 
-    // Usuario dummy para probar
-    Usuario test = new Usuario("1", "jmfigueroa366", "hash",
-                                "Jesús Figueroa", "j@email.com",
-                                "ADMIN", true);
+        // Usuario dummy para probar
+        Usuario test = new Usuario("1", "jmfigueroa366", "hash",
+                                    "Jesús Figueroa", "j@email.com",
+                                    "ADMIN", true);
 
-    SwingUtilities.invokeLater(() -> new MainFrame(test).setVisible(true));
-}
+        SwingUtilities.invokeLater(() -> new MainFrame(test).setVisible(true));
+    }
 }
