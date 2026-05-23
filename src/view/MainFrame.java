@@ -50,7 +50,7 @@ public class MainFrame extends JFrame {
         contentPanel.add(new formArtista(), "artistas");
         contentPanel.add(new formProductor(), "productores");
         contentPanel.add(new formSesion(), "sesiones");
-        contentPanel.add(stubPanel("Catálogo", "Catálogo musical, álbumes y canciones"), "catalogo");
+        contentPanel.add(new formCatalogo(), "catalogo");
         contentPanel.add(stubPanel("Bot", "Chatbot asistencial — Z-One IA"), "bot");
         contentPanel.add(stubPanel("Configuración", "Preferencias del sistema y de cuenta"), "configuracion");
         root.add(contentPanel, BorderLayout.CENTER);
