@@ -497,7 +497,6 @@ public class formProductor extends JPanel {
             txt.add(Box.createVerticalStrut(1));
             txt.add(lblEsp);
         }
-
         // monto
         JLabel lblMonto = mkLabel(String.format("$%.0f", p.getTarifaHora()),
                 new Font("Consolas", Font.BOLD, esPodio ? 14 : 11), acento);
@@ -507,14 +506,12 @@ public class formProductor extends JPanel {
         fila.add(lblMonto, BorderLayout.EAST);
         return fila;
     }
-
     private String recortar(String s, int max) {
         if (s == null) {
             return "";
         }
         return s.length() > max ? s.substring(0, max - 1) + "…" : s;
     }
-
     // ══════════════════════════════════════════════════════════════════
     //  PANEL SQL LOG (columna derecha, abajo)
     // ══════════════════════════════════════════════════════════════════
@@ -548,15 +545,12 @@ public class formProductor extends JPanel {
         };
         cab.setOpaque(false);
         cab.setBorder(new EmptyBorder(11, 14, 11, 14));
-
         JLabel titulo = new JLabel("⬡  SQL LOG");
         titulo.setFont(F_MONO_B.deriveFont(13f));
         titulo.setForeground(GREEN);
-
         JLabel live = new JLabel("● LIVE") {
             float a = 1f;
             boolean d = false;
-
             {
                 Timer t = new Timer(700, ev -> {
                     a = d ? a + 0.08f : a - 0.08f;
@@ -575,25 +569,20 @@ public class formProductor extends JPanel {
         };
         live.setFont(F_MONO_B.deriveFont(9f));
         live.setForeground(GREEN);
-
         lblLogCount = new JLabel("0 entradas");
         lblLogCount.setFont(F_MONO.deriveFont(9f));
         lblLogCount.setForeground(TXT_SEC);
-
         ZBtn btnLimpiar = new ZBtn("Limpiar", false);
         btnLimpiar.setFont(F_BODY.deriveFont(10f));
         btnLimpiar.setPreferredSize(new Dimension(64, 24));
         btnLimpiar.addActionListener(e -> limpiarLog());
-
         JPanel rightBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         rightBar.setOpaque(false);
         rightBar.add(lblLogCount);
         rightBar.add(live);
         rightBar.add(btnLimpiar);
-
         cab.add(titulo, BorderLayout.WEST);
         cab.add(rightBar, BorderLayout.EAST);
-
         JPanel sepVerde = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -605,17 +594,14 @@ public class formProductor extends JPanel {
         };
         sepVerde.setOpaque(false);
         sepVerde.setPreferredSize(new Dimension(0, 1));
-
         JPanel topSect = new JPanel(new BorderLayout());
         topSect.setOpaque(false);
         topSect.add(cab, BorderLayout.CENTER);
         topSect.add(sepVerde, BorderLayout.SOUTH);
-
         logContainer = new JPanel();
         logContainer.setOpaque(false);
         logContainer.setLayout(new BoxLayout(logContainer, BoxLayout.Y_AXIS));
         logContainer.setBorder(new EmptyBorder(8, 8, 8, 8));
-
         JScrollPane scroll = new JScrollPane(logContainer);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
@@ -623,7 +609,6 @@ public class formProductor extends JPanel {
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getVerticalScrollBar().setPreferredSize(new Dimension(4, 0));
         scroll.getVerticalScrollBar().setUnitIncrement(12);
-
         JPanel leyenda = new JPanel(new GridLayout(3, 2, 4, 3)) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -646,7 +631,6 @@ public class formProductor extends JPanel {
             l.setForeground((Color) it[1]);
             leyenda.add(l);
         }
-
         JPanel sepGray = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -656,24 +640,20 @@ public class formProductor extends JPanel {
         };
         sepGray.setOpaque(false);
         sepGray.setPreferredSize(new Dimension(0, 1));
-
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.setOpaque(false);
         bottom.add(sepGray, BorderLayout.NORTH);
         bottom.add(leyenda, BorderLayout.CENTER);
-
         inner.add(topSect, BorderLayout.NORTH);
         inner.add(scroll, BorderLayout.CENTER);
         inner.add(bottom, BorderLayout.SOUTH);
         return inner;
     }
-
     /** Añade una entrada al log. Hilo-seguro. */
     private void addLog(String tipo, String sql, String resultado, Color acento) {
         SwingUtilities.invokeLater(() -> {
             logCount++;
             lblLogCount.setText(logCount + " entradas");
-
             JPanel entry = new JPanel() {
                 @Override
                 protected void paintComponent(Graphics g) {
@@ -691,12 +671,10 @@ public class formProductor extends JPanel {
             entry.setBorder(new EmptyBorder(7, 12, 7, 8));
             entry.setMaximumSize(new Dimension(Integer.MAX_VALUE, 9999));
             entry.setAlignmentX(LEFT_ALIGNMENT);
-
             String hora = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
             JLabel meta = mkLabel(hora + "  ·  " + tipo, F_MONO_B.deriveFont(9f),
                     new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 220));
             meta.setAlignmentX(LEFT_ALIGNMENT);
-
             JTextArea sqlArea = new JTextArea(sql);
             sqlArea.setFont(F_MONO);
             sqlArea.setForeground(PURPLE_LT);
@@ -707,27 +685,22 @@ public class formProductor extends JPanel {
             sqlArea.setBorder(new EmptyBorder(3, 0, 3, 0));
             sqlArea.setAlignmentX(LEFT_ALIGNMENT);
             sqlArea.setMaximumSize(new Dimension(Integer.MAX_VALUE, 9999));
-
             JLabel res = mkLabel("✓ " + resultado, F_MONO.deriveFont(9f),
                     new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 170));
             res.setAlignmentX(LEFT_ALIGNMENT);
-
             entry.add(meta);
             entry.add(sqlArea);
             entry.add(res);
-
             JPanel gap = new JPanel();
             gap.setOpaque(false);
             gap.setMaximumSize(new Dimension(Integer.MAX_VALUE, 6));
             gap.setAlignmentX(LEFT_ALIGNMENT);
-
             logContainer.add(entry, 0);
             logContainer.add(gap, 1);
             logContainer.revalidate();
             logContainer.repaint();
         });
     }
-
     private void limpiarLog() {
         logContainer.removeAll();
         logCount = 0;
@@ -735,7 +708,6 @@ public class formProductor extends JPanel {
         logContainer.revalidate();
         logContainer.repaint();
     }
-
     // ══════════════════════════════════════════════════════════════════
     //  RENDERER DE CELDAS
     // ══════════════════════════════════════════════════════════════════
