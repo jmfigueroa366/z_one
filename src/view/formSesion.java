@@ -9,5 +9,9 @@ package view;
  * @author alvar
  */
 public class formSesion {
+
+    public formSesion() {
+    }
+    
     
 }
