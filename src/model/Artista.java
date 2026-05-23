@@ -1,40 +1,57 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package model;
 
-/**
- *
- * @author alvar
- */
 public class Artista extends Persona {
-    
-    private String genero;
 
-    public Artista() {
+    // ── Atributos propios del artista ────────────────────────────────
+    private String genero;
+    private String pais;
+    private int    cantidadCanciones;
+    private String estado;
+
+    // ── Estados válidos (evita magic strings dispersos) ──────────────
+    public static final String ESTADO_ACTIVO   = "Activo";
+    public static final String ESTADO_INACTIVO = "Inactivo";
+    public static final String ESTADO_EN_GIRA  = "En gira";
+    public static final String ESTADO_HIATUS   = "Hiatus";
+
+    public static final String[] ESTADOS_VALIDOS = {
+        ESTADO_ACTIVO, ESTADO_INACTIVO, ESTADO_EN_GIRA, ESTADO_HIATUS
+    };
+
+    // ── Constructores ────────────────────────────────────────────────
+    public Artista(int par, String trim, String correo, String telefono, String trim1, String pais, int cantidadCanciones, String estado) {
+        this.estado = ESTADO_ACTIVO;
     }
 
-    public Artista(String genero, int identificacion, String nombre, String correo, String telefono) {
+    public Artista(String genero, String pais, int cantidadCanciones, String estado, int identificacion, String nombre, String correo, String telefono) {
         super(identificacion, nombre, correo, telefono);
         this.genero = genero;
+        this.pais = pais;
+        this.cantidadCanciones = cantidadCanciones;
+        this.estado = estado;
     }
 
-    public String getGenero() {
-        return genero;
-    }
+  
+    // ── Getters / Setters ────────────────────────────────────────────
+    public String getGenero()                          { return genero; }
+    public void   setGenero(String genero)             { this.genero = genero; }
 
-    public void setGenero(String genero) {
-        this.genero = genero;
-    }
-    
+    public String getPais()                            { return pais; }
+    public void   setPais(String pais)                 { this.pais = pais; }
+
+    public int    getCantidadCanciones()               { return cantidadCanciones; }
+    public void   setCantidadCanciones(int cantidad)   { this.cantidadCanciones = cantidad; }
+
+    public String getEstado()                          { return estado; }
+    public void   setEstado(String estado)             { this.estado = estado; }
+
     @Override
     public String toString() {
-        return "ID: " + getIdentificacion() + 
-               ", Nombre: " + getNombre() + 
-               ", Correo: " + getCorreo() + 
-               ", Telefono: " + getTelefono() + 
-               ", Genero: " + genero;
+        return "Artista{id=" + getIdentificacion()
+             + ", nombre='" + getNombre() + '\''
+             + ", genero='" + genero + '\''
+             + ", pais='" + pais + '\''
+             + ", canciones=" + cantidadCanciones
+             + ", estado='" + estado + "'}";
     }
-    
 }
