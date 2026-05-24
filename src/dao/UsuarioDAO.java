@@ -3,49 +3,27 @@ package dao;
 import model.Usuario;
 import util.ConexionDB;
 import java.sql.*;
-import java.util.ArrayList;
 
 public class UsuarioDAO {
 
-    public void guardar(Usuario usuario) throws SQLException {
-        String sql = "INSERT INTO usuarios (username, password_hash, nombre, correo, rol) " +
-                     "VALUES (?, ?, ?, ?, ?)";
+    // ── Login ─────────────────────────────────────────────────────────
+    public Usuario buscarPorCredenciales(String username, String hashContrasena)
+            throws SQLException {
+        String sql =
+            "SELECT u.id_usuario, u.username, u.correo, u.contrasena, " +
+            "       u.activo, r.nombre_rol " +
+            "FROM   usuarios u " +
+            "JOIN   roles    r ON r.id_rol = u.id_rol " +
+            "WHERE  u.username  = ? " +
+            "  AND  u.contrasena = ? " +
+            "  AND  u.activo    = 1";
+
         try (Connection conn = ConexionDB.getConexion();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, usuario.getUsername());
-            ps.setString(2, usuario.getPasswordHash());
-            ps.setString(3, usuario.getNombre());
-            ps.setString(4, usuario.getCorreo());
-            ps.setString(5, usuario.getRol());
-            ps.executeUpdate();
-        }
-    }
 
-   
-public Usuario buscarPorCredenciales(String username, String passwordHash) throws SQLException {
-    String sql = "SELECT * FROM usuarios WHERE username = ? AND password_hash = ? AND activo = 1";
-    Usuario u = null;
-    try (Connection conn = ConexionDB.getConexion();
-         PreparedStatement ps = conn.prepareStatement(sql)) {
-        ps.setString(1, username);
-        ps.setString(2, passwordHash);
-        try (ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                u = mapear(rs);   // ← PRIMERO mapeas (mientras la conexión vive)
-            }
-        }
-    }
-    if (u != null) {
-        actualizarUltimoLogin(username);  // ← DESPUÉS de cerrar la primera conexión
-    }
-    return u;
-}
-
-    public Usuario buscarPorUsername(String username) throws SQLException {
-        String sql = "SELECT * FROM usuarios WHERE username = ?";
-        try (Connection conn = ConexionDB.getConexion();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
+            ps.setString(2, hashContrasena);
+
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) return mapear(rs);
             }
@@ -53,39 +31,105 @@ public Usuario buscarPorCredenciales(String username, String passwordHash) throw
         return null;
     }
 
-    public ArrayList<Usuario> listarTodos() throws SQLException {
-        ArrayList<Usuario> lista = new ArrayList<>();
-        String sql = "SELECT * FROM usuarios ORDER BY fecha_registro DESC";
-        try (Connection conn = ConexionDB.getConexion();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) lista.add(mapear(rs));
+    // ── Registrar usuario nuevo ───────────────────────────────────────
+    public void guardar(Usuario u) throws SQLException {
+        Connection conn = ConexionDB.getConexion();
+        try {
+            conn.setAutoCommit(false);
+
+            // 1. Obtener id_rol
+            int idRol = obtenerIdRol(conn, u.getRol());
+
+            // 2. Insertar en usuarios
+            String sqlUser =
+                "INSERT INTO usuarios (username, correo, contrasena, id_rol) " +
+                "VALUES (?, ?, ?, ?)";
+
+            int idUsuario;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    sqlUser, new String[]{"id_usuario"})) {
+                ps.setString(1, u.getUsername());
+                ps.setString(2, u.getCorreo());
+                ps.setString(3, u.getContrasena()); // ya hasheada
+                ps.setInt(4, idRol);
+                ps.executeUpdate();
+
+                try (ResultSet keys = ps.getGeneratedKeys()) {
+                    if (!keys.next())
+                        throw new SQLException("No se obtuvo el ID generado.");
+                    idUsuario = keys.getInt(1);
+                }
+            }
+
+            // 3. Insertar perfil según rol
+            insertarPerfil(conn, idUsuario, u);
+
+            conn.commit();
+
+        } catch (SQLException e) {
+            conn.rollback();
+            throw e;
+        } finally {
+            conn.setAutoCommit(true);
         }
-        return lista;
     }
 
-    public void actualizarUltimoLogin(String username) throws SQLException {
-        String sql = "UPDATE usuarios SET ultimo_login = CURRENT_TIMESTAMP WHERE username = ?";
-        try (Connection conn = ConexionDB.getConexion();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, username);
-            ps.executeUpdate();
+    // ── Helpers privados ──────────────────────────────────────────────
+    private int obtenerIdRol(Connection conn, String nombreRol)
+            throws SQLException {
+        String sql = "SELECT id_rol FROM roles WHERE nombre_rol = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, nombreRol.toUpperCase());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
         }
+        throw new SQLException("Rol no encontrado: " + nombreRol);
     }
 
-    public boolean existeUsername(String username) throws SQLException {
-        return buscarPorUsername(username) != null;
+    private void insertarPerfil(Connection conn, int idUsuario, Usuario u)
+            throws SQLException {
+        switch (u.getRol().toUpperCase()) {
+            case "ARTISTA": {
+                String sql =
+                    "INSERT INTO perfil_artista " +
+                    "    (id_usuario, nombre_artista, estado_artista, tipo_artista) " +
+                    "VALUES (?, ?, 'Activo', 'Solista')";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setInt(1, idUsuario);
+                    ps.setString(2, u.getNombre());
+                    ps.executeUpdate();
+                }
+                break;
+            }
+            case "PRODUCTOR": {
+                String sql =
+                    "INSERT INTO productor " +
+                    "    (id_usuario, nombre, especialidad, estado_productor) " +
+                    "VALUES (?, ?, 'General', 'Disponible')";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setInt(1, idUsuario);
+                    ps.setString(2, u.getNombre());
+                    ps.executeUpdate();
+                }
+                break;
+            }
+            // ADMIN y USUARIO no necesitan perfil extra
+        }
     }
 
     private Usuario mapear(ResultSet rs) throws SQLException {
         return new Usuario(
-            rs.getString("id_usuario"),
+            rs.getInt("id_usuario"),
             rs.getString("username"),
-            rs.getString("password_hash"),
-            rs.getString("nombre"),
+            rs.getString("contrasena"),
             rs.getString("correo"),
-            rs.getString("rol"),
+            rs.getString("nombre_rol"),
             rs.getInt("activo") == 1
         );
+    }
+
+    public boolean hayConexion() {
+        return ConexionDB.probarConexion();
     }
 }

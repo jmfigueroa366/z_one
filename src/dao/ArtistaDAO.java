@@ -8,138 +8,109 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * ArtistaDAO — acceso a datos para la tabla ARTISTAS en Oracle.
- *
- * Principio 1 (Nombres significativos): métodos con verbos
- *   que describen exactamente la operación SQL que realizan.
- * Principio 2 (SRP): solo se ocupa de persistencia; no tiene
- *   lógica de negocio ni código de interfaz.
- * Principio 4 (Funciones pequeñas): cada método hace una sola
- *   cosa y delega la construcción del objeto a mapearFila().
- * Principio 5 (No repetir — DRY): mapearFila() centraliza el
- *   mapeo ResultSet → Artista para no duplicarlo en cada query.
- * Principio 6 (Manejo de errores): todas las excepciones SQL
- *   se propagan como RuntimeException con mensaje descriptivo.
+ * ArtistaDAO — acceso a datos para PERFIL_ARTISTA en Oracle.
+ * Tabla real: PERFIL_ARTISTA  |  PK: ID_ARTISTA
  */
 public class ArtistaDAO {
 
-    // ── Queries SQL como constantes (evita magic strings) ────────────
+    // ── Columnas a seleccionar (evita SELECT *) ──────────────────────
+    private static final String COLS =
+        "ID_ARTISTA, ID_USUARIO, NOMBRE_ARTISTA, NOMBRE_REAL, " +
+        "FECHA_NACIMIENTO, GENERO, NACIONALIDAD, GENERO_MUSICAL, " +
+        "REDES_SOCIALES, FECHA_FIRMA, ESTADO_ARTISTA, TIPO_ARTISTA";
+
     private static final String SQL_LISTAR_TODOS =
-        "SELECT ID, NOMBRE, CORREO, TELEFONO, GENERO, PAIS, CANCIONES, ESTADO " +
-        "FROM ARTISTAS ORDER BY ID";
+        "SELECT " + COLS + " FROM PERFIL_ARTISTA ORDER BY ID_ARTISTA";
 
     private static final String SQL_BUSCAR_POR_ID =
-        "SELECT ID, NOMBRE, CORREO, TELEFONO, GENERO, PAIS, CANCIONES, ESTADO " +
-        "FROM ARTISTAS WHERE ID = ?";
+        "SELECT " + COLS + " FROM PERFIL_ARTISTA WHERE ID_ARTISTA = ?";
 
     private static final String SQL_INSERTAR =
-        "INSERT INTO ARTISTAS (NOMBRE, CORREO, TELEFONO, GENERO, PAIS, CANCIONES, ESTADO) " +
-        "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        "INSERT INTO PERFIL_ARTISTA " +
+        "(ID_USUARIO, NOMBRE_ARTISTA, NOMBRE_REAL, FECHA_NACIMIENTO, " +
+        " GENERO, NACIONALIDAD, GENERO_MUSICAL, REDES_SOCIALES, " +
+        " FECHA_FIRMA, ESTADO_ARTISTA, TIPO_ARTISTA) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     private static final String SQL_ACTUALIZAR =
-        "UPDATE ARTISTAS SET NOMBRE=?, CORREO=?, TELEFONO=?, GENERO=?, " +
-        "PAIS=?, CANCIONES=?, ESTADO=? WHERE ID=?";
+        "UPDATE PERFIL_ARTISTA SET " +
+        "ID_USUARIO=?, NOMBRE_ARTISTA=?, NOMBRE_REAL=?, FECHA_NACIMIENTO=?, " +
+        "GENERO=?, NACIONALIDAD=?, GENERO_MUSICAL=?, REDES_SOCIALES=?, " +
+        "FECHA_FIRMA=?, ESTADO_ARTISTA=?, TIPO_ARTISTA=? " +
+        "WHERE ID_ARTISTA=?";
 
     private static final String SQL_ELIMINAR =
-        "DELETE FROM ARTISTAS WHERE ID = ?";
+        "DELETE FROM PERFIL_ARTISTA WHERE ID_ARTISTA = ?";
 
     private static final String SQL_BUSCAR_POR_TEXTO =
-        "SELECT ID, NOMBRE, CORREO, TELEFONO, GENERO, PAIS, CANCIONES, ESTADO " +
-        "FROM ARTISTAS WHERE LOWER(NOMBRE) LIKE ? OR LOWER(GENERO) LIKE ? " +
-        "OR LOWER(PAIS) LIKE ? ORDER BY ID";
+        "SELECT " + COLS + " FROM PERFIL_ARTISTA " +
+        "WHERE LOWER(NOMBRE_ARTISTA) LIKE ? " +
+        "   OR LOWER(GENERO_MUSICAL) LIKE ? " +
+        "   OR LOWER(NACIONALIDAD)   LIKE ? " +
+        "ORDER BY ID_ARTISTA";
 
-    // ── Operaciones CRUD ─────────────────────────────────────────────
+    // ── CRUD ─────────────────────────────────────────────────────────
 
-    /**
-     * Retorna todos los artistas ordenados por ID.
-     */
     public List<Artista> listarTodos() {
-        List<Artista> artistas = new ArrayList<>();
+        List<Artista> lista = new ArrayList<>();
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(SQL_LISTAR_TODOS);
              ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                artistas.add(mapearFila(rs));
-            }
+            while (rs.next()) lista.add(mapearFila(rs));
         } catch (SQLException e) {
             throw new RuntimeException("Error al listar artistas: " + e.getMessage(), e);
         }
-        return artistas;
+        return lista;
     }
 
-    /**
-     * Busca artistas cuyo nombre, género o país contengan el texto dado.
-     */
     public List<Artista> buscarPorTexto(String texto) {
-        List<Artista> artistas = new ArrayList<>();
+        List<Artista> lista = new ArrayList<>();
         String patron = "%" + texto.toLowerCase() + "%";
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(SQL_BUSCAR_POR_TEXTO)) {
-
             ps.setString(1, patron);
             ps.setString(2, patron);
             ps.setString(3, patron);
-
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    artistas.add(mapearFila(rs));
-                }
+                while (rs.next()) lista.add(mapearFila(rs));
             }
         } catch (SQLException e) {
             throw new RuntimeException("Error al buscar artistas: " + e.getMessage(), e);
         }
-        return artistas;
+        return lista;
     }
 
-    /**
-     * Inserta un nuevo artista y retorna el objeto con el ID generado por Oracle.
-     */
-    public Artista insertar(Artista artista) {
+    public Artista insertar(Artista a) {
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(
-                 SQL_INSERTAR, new String[]{"ID"})) {
-
-            asignarParametros(ps, artista);
+                 SQL_INSERTAR, new String[]{"ID_ARTISTA"})) {
+            asignarParametros(ps, a);
             ps.executeUpdate();
-
             try (ResultSet keys = ps.getGeneratedKeys()) {
-                if (keys.next()) {
-                    artista.setIdentificacion(keys.getInt(1));
-                }
+                if (keys.next()) a.setIdArtista(keys.getInt(1));
             }
         } catch (SQLException e) {
             throw new RuntimeException("Error al insertar artista: " + e.getMessage(), e);
         }
-        return artista;
+        return a;
     }
 
-    /**
-     * Actualiza todos los campos de un artista existente.
-     */
-    public void actualizar(Artista artista) {
+    public void actualizar(Artista a) {
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(SQL_ACTUALIZAR)) {
-
-            asignarParametros(ps, artista);
-            ps.setInt(8, artista.getIdentificacion());
+            asignarParametros(ps, a);
+            ps.setInt(12, a.getIdArtista());   // WHERE ID_ARTISTA = ?
             ps.executeUpdate();
-
         } catch (SQLException e) {
             throw new RuntimeException("Error al actualizar artista: " + e.getMessage(), e);
         }
     }
 
-    /**
-     * Elimina un artista por su ID.
-     */
     public void eliminar(int id) {
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(SQL_ELIMINAR)) {
-
             ps.setInt(1, id);
             ps.executeUpdate();
-
         } catch (SQLException e) {
             throw new RuntimeException("Error al eliminar artista: " + e.getMessage(), e);
         }
@@ -147,34 +118,51 @@ public class ArtistaDAO {
 
     // ── Helpers privados ─────────────────────────────────────────────
 
-    /**
-     * Mapea una fila del ResultSet a un objeto Artista.
-     * Centraliza el mapeo para no repetirlo en cada query (DRY).
-     */
+    /** Convierte una fila del ResultSet en un objeto Artista. */
     private Artista mapearFila(ResultSet rs) throws SQLException {
+        // FECHA_NACIMIENTO y FECHA_FIRMA pueden ser null en la BD
+        Date dbFechaNac  = rs.getDate("FECHA_NACIMIENTO");
+        Date dbFechaFirma = rs.getDate("FECHA_FIRMA");
+
         return new Artista(
-            rs.getInt("ID"),
-            rs.getString("NOMBRE"),
-            rs.getString("CORREO"),
-            rs.getString("TELEFONO"),
+            rs.getInt("ID_ARTISTA"),
+            rs.getObject("ID_USUARIO") != null ? rs.getInt("ID_USUARIO") : null,
+            rs.getString("NOMBRE_ARTISTA"),
+            rs.getString("NOMBRE_REAL"),
+            dbFechaNac  != null ? dbFechaNac.toLocalDate()  : null,
             rs.getString("GENERO"),
-            rs.getString("PAIS"),
-            rs.getInt("CANCIONES"),
-            rs.getString("ESTADO")
+            rs.getString("NACIONALIDAD"),
+            rs.getString("GENERO_MUSICAL"),
+            rs.getString("REDES_SOCIALES"),
+            dbFechaFirma != null ? dbFechaFirma.toLocalDate() : null,
+            rs.getString("ESTADO_ARTISTA"),
+            rs.getString("TIPO_ARTISTA")
         );
     }
 
     /**
-     * Asigna los parámetros comunes del artista al PreparedStatement.
-     * Evita repetir los setString/setInt en insertar() y actualizar().
+     * Asigna los 11 parámetros de INSERT/UPDATE al PreparedStatement.
+     * El parámetro 12 (ID_ARTISTA para el WHERE) lo pone actualizar().
      */
-    private void asignarParametros(PreparedStatement ps, Artista artista) throws SQLException {
-        ps.setString(1, artista.getNombre());
-        ps.setString(2, artista.getCorreo());
-        ps.setString(3, artista.getTelefono());
-        ps.setString(4, artista.getGenero());
-        ps.setString(5, artista.getPais());
-        ps.setInt   (6, artista.getCantidadCanciones());
-        ps.setString(7, artista.getEstado());
+    private void asignarParametros(PreparedStatement ps, Artista a) throws SQLException {
+        if (a.getIdUsuario() != null) ps.setInt(1, a.getIdUsuario());
+        else                          ps.setNull(1, Types.NUMERIC);
+
+        ps.setString(2, a.getNombreArtista());
+        ps.setString(3, a.getNombreReal());
+
+        ps.setDate(4, a.getFechaNacimiento() != null
+            ? Date.valueOf(a.getFechaNacimiento()) : null);
+
+        ps.setString(5,  a.getGenero());
+        ps.setString(6,  a.getNacionalidad());
+        ps.setString(7,  a.getGeneroMusical());
+        ps.setString(8,  a.getRedesSociales());
+
+        ps.setDate(9, a.getFechaFirma() != null
+            ? Date.valueOf(a.getFechaFirma()) : null);
+
+        ps.setString(10, a.getEstadoArtista());
+        ps.setString(11, a.getTipoArtista());
     }
 }

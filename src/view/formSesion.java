@@ -24,7 +24,7 @@ public class formSesion extends JPanel {
     // ─── Constantes ───────────────────────────────────────────────────────────────
 
     private static final String[] COLS   = {"ID","Nombre sesión","Fecha","Hora inicio","Hora fin","Artista","Productor","Estado"};
-    private static final String[] ESTADOS = {"Programada","En curso","Finalizada","Cancelada"};
+    private static final String[] ESTADOS = Sesion.ESTADOS_VALIDOS;
 
     private static final Color CF  = new Color(18,18,40);
     private static final Color CFD = new Color(24,24,52);
@@ -60,9 +60,12 @@ public class formSesion extends JPanel {
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(0,0,0,0));
         cargarCombos();
-        sesiones.add(new Sesion(1,LocalDate.of(2025,3,10),3.0,artistas.get(0),productores.get(0),360.0));
-        sesiones.add(new Sesion(2,LocalDate.of(2025,4,22),5.5,artistas.get(1),productores.get(2),825.0));
-        sesiones.add(new Sesion(3,LocalDate.of(2025,5, 1),2.0,artistas.get(2),productores.get(1),190.0));
+        sesiones.add(new Sesion(1,artistas.get(0),productores.get(0),1,"Grabación Titi",
+                LocalDate.of(2025,3,10),"09:00","13:00",4.0,Sesion.ESTADO_FINALIZADA,""));
+        sesiones.add(new Sesion(2,artistas.get(1),productores.get(2),2,"Sesión TQG",
+                LocalDate.of(2025,4,22),"14:00","19:30",5.5,Sesion.ESTADO_PROGRAMADA,""));
+        sesiones.add(new Sesion(3,artistas.get(2),productores.get(1),1,"Sesión Pop",
+                LocalDate.of(2025,5,1),"10:00","12:00",2.0,Sesion.ESTADO_EN_CURSO,""));
         add(headerPanel(), BorderLayout.NORTH);
         add(tableCard(),   BorderLayout.CENTER);
     }
@@ -81,9 +84,18 @@ public class formSesion extends JPanel {
 
     public void cargarCombos() {
         artistas.clear(); productores.clear(); cabinas.clear();
-        artistas.add(new Artista(1,"Bad Bunny","badbunny@mail.com","0000000001","Reggaeton","Puerto Rico",0,Artista.ESTADO_ACTIVO));
-        artistas.add(new Artista(2,"Karol G",  "karolg@mail.com",  "0000000002","Urbano",   "Colombia",   0,Artista.ESTADO_ACTIVO));
-        artistas.add(new Artista(3,"Shakira",  "shakira@mail.com", "0000000003","Pop / Rock","Colombia",  0,Artista.ESTADO_ACTIVO));
+        artistas.add(new Artista(1, null, "Bad Bunny", "Benito Martínez",
+                LocalDate.of(1994,3,10), "M", "Puerto Rico", "Reggaeton",
+                "@badbunny", LocalDate.of(2016,1,1),
+                Artista.ESTADO_ACTIVO, Artista.TIPO_SOLISTA));
+        artistas.add(new Artista(2, null, "Karol G", "Carolina Giraldo",
+                LocalDate.of(1991,2,14), "F", "Colombia", "Reggaeton",
+                "@karolg", LocalDate.of(2017,1,1),
+                Artista.ESTADO_ACTIVO, Artista.TIPO_SOLISTA));
+        artistas.add(new Artista(3, null, "Shakira", "Shakira Mebarak",
+                LocalDate.of(1977,2,2), "F", "Colombia", "Pop / Rock",
+                "@shakira", LocalDate.of(2010,1,1),
+                Artista.ESTADO_EN_PAUSA, Artista.TIPO_SOLISTA));
         productores.add(new Productor(1, "Carlos Vives",     "cvives@mail.com",  "3001234567", "Mezcla",        120.0));
         productores.add(new Productor(2, "Andrés Torres",    "atorres@mail.com", "3109876543", "Masterización",  95.0));
         productores.add(new Productor(3, "Mauricio Rengifo", "mrengifo@mail.com","3154561234", "Composición",   150.0));
@@ -130,7 +142,7 @@ public class formSesion extends JPanel {
         be.addActionListener(e -> { int r=tabla.getSelectedRow(); if(r<0){toast("Selecciona una sesión primero",MainFrame.ToastType.INFO);}else openForm(r); });
         bd.addActionListener(e -> { int r=tabla.getSelectedRow(); if(r<0){toast("Selecciona una sesión primero",MainFrame.ToastType.INFO);return;}
             if(JOptionPane.showConfirmDialog(this,"¿Eliminar la sesión #"+(String)modelo.getValueAt(r,0)+"?","Z-One — Confirmar",JOptionPane.YES_NO_OPTION)==JOptionPane.YES_OPTION){
-                int id=Integer.parseInt((String)modelo.getValueAt(r,0)); sesiones.removeIf(s->s.getIdentificador()==id); refreshTable(sesiones); toast("Sesión eliminada correctamente",MainFrame.ToastType.SUCCESS);} });
+                int id=Integer.parseInt((String)modelo.getValueAt(r,0)); sesiones.removeIf(s->s.getIdSesion()==id); refreshTable(sesiones); toast("Sesión eliminada correctamente",MainFrame.ToastType.SUCCESS);} });
         br.addActionListener(e -> { busqueda.setText(""); refreshTable(sesiones); toast("Lista actualizada",MainFrame.ToastType.INFO); });
         acc.add(be); acc.add(bd); acc.add(br);
 
@@ -168,40 +180,43 @@ public class formSesion extends JPanel {
     private void refreshTable(List<Sesion> data) {
         modelo.setRowCount(0);
         data.forEach(s -> modelo.addRow(new Object[]{
-            String.format("%03d",s.getIdentificador()), "Sesión #"+s.getIdentificador(),
-            s.getFechaRealizacion().format(FMT), "09:00","12:00",
-            s.getArtista().getNombre(), s.getProductor().getNombre(), "Programada"
+            String.format("%03d",s.getIdSesion()), s.getNombreSesion(),
+            s.getFecha().format(FMT), s.getHoraInicio(), s.getHoraFin(),
+            s.getArtista().getNombreArtista(), s.getProductor().getNombre(), s.getEstadoSesion()
         }));
     }
 
     private void filtrarTabla() {
         String q = busqueda.getText().trim().toLowerCase();
         refreshTable(q.isEmpty() ? sesiones : sesiones.stream().filter(s ->
-            s.getArtista().getNombre().toLowerCase().contains(q) ||
+            s.getNombreSesion().toLowerCase().contains(q) ||
+            s.getArtista().getNombreArtista().toLowerCase().contains(q) ||
             s.getProductor().getNombre().toLowerCase().contains(q) ||
-            s.getFechaRealizacion().format(FMT).contains(q)).toList());
+            s.getFecha().format(FMT).contains(q)).toList());
     }
 
     // ─── Diálogo crear / editar ──────────────────────────────────────────────────
 
     private void openForm(Integer editRow) {
         boolean isEdit = editRow != null;
-        Sesion se = isEdit ? sesiones.stream().filter(s->s.getIdentificador()==Integer.parseInt((String)modelo.getValueAt(editRow,0))).findFirst().orElse(null) : null;
+        Sesion se = isEdit ? sesiones.stream().filter(s->s.getIdSesion()==Integer.parseInt((String)modelo.getValueAt(editRow,0))).findFirst().orElse(null) : null;
 
         JDialog dlg = new JDialog((java.awt.Frame)SwingUtilities.getWindowAncestor(this), isEdit?"Editar sesión":"Nueva sesión", true);
         JPanel  pnl = darkPanel();
 
-        JTextField fNombre = field(se!=null?"Sesión #"+se.getIdentificador():"","Nombre de la sesión");
-        JTextField fFecha  = field(se!=null?se.getFechaRealizacion().format(FMT):"","dd/MM/yyyy");
-        JTextField fHIni   = field("09:00","HH:mm");
-        JTextField fHFin   = field("12:00","HH:mm");
-        JTextField fDur    = field(se!=null?String.valueOf(se.getDuracionHoras()):"","Horas (ej: 3.5)");
-        JTextField fObs    = field("","Observaciones opcionales");
-        JComboBox<String>   cbEstado  = comboStr(ESTADOS,"Programada");
+        JTextField fNombre = field(se!=null?se.getNombreSesion():"","Nombre de la sesión");
+        JTextField fFecha  = field(se!=null?se.getFecha().format(FMT):"","dd/MM/yyyy");
+        JTextField fHIni   = field(se!=null?se.getHoraInicio():"09:00","HH:mm");
+        JTextField fHFin   = field(se!=null?se.getHoraFin():"12:00","HH:mm");
+        JTextField fDur    = field(se!=null?String.valueOf(se.getDuracion()):"","Horas (ej: 3.5)");
+        JTextField fObs    = field(se!=null&&se.getObservaciones()!=null?se.getObservaciones():"","Observaciones opcionales");
+        JComboBox<String>   cbEstado  = comboStr(ESTADOS,se!=null?se.getEstadoSesion():Sesion.ESTADO_PROGRAMADA);
         JComboBox<String>   cbCabina  = comboStr(cabinas.toArray(new String[0]),cabinas.get(0));
+        if(se!=null && se.getIdCabina()!=null && se.getIdCabina()>=1 && se.getIdCabina()<=cabinas.size())
+            cbCabina.setSelectedIndex(se.getIdCabina()-1);
         JComboBox<Artista>  cbArt = new JComboBox<>(artistas.toArray(new Artista[0]));
         JComboBox<Productor> cbProd = new JComboBox<>(productores.toArray(new Productor[0]));
-        cbArt.setRenderer(objRenderer(v->v instanceof Artista a?a.getNombre():"")); styleCombo(cbArt);
+        cbArt.setRenderer(objRenderer(v->v instanceof Artista a?a.getNombreArtista():"")); styleCombo(cbArt);
         cbProd.setRenderer(objRenderer(v->v instanceof Productor p?p.getNombre():"")); styleCombo(cbProd);
         if(se!=null){ cbArt.setSelectedItem(se.getArtista()); cbProd.setSelectedItem(se.getProductor()); }
 
@@ -224,6 +239,9 @@ public class formSesion extends JPanel {
         bCancel.addActionListener(e->dlg.dispose());
         bSave.addActionListener(e->{
             String nm=fNombre.getText().trim(), fd=fFecha.getText().trim(), dr=fDur.getText().trim();
+            String hi=fHIni.getText().trim(), hf=fHFin.getText().trim(), obs=fObs.getText().trim();
+            String estado=(String)cbEstado.getSelectedItem();
+            Integer idCab=cbCabina.getSelectedIndex()+1;
             Artista art=(Artista)cbArt.getSelectedItem(); Productor prod=(Productor)cbProd.getSelectedItem();
             if(nm.isEmpty()){toast("El nombre de sesión es obligatorio",MainFrame.ToastType.ERROR);return;}
             if(fd.isEmpty()){toast("La fecha es obligatoria",MainFrame.ToastType.ERROR);return;}
@@ -233,9 +251,15 @@ public class formSesion extends JPanel {
             LocalDate fecha; try{ fecha=LocalDate.parse(fd,FMT); }catch(DateTimeParseException ex){toast("Formato de fecha inválido (dd/MM/yyyy)",MainFrame.ToastType.ERROR);return;}
             double dur=parseDouble(dr).orElse(-1.0);
             if(dur<=0){toast("La duración debe ser un número positivo",MainFrame.ToastType.ERROR);return;}
-            double costo=dur*prod.getTarifaHora();
-            if(isEdit&&se!=null){ se.setFechaRealizacion(fecha); se.setDuracionHoras(dur); se.setArtista(art); se.setProductor(prod); se.setCostoTotal(costo); toast("Sesión actualizada correctamente",MainFrame.ToastType.SUCCESS); }
-            else{ sesiones.add(new Sesion(nextId++,fecha,dur,art,prod,costo)); toast("Sesión creada correctamente",MainFrame.ToastType.SUCCESS); }
+            if(isEdit&&se!=null){
+                se.setNombreSesion(nm); se.setFecha(fecha); se.setHoraInicio(hi); se.setHoraFin(hf);
+                se.setDuracion(dur); se.setArtista(art); se.setProductor(prod);
+                se.setIdCabina(idCab); se.setEstadoSesion(estado); se.setObservaciones(obs);
+                toast("Sesión actualizada correctamente",MainFrame.ToastType.SUCCESS);
+            } else {
+                sesiones.add(new Sesion(nextId++,art,prod,idCab,nm,fecha,hi,hf,dur,estado,obs));
+                toast("Sesión creada correctamente",MainFrame.ToastType.SUCCESS);
+            }
             refreshTable(sesiones); dlg.dispose();
         });
         btns.add(bCancel); btns.add(bSave); pnl.add(btns);

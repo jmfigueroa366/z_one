@@ -1,70 +1,60 @@
 package services;
+
 import dao.ArtistaDAO;
-import java.util.List;
 import model.Artista;
 
+import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.List;
 
 /**
- * ArtistaService — lógica de negocio para la gestión de artistas.
- *
- * Principio 1 (Nombres significativos): métodos con verbos de
- *   dominio (registrar, modificar, dar de baja) en lugar de
- *   términos técnicos de BD (insert, update, delete).
- * Principio 2 (SRP): solo valida reglas de negocio y delega
- *   la persistencia al DAO; no toca Swing ni SQL directamente.
- * Principio 4 (Funciones pequeñas): cada validación es un
- *   método privado con nombre que explica la regla.
- * Principio 7 (Separación de capas): la vista llama al service,
- *   el service llama al DAO; nunca la vista al DAO directamente.
+ * ArtistaService — lógica de negocio para PERFIL_ARTISTA.
+ * Solo valida reglas; delega la persistencia al DAO.
  */
 public class ArtistaService {
 
     private final ArtistaDAO dao;
 
-    // ── Constructor con inyección del DAO ────────────────────────────
     public ArtistaService() {
         this.dao = new ArtistaDAO();
     }
 
     // ── Consultas ────────────────────────────────────────────────────
 
-    /**
-     * Retorna todos los artistas registrados en la BD.
-     */
     public List<Artista> obtenerTodos() {
         return dao.listarTodos();
     }
 
-    /**
-     * Filtra artistas por nombre, género o país.
-     * Si el texto está vacío retorna todos.
-     */
+    /** Si el texto está vacío retorna todos los artistas. */
     public List<Artista> buscar(String texto) {
-        if (texto == null || texto.trim().isEmpty()) {
-            return dao.listarTodos();
-        }
+        if (texto == null || texto.trim().isEmpty()) return dao.listarTodos();
         return dao.buscarPorTexto(texto.trim());
     }
 
     // ── Operaciones de negocio ───────────────────────────────────────
 
     /**
-     * Registra un nuevo artista después de validar las reglas de negocio.
+     * Registra un nuevo artista validando las reglas de negocio.
      *
      * @throws IllegalArgumentException si algún campo obligatorio falla.
      */
-    public Artista registrar(String nombre, String correo, String telefono,
-                              String genero, String pais,
-                              int cantidadCanciones, String estado) {
-        validarNombreNoVacio(nombre);
-        validarGeneroNoVacio(genero);
-        validarCancionesNoNegativas(cantidadCanciones);
-        validarEstadoPermitido(estado);
+    public Artista registrar(String nombreArtista, String nombreReal,
+                              LocalDate fechaNacimiento, String genero,
+                              String nacionalidad, String generoMusical,
+                              String redesSociales, LocalDate fechaFirma,
+                              String estadoArtista, String tipoArtista) {
+
+        validarNombreNoVacio(nombreArtista);
+        validarGeneroMusicalNoVacio(generoMusical);
+        validarEstadoPermitido(estadoArtista);
+        validarTipoPermitido(tipoArtista);
 
         Artista artista = new Artista(
-            0, nombre.trim(), correo, telefono,
-            genero.trim(), pais, cantidadCanciones, estado
+            nombreArtista.trim(), nombreReal,
+            fechaNacimiento, genero,
+            nacionalidad, generoMusical.trim(),
+            redesSociales, fechaFirma,
+            estadoArtista, tipoArtista
         );
         return dao.insertar(artista);
     }
@@ -74,52 +64,52 @@ public class ArtistaService {
      *
      * @throws IllegalArgumentException si algún campo obligatorio falla.
      */
-    public void modificar(int id, String nombre, String correo, String telefono,
-                           String genero, String pais,
-                           int cantidadCanciones, String estado) {
-        validarNombreNoVacio(nombre);
-        validarGeneroNoVacio(genero);
-        validarCancionesNoNegativas(cantidadCanciones);
-        validarEstadoPermitido(estado);
+    public void modificar(int idArtista, String nombreArtista, String nombreReal,
+                           LocalDate fechaNacimiento, String genero,
+                           String nacionalidad, String generoMusical,
+                           String redesSociales, LocalDate fechaFirma,
+                           String estadoArtista, String tipoArtista) {
+
+        validarNombreNoVacio(nombreArtista);
+        validarGeneroMusicalNoVacio(generoMusical);
+        validarEstadoPermitido(estadoArtista);
+        validarTipoPermitido(tipoArtista);
 
         Artista artista = new Artista(
-            id, nombre.trim(), correo, telefono,
-            genero.trim(), pais, cantidadCanciones, estado
+            idArtista, null,
+            nombreArtista.trim(), nombreReal,
+            fechaNacimiento, genero,
+            nacionalidad, generoMusical.trim(),
+            redesSociales, fechaFirma,
+            estadoArtista, tipoArtista
         );
         dao.actualizar(artista);
     }
 
-    /**
-     * Elimina permanentemente un artista de la BD.
-     */
-    public void darDeBaja(int id) {
-        dao.eliminar(id);
+    /** Elimina permanentemente un artista. */
+    public void darDeBaja(int idArtista) {
+        dao.eliminar(idArtista);
     }
 
-    // ── Validaciones privadas (Principio 4 — funciones pequeñas) ────
+    // ── Validaciones privadas ────────────────────────────────────────
 
     private void validarNombreNoVacio(String nombre) {
-        if (nombre == null || nombre.trim().isEmpty()) {
+        if (nombre == null || nombre.trim().isEmpty())
             throw new IllegalArgumentException("El nombre artístico es obligatorio.");
-        }
     }
 
-    private void validarGeneroNoVacio(String genero) {
-        if (genero == null || genero.trim().isEmpty()) {
+    private void validarGeneroMusicalNoVacio(String generoMusical) {
+        if (generoMusical == null || generoMusical.trim().isEmpty())
             throw new IllegalArgumentException("El género musical es obligatorio.");
-        }
-    }
-
-    private void validarCancionesNoNegativas(int cantidad) {
-        if (cantidad < 0) {
-            throw new IllegalArgumentException("El número de canciones no puede ser negativo.");
-        }
     }
 
     private void validarEstadoPermitido(String estado) {
-        boolean esValido = Arrays.asList(Artista.ESTADOS_VALIDOS).contains(estado);
-        if (!esValido) {
+        if (!Arrays.asList(Artista.ESTADOS_VALIDOS).contains(estado))
             throw new IllegalArgumentException("Estado no válido: " + estado);
-        }
+    }
+
+    private void validarTipoPermitido(String tipo) {
+        if (!Arrays.asList(Artista.TIPOS_VALIDOS).contains(tipo))
+            throw new IllegalArgumentException("Tipo de artista no válido: " + tipo);
     }
 }
