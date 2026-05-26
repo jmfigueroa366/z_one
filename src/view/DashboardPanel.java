@@ -92,6 +92,7 @@ public class DashboardPanel extends JPanel {
         row.add(new StatCard("ARTISTAS",    "24", "+3 este mes",  new Color(59, 130, 246), IconType.PERSON));
         row.add(new StatCard("PRODUCTORES", "8",  "todos activos", new Color(139, 92, 246), IconType.MIC));
         row.add(new StatCard("SESIONES",    "12", "este mes",      new Color(245, 158, 11), IconType.CALENDAR));
+        row.add(new StatCard("CABINA",    "12", "este mes",      new Color(245, 158, 11), IconType.CALENDAR));
         row.add(new StatCard("CANCIONES",   "87", "+5 publicadas", new Color(236, 72, 153), IconType.MUSIC));
         return row;
     }
