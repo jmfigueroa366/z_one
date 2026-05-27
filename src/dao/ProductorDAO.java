@@ -8,135 +8,131 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * ProductorDAO — acceso a datos para la tabla PRODUCTORES en Oracle.
+ * ProductorDAO — acceso a datos para la tabla PRODUCTOR en Oracle.
+ * Columnas reales: id_productor, id_usuario, nombre, fecha_nacimiento,
+ * genero, nacionalidad, especialidad, experiencia, tarifa_hora,
+ * estado_productor, fecha_firma
  */
 public class ProductorDAO {
 
-    private static final String SQL_LISTAR_TODOS =
-        "SELECT ID, NOMBRE, CORREO, TELEFONO, ESPECIALIDAD, TARIFA_HORA " +
-        "FROM PRODUCTORES ORDER BY ID";
+    private static final String SQL_LISTAR =
+        "SELECT ID_PRODUCTOR, ID_USUARIO, NOMBRE, FECHA_NACIMIENTO, GENERO, " +
+        "NACIONALIDAD, ESPECIALIDAD, EXPERIENCIA, TARIFA_HORA, " +
+        "ESTADO_PRODUCTOR, FECHA_FIRMA " +
+        "FROM PRODUCTOR ORDER BY ID_PRODUCTOR";
+
+    private static final String SQL_BUSCAR =
+        "SELECT ID_PRODUCTOR, ID_USUARIO, NOMBRE, FECHA_NACIMIENTO, GENERO, " +
+        "NACIONALIDAD, ESPECIALIDAD, EXPERIENCIA, TARIFA_HORA, " +
+        "ESTADO_PRODUCTOR, FECHA_FIRMA " +
+        "FROM PRODUCTOR WHERE LOWER(NOMBRE) LIKE ? " +
+        "OR LOWER(ESPECIALIDAD) LIKE ? OR LOWER(NACIONALIDAD) LIKE ? " +
+        "ORDER BY ID_PRODUCTOR";
 
     private static final String SQL_INSERTAR =
-        "INSERT INTO PRODUCTORES (NOMBRE, CORREO, TELEFONO, ESPECIALIDAD, TARIFA_HORA) " +
-        "VALUES (?, ?, ?, ?, ?)";
+        "INSERT INTO PRODUCTOR (NOMBRE, ESPECIALIDAD, EXPERIENCIA, " +
+        "TARIFA_HORA, NACIONALIDAD, ESTADO_PRODUCTOR) " +
+        "VALUES (?, ?, ?, ?, ?, ?)";
 
     private static final String SQL_ACTUALIZAR =
-        "UPDATE PRODUCTORES SET NOMBRE=?, CORREO=?, TELEFONO=?, " +
-        "ESPECIALIDAD=?, TARIFA_HORA=? WHERE ID=?";
+        "UPDATE PRODUCTOR SET NOMBRE=?, ESPECIALIDAD=?, EXPERIENCIA=?, " +
+        "TARIFA_HORA=?, NACIONALIDAD=?, ESTADO_PRODUCTOR=? " +
+        "WHERE ID_PRODUCTOR=?";
 
     private static final String SQL_ELIMINAR =
-        "DELETE FROM PRODUCTORES WHERE ID = ?";
+        "DELETE FROM PRODUCTOR WHERE ID_PRODUCTOR=?";
 
-    private static final String SQL_BUSCAR_POR_TEXTO =
-        "SELECT ID, NOMBRE, CORREO, TELEFONO, ESPECIALIDAD, TARIFA_HORA " +
-        "FROM PRODUCTORES WHERE LOWER(NOMBRE) LIKE ? OR LOWER(ESPECIALIDAD) LIKE ? " +
-        "OR LOWER(CORREO) LIKE ? ORDER BY ID";
+    // ── CRUD ──────────────────────────────────────────────────────────
 
-    /** Retorna todos los productores ordenados por ID. */
     public List<Productor> listarTodos() {
-        List<Productor> productores = new ArrayList<>();
+        List<Productor> lista = new ArrayList<>();
         try (Connection con = ConexionDB.getConexion();
-             PreparedStatement ps = con.prepareStatement(SQL_LISTAR_TODOS);
+             PreparedStatement ps = con.prepareStatement(SQL_LISTAR);
              ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                productores.add(mapearFila(rs));
-            }
+            while (rs.next()) lista.add(mapear(rs));
         } catch (SQLException e) {
             throw new RuntimeException("Error al listar productores: " + e.getMessage(), e);
         }
-        return productores;
+        return lista;
     }
 
-    /** Busca productores por nombre, especialidad o correo. */
     public List<Productor> buscarPorTexto(String texto) {
-        List<Productor> productores = new ArrayList<>();
+        List<Productor> lista = new ArrayList<>();
         String patron = "%" + texto.toLowerCase() + "%";
         try (Connection con = ConexionDB.getConexion();
-             PreparedStatement ps = con.prepareStatement(SQL_BUSCAR_POR_TEXTO)) {
-
+             PreparedStatement ps = con.prepareStatement(SQL_BUSCAR)) {
             ps.setString(1, patron);
             ps.setString(2, patron);
             ps.setString(3, patron);
-
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    productores.add(mapearFila(rs));
-                }
+                while (rs.next()) lista.add(mapear(rs));
             }
         } catch (SQLException e) {
             throw new RuntimeException("Error al buscar productores: " + e.getMessage(), e);
         }
-        return productores;
+        return lista;
     }
 
-    /** Inserta un nuevo productor y retorna el objeto con el ID generado. */
-    public Productor insertar(Productor productor) {
+    public Productor insertar(Productor p) {
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(
-                 SQL_INSERTAR, new String[]{"ID"})) {
-
-            asignarParametros(ps, productor);
+                 SQL_INSERTAR, new String[]{"ID_PRODUCTOR"})) {
+            asignarParams(ps, p);
             ps.executeUpdate();
-
             try (ResultSet keys = ps.getGeneratedKeys()) {
-                if (keys.next()) {
-                    productor.setIdentificacion(keys.getInt(1));
-                }
+                if (keys.next()) p.setIdProductor(keys.getInt(1));
             }
         } catch (SQLException e) {
             throw new RuntimeException("Error al insertar productor: " + e.getMessage(), e);
         }
-        return productor;
+        return p;
     }
 
-    /** Actualiza todos los campos de un productor existente. */
-    public void actualizar(Productor productor) {
+    public void actualizar(Productor p) {
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(SQL_ACTUALIZAR)) {
-
-            asignarParametros(ps, productor);
-            ps.setInt(6, productor.getIdentificacion());
+            asignarParams(ps, p);
+            ps.setInt(7, p.getIdProductor());
             ps.executeUpdate();
-
         } catch (SQLException e) {
             throw new RuntimeException("Error al actualizar productor: " + e.getMessage(), e);
         }
     }
 
-    /** Elimina un productor por su ID. */
     public void eliminar(int id) {
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(SQL_ELIMINAR)) {
-
             ps.setInt(1, id);
             ps.executeUpdate();
-
         } catch (SQLException e) {
             throw new RuntimeException("Error al eliminar productor: " + e.getMessage(), e);
         }
     }
 
-    // ── Helpers privados ─────────────────────────────────────────────
+    // ── Helpers privados ──────────────────────────────────────────────
 
-    /** Mapea una fila del ResultSet a un objeto Productor (DRY). */
-    private Productor mapearFila(ResultSet rs) throws SQLException {
+    private Productor mapear(ResultSet rs) throws SQLException {
         return new Productor(
-            rs.getInt("ID"),
+            rs.getInt("ID_PRODUCTOR"),
+            rs.getInt("ID_USUARIO"),
             rs.getString("NOMBRE"),
-            rs.getString("CORREO"),
-            rs.getString("TELEFONO"),
+            rs.getString("FECHA_NACIMIENTO"),
+            rs.getString("GENERO"),
+            rs.getString("NACIONALIDAD"),
             rs.getString("ESPECIALIDAD"),
-            rs.getDouble("TARIFA_HORA")
+            rs.getString("EXPERIENCIA"),
+            rs.getDouble("TARIFA_HORA"),
+            rs.getString("ESTADO_PRODUCTOR"),
+            rs.getString("FECHA_FIRMA")
         );
     }
 
-    /** Asigna los parámetros comunes al PreparedStatement. */
-    private void asignarParametros(PreparedStatement ps, Productor p) throws SQLException {
+    private void asignarParams(PreparedStatement ps, Productor p) throws SQLException {
         ps.setString(1, p.getNombre());
-        ps.setString(2, p.getCorreo());
-        ps.setString(3, p.getTelefono());
-        ps.setString(4, p.getEspecialidad());
-        ps.setDouble(5, p.getTarifaHora());
+        ps.setString(2, p.getEspecialidad());
+        ps.setString(3, p.getExperiencia());
+        ps.setDouble(4, p.getTarifaHora());
+        ps.setString(5, p.getNacionalidad());
+        ps.setString(6, p.getEstadoProductor() != null ? p.getEstadoProductor() : "Disponible");
     }
 }

@@ -7,7 +7,9 @@ import java.util.List;
 
 /**
  * ProductorService — lógica de negocio para la gestión de productores.
- * Valida reglas de negocio y delega la persistencia al DAO.
+ *
+ * Principio SRP : solo valida reglas de negocio y delega al DAO.
+ * Principio separación de capas: la vista nunca llama al DAO directamente.
  */
 public class ProductorService {
 
@@ -17,12 +19,12 @@ public class ProductorService {
         this.dao = new ProductorDAO();
     }
 
-    /** Retorna todos los productores registrados. */
+    // ── Consultas ─────────────────────────────────────────────────────
+
     public List<Productor> obtenerTodos() {
         return dao.listarTodos();
     }
 
-    /** Filtra productores por nombre, especialidad o correo. */
     public List<Productor> buscar(String texto) {
         if (texto == null || texto.trim().isEmpty()) {
             return dao.listarTodos();
@@ -30,40 +32,54 @@ public class ProductorService {
         return dao.buscarPorTexto(texto.trim());
     }
 
-    /** Registra un nuevo productor tras validar las reglas de negocio. */
-    public Productor registrar(String nombre, String correo, String telefono,
-                               String especialidad, double tarifaHora) {
+    // ── Operaciones de negocio ────────────────────────────────────────
+
+    /**
+     * Registra un nuevo productor.
+     * Parámetros alineados con los campos reales de Productor.java:
+     * nombre, especialidad, experiencia, tarifaHora, nacionalidad
+     */
+    public Productor registrar(String nombre, String especialidad,
+                                String experiencia, double tarifaHora,
+                                String nacionalidad) {
         validarNombreNoVacio(nombre);
         validarEspecialidadNoVacia(especialidad);
         validarTarifaNoNegativa(tarifaHora);
 
-        Productor productor = new Productor(
-            0, nombre.trim(), correo, telefono,
-            especialidad.trim(), tarifaHora
-        );
-        return dao.insertar(productor);
+        Productor p = new Productor(nombre, especialidad, experiencia,
+                                    tarifaHora, nacionalidad);
+        return dao.insertar(p);
     }
 
-    /** Modifica los datos de un productor existente. */
-    public void modificar(int id, String nombre, String correo, String telefono,
-                          String especialidad, double tarifaHora) {
+    /**
+     * Modifica un productor existente.
+     */
+    public void modificar(int id, String nombre, String especialidad,
+                           String experiencia, double tarifaHora,
+                           String nacionalidad, String estado) {
         validarNombreNoVacio(nombre);
         validarEspecialidadNoVacia(especialidad);
         validarTarifaNoNegativa(tarifaHora);
 
-        Productor productor = new Productor(
-            id, nombre.trim(), correo, telefono,
-            especialidad.trim(), tarifaHora
-        );
-        dao.actualizar(productor);
+        Productor p = new Productor();
+        p.setIdProductor(id);
+        p.setNombre(nombre);
+        p.setEspecialidad(especialidad);
+        p.setExperiencia(experiencia);
+        p.setTarifaHora(tarifaHora);
+        p.setNacionalidad(nacionalidad);
+        p.setEstadoProductor(estado);
+        dao.actualizar(p);
     }
 
-    /** Elimina permanentemente un productor de la BD. */
+    /**
+     * Elimina un productor por su ID.
+     */
     public void darDeBaja(int id) {
         dao.eliminar(id);
     }
 
-    // ── Validaciones privadas ────────────────────────────────────────
+    // ── Validaciones privadas ─────────────────────────────────────────
 
     private void validarNombreNoVacio(String nombre) {
         if (nombre == null || nombre.trim().isEmpty()) {
@@ -79,7 +95,7 @@ public class ProductorService {
 
     private void validarTarifaNoNegativa(double tarifa) {
         if (tarifa < 0) {
-            throw new IllegalArgumentException("La tarifa por hora no puede ser negativa.");
+            throw new IllegalArgumentException("La tarifa no puede ser negativa.");
         }
     }
 }
