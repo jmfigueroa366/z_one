@@ -3,14 +3,10 @@ package util;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-public class ConexionDB {
-    private static final String HOST     = "localhost";
-    private static final String PORT     = "1521";
-    private static final String SID      = "XE"; 
-    private static final String DB_USER  = "System";  
-    private static final String DB_PASS  = "oracle123"; 
-    private static final String URL =
-        "jdbc:oracle:thin:@" + HOST + ":" + PORT + ":" + SID;
+public class ConexionDB { 
+    private static final String DB_USER  = "zone_app";  
+    private static final String DB_PASS  = "ZoneMusic2026"; 
+  private static final String URL = "jdbc:oracle:thin:@localhost:1521/XEPDB1";
   static {
         try {
             Class.forName("oracle.jdbc.OracleDriver");
