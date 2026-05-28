@@ -2,17 +2,7 @@ package model;
 
 import java.time.LocalDate;
 
-/**
- * Sesion — modelo que refleja exactamente la tabla SESION_GRABACION de Oracle.
- *
- * Columnas mapeadas:
- *   ID_SESION, ID_ARTISTA, ID_PRODUCTOR, ID_CABINA, NOMBRE_SESION,
- *   FECHA, HORA_INICIO, HORA_FIN, DURACION, ESTADO_SESION, OBSERVACIONES
- *
- * id_artista / id_productor se navegan como objetos (Artista / Productor).
- * id_cabina se mantiene como Integer porque aún no existe un modelo Cabina.
- * El costo NO es columna: se calcula (duración × tarifa), igual que fn_costo_sesion.
- */
+
 public class Sesion {
 
     // ── Estados válidos ──────────────────────────────────────────────

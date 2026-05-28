@@ -1,11 +1,6 @@
 package model;
 
-/**
- * Productor — modelo alineado con la tabla productor del esquema z_one.
- * Columnas: id_productor, id_usuario, nombre, fecha_nacimiento, genero,
- *           nacionalidad, especialidad, experiencia, tarifa_hora,
- *           estado_productor, fecha_firma
- */
+
 public class Productor {
 
     private int    idProductor;

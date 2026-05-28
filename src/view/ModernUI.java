@@ -8,19 +8,6 @@ import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-/**
- * ModernUI - Tema visual y componentes reutilizables para Z-One.
- *
- * REDISENO: paleta azul corporativa.
- *   #001B48  marino profundo  -> fondos
- *   #02457A  azul medio       -> superficies / bordes
- *   #018ABE  azul brillante   -> color primario / acento
- *   #97CADB  celeste          -> acento claro / textos vivos
- *   #D6E8EE  celeste palido   -> texto principal
- *
- * Toda la app (Dashboard, Artistas, Productores, Sesiones) cambia de
- * aspecto solo con editar las constantes de color de esta clase.
- */
 public final class ModernUI {
     private ModernUI() {}
 

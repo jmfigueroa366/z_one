@@ -7,43 +7,33 @@ import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.*;
 import java.awt.*;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-/**
- * formProductor — Estilo "Solo Leveling / Z-One".
- * Columna derecha con ranking de tarifas (podio) arriba y panel SQL LOG abajo.
- * Conectado a Oracle vía ProductorService.
- * Campos reales de Productor: nombre, especialidad, experiencia,
- * tarifaHora, nacionalidad, estadoProductor.
- */
 public class formProductor extends JPanel {
-
     // ══════════════════════════════════════════════════════════════════
     //  PALETA
     // ══════════════════════════════════════════════════════════════════
-    static final Color BG_DEEP   = new Color(5,   3,  14);
-    static final Color BG_CARD   = new Color(11,  9,  27);
-    static final Color BG_FIELD  = new Color(18, 14,  44);
-    static final Color BG_ROW_A  = new Color(11,  9,  27);
-    static final Color BG_ROW_B  = new Color(15, 12,  35);
-    static final Color COL_BRD   = new Color(35, 26,  80);
-    static final Color PURPLE    = new Color(124, 58, 237);
-    static final Color PURPLE_LT = new Color(167,139, 250);
+    static final Color BG_DEEP   = new Color(3,   8,  20);
+    static final Color BG_CARD   = new Color(8,  14,  32);
+    static final Color BG_FIELD  = new Color(12, 22,  52);
+    static final Color BG_ROW_A  = new Color(8,  14,  32);
+    static final Color BG_ROW_B  = new Color(11, 18,  40);
+    static final Color COL_BRD   = new Color(22, 48, 100);
+    static final Color PURPLE    = new Color(37, 99,  235);   // azul principal  #2563EB
+    static final Color PURPLE_LT = new Color(96, 165, 250);   // azul claro      #60A5FA
     static final Color CYAN      = new Color(6,  182, 212);
-    static final Color GREEN     = new Color(52, 211, 153);
-    static final Color AMBER     = new Color(251,191,  36);
+    static final Color GREEN     = new Color(56, 189, 248);   // sky blue #38BDF8
+    static final Color AMBER     = new Color(186, 230, 253);   // sky-100 #BAE6FD — blanco azulado
     static final Color PINK      = new Color(244,114, 182);
-    static final Color TXT_PRI   = new Color(237,233, 254);
-    static final Color TXT_SEC   = new Color(100, 88, 160);
-    static final Color SEL_BG    = new Color(124, 58, 237, 60);
+    static final Color TXT_PRI   = new Color(226,232, 255);
+    static final Color TXT_SEC   = new Color(71,  100, 160);
+    static final Color SEL_BG    = new Color(37,  99, 235, 60);
 
-    static final Color ORO    = new Color(251, 191,  36);
+    static final Color ORO    = new Color(224, 242, 254);   // sky-50  #E0F2FE — blanco perla
     static final Color PLATA  = new Color(203, 213, 225);
-    static final Color BRONCE = new Color(217, 119,  66);
+    static final Color BRONCE = new Color(125, 211, 252);   // sky-300 #7DD3FC — azul medio
 
     // ── Fuentes ───────────────────────────────────────────────────────
     static final Font F_TITLE  = new Font("Segoe UI", Font.BOLD,  26);
@@ -54,22 +44,22 @@ public class formProductor extends JPanel {
     static final Font F_MONO_B = new Font("Consolas", Font.BOLD,  11);
 
     // ══════════════════════════════════════════════════════════════════
-    //  COLUMNAS — alineadas con campos reales de Productor.java
+    //  COLUMNAS
     // ══════════════════════════════════════════════════════════════════
     private static final String[] COLS = {
         "ID", "Nombre", "Especialidad", "Experiencia", "Nacionalidad", "Tarifa/h", "Estado"
     };
     private static final int
-        COL_ID          = 0,
-        COL_NOMBRE      = 1,
-        COL_ESPECIALIDAD= 2,
-        COL_EXPERIENCIA = 3,
-        COL_NACIONALIDAD= 4,
-        COL_TARIFA      = 5,
-        COL_ESTADO      = 6;
+        COL_ID           = 0,
+        COL_NOMBRE       = 1,
+        COL_ESPECIALIDAD = 2,
+        COL_EXPERIENCIA  = 3,
+        COL_NACIONALIDAD = 4,
+        COL_TARIFA       = 5,
+        COL_ESTADO       = 6;
 
     // ══════════════════════════════════════════════════════════════════
-    //  COMPONENTES DE ESTADO
+    //  ESTADO
     // ══════════════════════════════════════════════════════════════════
     private final ProductorService svc = new ProductorService();
     private DefaultTableModel modeloTabla;
@@ -77,11 +67,11 @@ public class formProductor extends JPanel {
     private JTextField        campoBusqueda;
     private JLabel            lblTotal, lblEspecialidades, lblTarifaProm, lblTarifaMax;
 
-    private JPanel logContainer;
-    private JLabel lblLogCount;
-    private int    logCount = 0;
-
     private JPanel rankingContainer;
+    private GraficoBarras graficoBarras;
+
+    // Labels resumen
+    private JLabel lblResTotal, lblResEsp, lblResTop;
 
     // ══════════════════════════════════════════════════════════════════
     //  CONSTRUCTOR
@@ -98,6 +88,7 @@ public class formProductor extends JPanel {
     //  CONSTRUCCIÓN UI
     // ══════════════════════════════════════════════════════════════════
     private void construirUI() {
+        // ── Columna izquierda (encabezado + stats + tabla) ────────────
         JPanel izq = new JPanel(new BorderLayout(0, 0));
         izq.setOpaque(false);
         izq.add(encabezado(), BorderLayout.NORTH);
@@ -111,14 +102,26 @@ public class formProductor extends JPanel {
         cuerpo.add(panelTabla());
         izq.add(cuerpo, BorderLayout.CENTER);
 
-        JPanel der = new JPanel(new BorderLayout(0, 14));
+        // ── Columna derecha (ranking + gráfico + resumen) ─────────────
+        JPanel der = new JPanel(new BorderLayout(0, 10));
         der.setOpaque(false);
         der.setBorder(new EmptyBorder(0, 14, 0, 0));
-        JPanel rank = panelRanking();
-        rank.setPreferredSize(new Dimension(275, 300));
-        der.add(rank,           BorderLayout.NORTH);
-        der.add(panelSqlLog(),  BorderLayout.CENTER);
         der.setPreferredSize(new Dimension(275, 0));
+
+        // TOP TARIFAS (altura fija)
+        JPanel rank = panelRanking();
+        rank.setPreferredSize(new Dimension(275, 280));
+
+        // TARIFA POR PRODUCTOR (gráfico de barras)
+        JPanel graf = panelGrafico();
+
+        // RESUMEN
+        JPanel res = panelResumen();
+        res.setPreferredSize(new Dimension(275, 138));
+
+        der.add(rank, BorderLayout.NORTH);
+        der.add(graf, BorderLayout.CENTER);
+        der.add(res,  BorderLayout.SOUTH);
 
         add(izq, BorderLayout.CENTER);
         add(der, BorderLayout.EAST);
@@ -165,10 +168,10 @@ public class formProductor extends JPanel {
 
     // ─── Fila estadísticas ────────────────────────────────────────────
     private JPanel filaStats() {
-        lblTotal         = new JLabel("0");
+        lblTotal          = new JLabel("0");
         lblEspecialidades = new JLabel("0");
-        lblTarifaProm    = new JLabel("$0");
-        lblTarifaMax     = new JLabel("$0");
+        lblTarifaProm     = new JLabel("$0");
+        lblTarifaMax      = new JLabel("$0");
 
         JPanel p = new JPanel(new GridLayout(1, 4, 12, 0));
         p.setOpaque(false);
@@ -285,31 +288,38 @@ public class formProductor extends JPanel {
         tabla.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         JTableHeader th = tabla.getTableHeader();
-        th.setBackground(new Color(7, 5, 15));
+        th.setBackground(new Color(5, 12, 30));
         th.setForeground(PURPLE_LT);
         th.setFont(new Font("Segoe UI", Font.BOLD, 9));
         th.setBorder(BorderFactory.createMatteBorder(0,0,1,0, COL_BRD));
         th.setReorderingAllowed(false);
         th.setPreferredSize(new Dimension(0, 34));
+        th.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable t, Object val, boolean sel, boolean foc, int row, int col) {
+                JLabel l = (JLabel) super.getTableCellRendererComponent(t, val, sel, foc, row, col);
+                l.setBackground(new Color(5, 12, 30));
+                l.setForeground(PURPLE_LT);
+                l.setFont(new Font("Segoe UI", Font.BOLD, 9));
+                l.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(0, 0, 1, 0, COL_BRD),
+                    new EmptyBorder(0, 16, 0, 16)
+                ));
+                l.setOpaque(true);
+                return l;
+            }
+        });
 
-        // 7 columnas
         int[] w = {52, 155, 125, 110, 105, 85, 90};
         for (int i = 0; i < w.length; i++)
             tabla.getColumnModel().getColumn(i).setPreferredWidth(w[i]);
 
         tabla.setDefaultRenderer(Object.class, new CeldaRenderer());
-
-        tabla.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && tabla.getSelectedRow() >= 0) {
-                int id = (int) modeloTabla.getValueAt(tabla.getSelectedRow(), COL_ID);
-                addLog("SELECT", "SELECT * FROM productor WHERE id_productor = " + id,
-                        "1 fila seleccionada", CYAN);
-            }
-        });
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  PANEL RANKING
+    //  PANEL RANKING (TOP TARIFAS)
     // ══════════════════════════════════════════════════════════════════
     private JPanel panelRanking() {
         JPanel inner = new JPanel() {
@@ -327,6 +337,7 @@ public class formProductor extends JPanel {
         inner.setOpaque(false);
         inner.setLayout(new BorderLayout());
 
+        // Cabecera con "más" y "···" a la derecha (como en la imagen)
         JPanel cab = new JPanel(new BorderLayout(6, 0)) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
@@ -341,11 +352,17 @@ public class formProductor extends JPanel {
         JLabel titulo = new JLabel("🏆  TOP TARIFAS");
         titulo.setFont(new Font("Segoe UI", Font.BOLD, 13));
         titulo.setForeground(ORO);
-        JLabel sub = new JLabel("más caros");
-        sub.setFont(F_MONO.deriveFont(9f));
-        sub.setForeground(TXT_SEC);
-        cab.add(titulo, BorderLayout.WEST);
-        cab.add(sub,    BorderLayout.EAST);
+
+        JPanel cabDer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        cabDer.setOpaque(false);
+        JLabel lblMas = mkLabel("más", F_MONO.deriveFont(9f), TXT_SEC);
+        JLabel lblOpc = mkLabel("···", new Font("Segoe UI", Font.BOLD, 13), TXT_SEC);
+        lblOpc.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        cabDer.add(lblMas);
+        cabDer.add(lblOpc);
+
+        cab.add(titulo,  BorderLayout.WEST);
+        cab.add(cabDer,  BorderLayout.EAST);
 
         JPanel sepOro = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -397,7 +414,7 @@ public class formProductor extends JPanel {
                 Productor p = orden.get(i);
                 boolean esPodio = i < 3;
                 rankingContainer.add(filaRanking(i+1, p, maxTarifa, esPodio));
-                rankingContainer.add(Box.createVerticalStrut(esPodio ? 8 : 5));
+                rankingContainer.add(Box.createVerticalStrut(esPodio ? 6 : 4));
             }
         }
         rankingContainer.revalidate();
@@ -417,8 +434,7 @@ public class formProductor extends JPanel {
         else if (puesto == 3) medalla = "🥉";
         else                  medalla = "#" + puesto;
 
-        final double ratio = Math.min(p.getTarifaHora() / maxTarifa, 1.0);
-        final Color  acentoFinal = acento;
+        final Color acentoFinal = acento;
 
         JPanel fila = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -431,24 +447,15 @@ public class formProductor extends JPanel {
                     g2.setStroke(new BasicStroke(1.4f));
                     g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 9, 9);
                 }
-                int barW = (int)((getWidth()-8) * ratio);
-                int barY = getHeight()-9;
-                g2.setColor(new Color(acentoFinal.getRed(), acentoFinal.getGreen(),
-                                       acentoFinal.getBlue(), 30));
-                g2.fillRoundRect(4, barY, getWidth()-8, 4, 3, 3);
-                if (barW > 0) {
-                    g2.setColor(acentoFinal);
-                    g2.fillRoundRect(4, barY, barW, 4, 3, 3);
-                }
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
         fila.setOpaque(false);
         fila.setLayout(new BorderLayout(8, 0));
-        fila.setBorder(new EmptyBorder(esPodio ? 9 : 6, 10, esPodio ? 13 : 10, 10));
+        fila.setBorder(new EmptyBorder(esPodio ? 8 : 5, 10, esPodio ? 8 : 5, 10));
         fila.setAlignmentX(LEFT_ALIGNMENT);
-        int alto = esPodio ? 52 : 40;
+        int alto = esPodio ? 50 : 38;
         fila.setMaximumSize(new Dimension(Integer.MAX_VALUE, alto));
 
         JLabel lblMed = new JLabel(medalla, SwingConstants.CENTER);
@@ -482,15 +489,10 @@ public class formProductor extends JPanel {
         return fila;
     }
 
-    private String recortar(String s, int max) {
-        if (s == null) return "";
-        return s.length() > max ? s.substring(0, max-1) + "…" : s;
-    }
-
     // ══════════════════════════════════════════════════════════════════
-    //  PANEL SQL LOG
+    //  PANEL GRÁFICO DE BARRAS — "TARIFA POR PRODUCTOR"
     // ══════════════════════════════════════════════════════════════════
-    private JPanel panelSqlLog() {
+    private JPanel panelGrafico() {
         JPanel inner = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
@@ -506,7 +508,8 @@ public class formProductor extends JPanel {
         inner.setOpaque(false);
         inner.setLayout(new BorderLayout());
 
-        JPanel cab = new JPanel(new BorderLayout(6, 0)) {
+        // Cabecera
+        JPanel cab = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
                 g2.setColor(new Color(10, 8, 24));
@@ -517,174 +520,248 @@ public class formProductor extends JPanel {
         };
         cab.setOpaque(false);
         cab.setBorder(new EmptyBorder(11, 14, 11, 14));
+        JLabel tit = new JLabel("⊙  TARIFA POR PRODUCTOR");
+        tit.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tit.setForeground(CYAN);
+        JLabel sub = mkLabel("TARIFA/HORA (USD)", F_SUB, TXT_SEC);
+        JPanel titPanel = new JPanel();
+        titPanel.setOpaque(false);
+        titPanel.setLayout(new BoxLayout(titPanel, BoxLayout.Y_AXIS));
+        titPanel.add(tit);
+        titPanel.add(Box.createVerticalStrut(2));
+        titPanel.add(sub);
+        cab.add(titPanel, BorderLayout.WEST);
 
-        JLabel titulo = new JLabel("⬡  SQL LOG");
-        titulo.setFont(F_MONO_B.deriveFont(13f));
-        titulo.setForeground(GREEN);
-
-        JLabel live = new JLabel("● LIVE") {
-            float a = 1f; boolean d = false;
-            { Timer t = new Timer(700, ev -> {
-                a = d ? a+0.08f : a-0.08f;
-                if (a <= 0.3f) { a=0.3f; d=true;  }
-                if (a >= 1f)   { a=1f;   d=false; }
-                setForeground(new Color(52,211,153,(int)(a*255)));
-            }); t.start(); }
-        };
-        live.setFont(F_MONO_B.deriveFont(9f));
-        live.setForeground(GREEN);
-
-        lblLogCount = new JLabel("0 entradas");
-        lblLogCount.setFont(F_MONO.deriveFont(9f));
-        lblLogCount.setForeground(TXT_SEC);
-
-        ZBtn btnLimpiar = new ZBtn("Limpiar", false);
-        btnLimpiar.setFont(F_BODY.deriveFont(10f));
-        btnLimpiar.setPreferredSize(new Dimension(64, 24));
-        btnLimpiar.addActionListener(e -> limpiarLog());
-
-        JPanel rightBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
-        rightBar.setOpaque(false);
-        rightBar.add(lblLogCount);
-        rightBar.add(live);
-        rightBar.add(btnLimpiar);
-        cab.add(titulo,   BorderLayout.WEST);
-        cab.add(rightBar, BorderLayout.EAST);
-
-        JPanel sepVerde = new JPanel() {
+        JPanel sepCyan = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setPaint(new GradientPaint(0,0, GREEN, getWidth()*0.6f,0, new Color(0,0,0,0)));
+                g2.setPaint(new GradientPaint(0,0, CYAN, getWidth()*0.6f, 0, new Color(0,0,0,0)));
                 g2.fillRect(0,0,getWidth(),1);
                 g2.dispose();
             }
         };
-        sepVerde.setOpaque(false);
-        sepVerde.setPreferredSize(new Dimension(0, 1));
+        sepCyan.setOpaque(false);
+        sepCyan.setPreferredSize(new Dimension(0, 1));
 
         JPanel topSect = new JPanel(new BorderLayout());
         topSect.setOpaque(false);
         topSect.add(cab,      BorderLayout.CENTER);
-        topSect.add(sepVerde, BorderLayout.SOUTH);
+        topSect.add(sepCyan,  BorderLayout.SOUTH);
 
-        logContainer = new JPanel();
-        logContainer.setOpaque(false);
-        logContainer.setLayout(new BoxLayout(logContainer, BoxLayout.Y_AXIS));
-        logContainer.setBorder(new EmptyBorder(8, 8, 8, 8));
+        graficoBarras = new GraficoBarras();
+        graficoBarras.setOpaque(false);
+        graficoBarras.setBorder(new EmptyBorder(10, 14, 14, 14));
 
-        JScrollPane scroll = new JScrollPane(logContainer);
-        scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
-        scroll.getViewport().setBackground(new Color(0,0,0,0));
-        scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.getVerticalScrollBar().setPreferredSize(new Dimension(4, 0));
-        scroll.getVerticalScrollBar().setUnitIncrement(12);
+        inner.add(topSect,      BorderLayout.NORTH);
+        inner.add(graficoBarras, BorderLayout.CENTER);
+        return inner;
+    }
 
-        JPanel leyenda = new JPanel(new GridLayout(3, 2, 4, 3)) {
+    /**
+     * Panel personalizado que dibuja el gráfico de barras verticales
+     * mostrando tarifa por productor, exactamente como en la imagen de referencia.
+     */
+    private class GraficoBarras extends JPanel {
+        private List<Productor> datos = new ArrayList<>();
+        // Colores por índice para las barras — familia azul
+        private final Color[] BARES = {
+            new Color(56,  189, 248),   // sky blue     — posición 1
+            new Color(6,   182, 212),   // cyan         — posición 2
+            new Color(129, 140, 248),   // indigo claro — posición 3
+            new Color(186, 230, 253),   // sky-100      — posición 4
+            new Color(244, 114, 182),   // pink         — posición 5
+            PURPLE, PURPLE_LT, GREEN, AMBER, PINK
+        };
+
+        void setDatos(List<Productor> lista) {
+            List<Productor> orden = new ArrayList<>(lista);
+            orden.sort(Comparator.comparingDouble(Productor::getTarifaHora).reversed());
+            this.datos = orden;
+            repaint();
+        }
+
+        @Override protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            if (datos.isEmpty()) return;
+            Graphics2D g2 = g2d(g);
+
+            int W = getWidth();
+            int H = getHeight();
+            int n = Math.min(datos.size(), 8);
+
+            double maxTar = datos.stream().mapToDouble(Productor::getTarifaHora).max().orElse(1);
+            if (maxTar <= 0) maxTar = 1;
+
+            // Zona de barras: margen superior para valores, inferior para etiquetas
+            int marginTop  = 28;
+            int marginBot  = 42;
+            int areaH = H - marginTop - marginBot;
+            if (areaH < 10) { g2.dispose(); return; }
+
+            int barW   = Math.min(32, (W - 20) / n - 8);
+            int totalW = n * (barW + 8) - 8;
+            int startX = (W - totalW) / 2;
+
+            // Línea guía horizontal sutil
+            g2.setColor(new Color(35, 26, 80, 120));
+            g2.setStroke(new BasicStroke(0.8f, BasicStroke.CAP_BUTT,
+                BasicStroke.JOIN_MITER, 1, new float[]{4,4}, 0));
+            for (int row = 1; row <= 3; row++) {
+                int y = marginTop + (areaH * row / 4);
+                g2.drawLine(10, y, W-10, y);
+            }
+
+            for (int i = 0; i < n; i++) {
+                Productor p = datos.get(i);
+                double ratio = p.getTarifaHora() / maxTar;
+                int bH  = (int)(areaH * ratio);
+                int bX  = startX + i * (barW + 8);
+                int bY  = marginTop + areaH - bH;
+                Color c = BARES[i % BARES.length];
+
+                // Barra con glow sutil
+                g2.setColor(new Color(c.getRed(), c.getGreen(), c.getBlue(), 35));
+                g2.fillRoundRect(bX-2, bY-2, barW+4, bH+4, 8, 8);
+
+                // Barra principal
+                g2.setStroke(new BasicStroke(1f));
+                g2.setColor(c);
+                g2.fillRoundRect(bX, bY, barW, bH, 6, 6);
+
+                // Valor arriba de la barra
+                String val = "$" + (int)p.getTarifaHora();
+                g2.setFont(new Font("Consolas", Font.BOLD, 9));
+                g2.setColor(c);
+                FontMetrics fm = g2.getFontMetrics();
+                int vx = bX + (barW - fm.stringWidth(val)) / 2;
+                g2.drawString(val, vx, bY - 5);
+
+                // Nombre abreviado debajo de la barra
+                String nombre = abreviar(p.getNombre(), 7);
+                g2.setFont(new Font("Segoe UI", Font.PLAIN, 9));
+                g2.setColor(TXT_SEC);
+                FontMetrics fm2 = g2.getFontMetrics();
+                int nx = bX + (barW - fm2.stringWidth(nombre)) / 2;
+                int ny = marginTop + areaH + 14;
+                g2.drawString(nombre, nx, ny);
+
+                // Punto de color como indicador (como en la imagen)
+                g2.setColor(c);
+                g2.fillOval(bX + barW/2 - 3, marginTop + areaH + 22, 6, 6);
+            }
+            g2.dispose();
+        }
+
+        private String abreviar(String s, int max) {
+            if (s == null || s.isEmpty()) return "";
+            String[] parts = s.trim().split("\\s+");
+            // Tomar la primera parte del nombre
+            String first = parts.length > 0 ? parts[0] : s;
+            if (first.length() > max) return first.substring(0, max);
+            return first;
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  PANEL RESUMEN (parte inferior de la columna derecha)
+    // ══════════════════════════════════════════════════════════════════
+    private JPanel panelResumen() {
+        JPanel inner = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = g2d(g);
+                g2.setColor(new Color(7, 5, 18));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.setColor(COL_BRD);
+                g2.setStroke(new BasicStroke(1f));
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        inner.setOpaque(false);
+        inner.setLayout(new BorderLayout());
+
+        // Cabecera
+        JPanel cab = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
                 g2.setColor(new Color(10, 8, 24));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight()+12, 12, 12);
                 g2.dispose();
+                super.paintComponent(g);
             }
         };
-        leyenda.setOpaque(false);
-        leyenda.setBorder(new EmptyBorder(8, 12, 10, 12));
-        for (Object[] it : new Object[][]{
-            {"● INSERT", GREEN}, {"● SELECT", CYAN},
-            {"● UPDATE", AMBER}, {"● DELETE", PINK},
-            {"● ERROR",  new Color(248,113,113)}, {"", TXT_SEC}
-        }) {
-            JLabel l = new JLabel((String) it[0]);
-            l.setFont(F_MONO_B.deriveFont(9f));
-            l.setForeground((Color) it[1]);
-            leyenda.add(l);
-        }
+        cab.setOpaque(false);
+        cab.setBorder(new EmptyBorder(11, 14, 11, 14));
+        JLabel titLbl = new JLabel("⊙  RESUMEN");
+        titLbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        titLbl.setForeground(PURPLE_LT);
+        cab.add(titLbl, BorderLayout.WEST);
 
-        JPanel sepGray = new JPanel() {
+        JPanel sepPurple = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
-                g.setColor(COL_BRD);
-                g.fillRect(0,0,getWidth(),1);
+                Graphics2D g2 = g2d(g);
+                g2.setPaint(new GradientPaint(0,0, PURPLE_LT, getWidth()*0.6f, 0, new Color(0,0,0,0)));
+                g2.fillRect(0,0,getWidth(),1);
+                g2.dispose();
             }
         };
-        sepGray.setOpaque(false);
-        sepGray.setPreferredSize(new Dimension(0, 1));
+        sepPurple.setOpaque(false);
+        sepPurple.setPreferredSize(new Dimension(0, 1));
 
-        JPanel bottom = new JPanel(new BorderLayout());
-        bottom.setOpaque(false);
-        bottom.add(sepGray, BorderLayout.NORTH);
-        bottom.add(leyenda, BorderLayout.CENTER);
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(false);
+        top.add(cab,       BorderLayout.CENTER);
+        top.add(sepPurple, BorderLayout.SOUTH);
 
-        inner.add(topSect, BorderLayout.NORTH);
-        inner.add(scroll,  BorderLayout.CENTER);
-        inner.add(bottom,  BorderLayout.SOUTH);
+        // Filas de resumen
+        lblResTotal = new JLabel("0");
+        lblResEsp   = new JLabel("0");
+        lblResTop   = new JLabel("—");
+
+        JPanel filas = new JPanel();
+        filas.setOpaque(false);
+        filas.setLayout(new BoxLayout(filas, BoxLayout.Y_AXIS));
+        filas.setBorder(new EmptyBorder(8, 14, 8, 14));
+
+        filas.add(filaResumen("Total productores",   lblResTotal, PURPLE_LT));
+        filas.add(Box.createVerticalStrut(2));
+        sepH(filas);
+        filas.add(Box.createVerticalStrut(2));
+        filas.add(filaResumen("Especialidades únicas", lblResEsp, CYAN));
+        filas.add(Box.createVerticalStrut(2));
+        sepH(filas);
+        filas.add(Box.createVerticalStrut(2));
+        filas.add(filaResumen("Productor top",       lblResTop, ORO));
+
+        inner.add(top,   BorderLayout.NORTH);
+        inner.add(filas, BorderLayout.CENTER);
         return inner;
     }
 
-    private void addLog(String tipo, String sql, String resultado, Color acento) {
-        SwingUtilities.invokeLater(() -> {
-            logCount++;
-            lblLogCount.setText(logCount + " entradas");
-
-            JPanel entry = new JPanel() {
-                @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = g2d(g);
-                    g2.setColor(BG_CARD);
-                    g2.fillRoundRect(0,0,getWidth(),getHeight(),8,8);
-                    g2.setColor(acento);
-                    g2.fillRoundRect(0,0,3,getHeight(),3,3);
-                    g2.dispose();
-                    super.paintComponent(g);
-                }
-            };
-            entry.setOpaque(false);
-            entry.setLayout(new BoxLayout(entry, BoxLayout.Y_AXIS));
-            entry.setBorder(new EmptyBorder(7, 12, 7, 8));
-            entry.setMaximumSize(new Dimension(Integer.MAX_VALUE, 9999));
-            entry.setAlignmentX(LEFT_ALIGNMENT);
-
-            String hora = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-            JLabel meta = mkLabel(hora + "  ·  " + tipo, F_MONO_B.deriveFont(9f),
-                new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 220));
-            meta.setAlignmentX(LEFT_ALIGNMENT);
-
-            JTextArea sqlArea = new JTextArea(sql);
-            sqlArea.setFont(F_MONO);
-            sqlArea.setForeground(PURPLE_LT);
-            sqlArea.setOpaque(false);
-            sqlArea.setEditable(false);
-            sqlArea.setLineWrap(true);
-            sqlArea.setWrapStyleWord(true);
-            sqlArea.setBorder(new EmptyBorder(3, 0, 3, 0));
-            sqlArea.setAlignmentX(LEFT_ALIGNMENT);
-            sqlArea.setMaximumSize(new Dimension(Integer.MAX_VALUE, 9999));
-
-            JLabel res = mkLabel("✓ " + resultado, F_MONO.deriveFont(9f),
-                new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 170));
-            res.setAlignmentX(LEFT_ALIGNMENT);
-
-            entry.add(meta);
-            entry.add(sqlArea);
-            entry.add(res);
-
-            JPanel gap = new JPanel();
-            gap.setOpaque(false);
-            gap.setMaximumSize(new Dimension(Integer.MAX_VALUE, 6));
-            gap.setAlignmentX(LEFT_ALIGNMENT);
-
-            logContainer.add(entry, 0);
-            logContainer.add(gap,   1);
-            logContainer.revalidate();
-            logContainer.repaint();
-        });
+    private JPanel filaResumen(String label, JLabel valor, Color acento) {
+        JPanel row = new JPanel(new BorderLayout());
+        row.setOpaque(false);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
+        JLabel lbl = mkLabel(label, new Font("Segoe UI", Font.PLAIN, 11), TXT_SEC);
+        valor.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        valor.setForeground(acento);
+        row.add(lbl,   BorderLayout.WEST);
+        row.add(valor, BorderLayout.EAST);
+        return row;
     }
 
-    private void limpiarLog() {
-        logContainer.removeAll();
-        logCount = 0;
-        lblLogCount.setText("0 entradas");
-        logContainer.revalidate();
-        logContainer.repaint();
+    private void sepH(JPanel parent) {
+        JPanel sep = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                g.setColor(COL_BRD);
+                g.fillRect(0, 0, getWidth(), 1);
+            }
+        };
+        sep.setOpaque(false);
+        sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+        sep.setAlignmentX(LEFT_ALIGNMENT);
+        parent.add(sep);
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -736,20 +813,12 @@ public class formProductor extends JPanel {
     private void cargarProductores() {
         worker(() -> svc.obtenerTodos(), lista -> {
             poblar(lista);
-            addLog("SELECT", "SELECT * FROM productor ORDER BY id_productor",
-                lista.size() + " fila(s) cargadas", CYAN);
         }, "Error al cargar");
     }
 
     private void buscar() {
         String q = campoBusqueda.getText().trim();
-        worker(() -> svc.buscar(q), lista -> {
-            poblar(lista);
-            if (!q.isEmpty())
-                addLog("SELECT",
-                    "SELECT * FROM productor WHERE nombre LIKE '%" + q + "%'",
-                    lista.size() + " resultado(s)", CYAN);
-        }, "Error al buscar");
+        worker(() -> svc.buscar(q), this::poblar, "Error al buscar");
     }
 
     private void poblar(List<Productor> lista) {
@@ -770,12 +839,28 @@ public class formProductor extends JPanel {
         double prom = lista.stream().mapToDouble(Productor::getTarifaHora).average().orElse(0);
         double max  = lista.stream().mapToDouble(Productor::getTarifaHora).max().orElse(0);
 
+        // Stats superiores
         lblTotal.setText(String.valueOf(lista.size()));
         lblEspecialidades.setText(String.valueOf(esp));
         lblTarifaProm.setText(String.format("$%.0f", prom));
         lblTarifaMax.setText(String.format("$%.0f", max));
 
+        // Ranking
         actualizarRanking(lista);
+
+        // Gráfico
+        if (graficoBarras != null) graficoBarras.setDatos(lista);
+
+        // Resumen
+        lblResTotal.setText(String.valueOf(lista.size()));
+        lblResEsp.setText(String.valueOf(esp));
+        if (!lista.isEmpty()) {
+            Productor top = lista.stream()
+                .max(Comparator.comparingDouble(Productor::getTarifaHora)).orElse(null);
+            lblResTop.setText(top != null ? recortar(top.getNombre(), 18) : "—");
+        } else {
+            lblResTop.setText("—");
+        }
     }
 
     private void accionEditar() {
@@ -793,8 +878,6 @@ public class formProductor extends JPanel {
                 "Z-One — Confirmar", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
             worker(() -> { svc.darDeBaja(id); return svc.obtenerTodos(); }, lista -> {
                 poblar(lista);
-                addLog("DELETE", "DELETE FROM productor WHERE id_productor = " + id,
-                    "Commit OK · \"" + nombre + "\" eliminado", PINK);
                 toast("Productor eliminado", MainFrame.ToastType.SUCCESS);
             }, "Error al eliminar");
         }
@@ -842,11 +925,11 @@ public class formProductor extends JPanel {
         JTextField fTar = dlgField(tar);
         JTextField fEst = dlgField(est);
 
-        main.add(dlgFilaDoble("NOMBRE COMPLETO *", fNom, "ESPECIALIDAD *",    fEsp));
+        main.add(dlgFilaDoble("NOMBRE COMPLETO *", fNom, "ESPECIALIDAD *",     fEsp));
         main.add(Box.createVerticalStrut(15));
-        main.add(dlgFilaDoble("EXPERIENCIA",        fExp, "NACIONALIDAD",      fNac));
+        main.add(dlgFilaDoble("EXPERIENCIA",        fExp, "NACIONALIDAD",       fNac));
         main.add(Box.createVerticalStrut(15));
-        main.add(dlgFilaDoble("TARIFA POR HORA ($)", fTar, "ESTADO",           fEst));
+        main.add(dlgFilaDoble("TARIFA POR HORA ($)", fTar, "ESTADO",            fEst));
         main.add(Box.createVerticalStrut(26));
 
         JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
@@ -877,8 +960,8 @@ public class formProductor extends JPanel {
         JPanel band = new JPanel(new BorderLayout(14, 0)) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setPaint(new GradientPaint(0, 0, new Color(124, 58, 237),
-                    getWidth(), getHeight(), new Color(67, 24, 140)));
+                g2.setPaint(new GradientPaint(0, 0, new Color(37, 99, 235),
+                    getWidth(), getHeight(), new Color(14, 50, 140)));
                 g2.fillRect(0, 0, getWidth(), getHeight());
                 g2.setPaint(new GradientPaint(0, 0, new Color(255,255,255,45),
                     0, getHeight(), new Color(255,255,255,0)));
@@ -957,17 +1040,6 @@ public class formProductor extends JPanel {
             return svc.obtenerTodos();
         }, lista -> {
             poblar(lista);
-            if (esEdit) {
-                addLog("UPDATE",
-                    "UPDATE productor SET nombre='" + nom + "', tarifa_hora=" + tarifa
-                    + " WHERE id_productor=" + id,
-                    "Commit OK · 1 fila actualizada", AMBER);
-            } else {
-                addLog("INSERT",
-                    "INSERT INTO productor (nombre,especialidad,experiencia,tarifa_hora,nacionalidad) "
-                    + "VALUES ('" + nom + "','" + esp + "','" + exp + "'," + tarifa + ",'" + nac + "')",
-                    "Commit OK · 1 fila insertada", GREEN);
-            }
             toast(esEdit ? "Productor actualizado" : "Productor creado: " + nom,
                 MainFrame.ToastType.SUCCESS);
             dlg.dispose();
@@ -981,10 +1053,10 @@ public class formProductor extends JPanel {
                 Graphics2D g2 = g2d(g);
                 boolean foco = isFocusOwner();
                 if (foco) {
-                    g2.setColor(new Color(124,58,237,60));
+                    g2.setColor(new Color(37,99,235,60));
                     g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
                 }
-                g2.setColor(foco ? new Color(30,23,64) : BG_FIELD);
+                g2.setColor(foco ? new Color(10,22,60) : BG_FIELD);
                 g2.fillRoundRect(2,2,getWidth()-5,getHeight()-5,10,10);
                 g2.setColor(foco ? PURPLE : COL_BRD);
                 g2.setStroke(new BasicStroke(foco ? 1.8f : 1f));
@@ -1064,6 +1136,11 @@ public class formProductor extends JPanel {
         return g2;
     }
 
+    private String recortar(String s, int max) {
+        if (s == null) return "";
+        return s.length() > max ? s.substring(0, max-1) + "…" : s;
+    }
+
     private void worker(java.util.concurrent.Callable<List<Productor>> tarea,
             java.util.function.Consumer<List<Productor>> fin, String err) {
         new SwingWorker<List<Productor>, Void>() {
@@ -1103,7 +1180,7 @@ public class formProductor extends JPanel {
         @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = g2d(g);
             if (primary) {
-                g2.setColor(getModel().isPressed() ? new Color(109,40,217) : PURPLE);
+                g2.setColor(getModel().isPressed() ? new Color(29, 78, 216) : PURPLE);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                 if (!getModel().isPressed()) {
                     g2.setPaint(new GradientPaint(0,0,new Color(255,255,255,28),
@@ -1111,7 +1188,7 @@ public class formProductor extends JPanel {
                     g2.fillRoundRect(0, 0, getWidth(), getHeight()/2, 10, 10);
                 }
             } else {
-                g2.setColor(getModel().isRollover() ? new Color(28,20,66) : BG_CARD);
+                g2.setColor(getModel().isRollover() ? new Color(14, 34, 80) : BG_CARD);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                 g2.setColor(COL_BRD);
                 g2.setStroke(new BasicStroke(1f));
@@ -1119,6 +1196,12 @@ public class formProductor extends JPanel {
             }
             g2.dispose();
             super.paintComponent(g);
+        }
+
+        private static Graphics2D g2d(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            return g2;
         }
     }
 }
