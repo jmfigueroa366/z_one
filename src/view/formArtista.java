@@ -7,49 +7,43 @@ import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.*;
 import java.awt.*;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
 
-/**
- * formArtista — Estilo Z-One rediseñado.
- *
- * Layout:
- *   IZQUIERDA  → encabezado + stat cards + tabla de artistas
- *   DERECHA    → panel estadísticas de canciones (top artistas, barras,
- *                donut de géneros) + SQL log
- */
 public class formArtista extends JPanel {
 
     // ══════════════════════════════════════════════════════════════════
-    //  PALETA
+    //  PALETA — misma que formProductor (azul)
     // ══════════════════════════════════════════════════════════════════
-    static final Color BG_DEEP   = new Color(5,   3,  14);
-    static final Color BG_CARD   = new Color(11,  9,  27);
-    static final Color BG_FIELD  = new Color(18, 14,  44);
-    static final Color BG_ROW_A  = new Color(11,  9,  27);
-    static final Color BG_ROW_B  = new Color(15, 12,  38);
-    static final Color COL_BRD   = new Color(35, 26,  80);
-    static final Color PURPLE    = new Color(124, 58, 237);
-    static final Color PURPLE_LT = new Color(167,139, 250);
+    static final Color BG_DEEP   = new Color(3,   8,  20);
+    static final Color BG_CARD   = new Color(8,  14,  32);
+    static final Color BG_FIELD  = new Color(12, 22,  52);
+    static final Color BG_ROW_A  = new Color(8,  14,  32);
+    static final Color BG_ROW_B  = new Color(11, 18,  40);
+    static final Color COL_BRD   = new Color(22, 48, 100);
+    static final Color PURPLE    = new Color(37,  99, 235);
+    static final Color PURPLE_LT = new Color(96, 165, 250);
     static final Color CYAN      = new Color(6,  182, 212);
-    static final Color GREEN     = new Color(52, 211, 153);
-    static final Color AMBER     = new Color(251,191,  36);
-    static final Color PINK      = new Color(244,114, 182);
-    static final Color ORANGE    = new Color(251,146,  60);
-    static final Color TXT_PRI   = new Color(237,233, 254);
-    static final Color TXT_SEC   = new Color(120,105, 175);
-    static final Color SEL_BG    = new Color(124, 58, 237, 70);
-    static final Color ORO       = new Color(251,191,  36);
-    static final Color PLATA     = new Color(203,213, 225);
-    static final Color BRONCE    = new Color(217,119,  66);
+    static final Color GREEN     = new Color(56, 189, 248);
+    static final Color AMBER     = new Color(186, 230, 253);
+    static final Color PINK      = new Color(244, 114, 182);
+    static final Color ORANGE    = new Color(129, 140, 248);
+    static final Color TXT_PRI   = new Color(226, 232, 255);
+    static final Color TXT_SEC   = new Color(71,  100, 160);
+    static final Color SEL_BG    = new Color(37,   99, 235, 60);
+    static final Color ORO       = new Color(224, 242, 254);
+    static final Color PLATA     = new Color(203, 213, 225);
+    static final Color BRONCE    = new Color(125, 211, 252);
 
-    // Colores rotativos para barras de artistas
     static final Color[] BAR_COLORS = {
-        CYAN, PURPLE_LT, GREEN, AMBER, PINK, ORANGE,
-        new Color(99,179,237), new Color(129,230,217)
+        new Color(56,  189, 248),
+        new Color(6,   182, 212),
+        new Color(96,  165, 250),
+        new Color(129, 140, 248),
+        new Color(125, 211, 252),
+        new Color(186, 230, 253),
+        new Color(37,   99, 235),
+        new Color(224, 242, 254),
     };
 
     // ── Fuentes ───────────────────────────────────────────────────────
@@ -77,20 +71,15 @@ public class formArtista extends JPanel {
     private JTable tabla;
     private JTextField campoBusqueda;
 
-    // Stat cards izquierda
     private JLabel lblTotal, lblActivos, lblPaises, lblTipos;
-
-    // Panel estadísticas canciones (derecha arriba)
     private JPanel  statsContainer;
     private JLabel  lblStatTotal, lblStatArtistas, lblStatProm, lblStatLider;
-
-    // Lista actual
     private List<Artista> listaActual = new ArrayList<>();
 
-    // SQL log
-    private JPanel logContainer;
-    private JLabel lblLogCount;
-    private int    logCount = 0;
+    // ── Gráfica de género ─────────────────────────────────────────────
+    private Map<String,Integer> datosGenero = new LinkedHashMap<>();
+    private PanelDona panelDona;
+    private JPanel    leyendaGenero;
 
     // ══════════════════════════════════════════════════════════════════
     //  CONSTRUCTOR
@@ -107,7 +96,6 @@ public class formArtista extends JPanel {
     //  CONSTRUCCIÓN UI
     // ══════════════════════════════════════════════════════════════════
     private void construirUI() {
-        // ── Columna izquierda ──────────────────────────────────────────
         JPanel izq = new JPanel(new BorderLayout(0, 0));
         izq.setOpaque(false);
         izq.add(encabezado(), BorderLayout.NORTH);
@@ -121,22 +109,18 @@ public class formArtista extends JPanel {
         cuerpo.add(panelTabla());
         izq.add(cuerpo, BorderLayout.CENTER);
 
-        // ── Columna derecha ────────────────────────────────────────────
         JPanel der = new JPanel(new BorderLayout(0, 14));
         der.setOpaque(false);
         der.setBorder(new EmptyBorder(0, 14, 0, 0));
         der.setPreferredSize(new Dimension(295, 0));
 
-        // Estadísticas de canciones arriba
         JPanel panStats = panelEstadisticasCanciones();
         panStats.setPreferredSize(new Dimension(295, 430));
         der.add(panStats, BorderLayout.NORTH);
+        der.add(panelGraficaGeneros(), BorderLayout.CENTER);
 
-        // SQL log abajo
-        der.add(panelSqlLog(), BorderLayout.CENTER);
-
-        add(izq,  BorderLayout.CENTER);
-        add(der,  BorderLayout.EAST);
+        add(izq, BorderLayout.CENTER);
+        add(der, BorderLayout.EAST);
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -146,7 +130,6 @@ public class formArtista extends JPanel {
         JPanel p = new JPanel(new BorderLayout(12, 0));
         p.setOpaque(false);
 
-        // Decoración lateral izquierda
         JPanel acento = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
@@ -166,13 +149,12 @@ public class formArtista extends JPanel {
         JLabel title = mkLabel("Artistas", F_TITLE, TXT_PRI);
         JLabel sub   = mkLabel("GESTIÓN DE ARTISTAS  ·  BANDAS  ·  COLABORACIONES", F_SUB, TXT_SEC);
 
-        // Badge "en vivo"
         JLabel badge = new JLabel("  ● ORACLE  ") {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(52,211,153,30));
+                g2.setColor(new Color(56,189,248,30));
                 g2.fillRoundRect(0,0,getWidth(),getHeight(),20,20);
-                g2.setColor(new Color(52,211,153,120));
+                g2.setColor(new Color(56,189,248,120));
                 g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,20,20);
                 g2.dispose();
@@ -185,7 +167,6 @@ public class formArtista extends JPanel {
 
         for (JLabel l : new JLabel[]{ico, title, sub}) l.setAlignmentX(LEFT_ALIGNMENT);
         badge.setAlignmentX(LEFT_ALIGNMENT);
-
         titulos.add(ico);
         titulos.add(Box.createVerticalStrut(2));
         titulos.add(title);
@@ -220,7 +201,7 @@ public class formArtista extends JPanel {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  FILA STAT CARDS (izquierda)
+    //  FILA STAT CARDS
     // ══════════════════════════════════════════════════════════════════
     private JPanel filaStats() {
         lblTotal   = new JLabel("0");
@@ -232,10 +213,10 @@ public class formArtista extends JPanel {
         p.setOpaque(false);
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 95));
         p.setAlignmentX(LEFT_ALIGNMENT);
-        p.add(statCard("TOTAL ARTISTAS", lblTotal,   PURPLE,  "🎤"));
-        p.add(statCard("ACTIVOS",        lblActivos, GREEN,   "✅"));
-        p.add(statCard("PAÍSES",         lblPaises,  CYAN,    "🌍"));
-        p.add(statCard("SOLISTAS",       lblTipos,   AMBER,   "🎵"));
+        p.add(statCard("TOTAL ARTISTAS", lblTotal,   PURPLE,   "🎤"));
+        p.add(statCard("ACTIVOS",        lblActivos, GREEN,    "✅"));
+        p.add(statCard("PAÍSES",         lblPaises,  CYAN,     "🌍"));
+        p.add(statCard("SOLISTAS",       lblTipos,   AMBER,    "🎵"));
         return p;
     }
 
@@ -266,7 +247,6 @@ public class formArtista extends JPanel {
         card.setBorder(new EmptyBorder(14, 16, 14, 16));
 
         JLabel emo = mkLabel(emoji, new Font("Segoe UI Emoji", Font.PLAIN, 24), TXT_PRI);
-
         JPanel txt = new JPanel();
         txt.setOpaque(false);
         txt.setLayout(new BoxLayout(txt, BoxLayout.Y_AXIS));
@@ -286,7 +266,7 @@ public class formArtista extends JPanel {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  PANEL TABLA ARTISTAS
+    //  PANEL TABLA
     // ══════════════════════════════════════════════════════════════════
     private JPanel panelTabla() {
         JPanel card = new JPanel() {
@@ -324,10 +304,8 @@ public class formArtista extends JPanel {
         JPanel head = new JPanel(new BorderLayout(0,0));
         head.setOpaque(false);
         head.setBorder(new EmptyBorder(14,18,12,18));
-
         JLabel lTit = mkLabel("Lista de artistas", F_BOLD, TXT_PRI);
         JLabel lSub = mkLabel("  datos en tiempo real desde Oracle", F_MONO.deriveFont(9f), TXT_SEC);
-
         JPanel headLeft = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         headLeft.setOpaque(false);
         headLeft.add(lTit); headLeft.add(lSub);
@@ -364,40 +342,47 @@ public class formArtista extends JPanel {
         tabla.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         JTableHeader th = tabla.getTableHeader();
-        th.setBackground(new Color(8,6,20));
+        th.setBackground(new Color(5, 12, 30));
         th.setForeground(PURPLE_LT);
         th.setFont(new Font("Segoe UI", Font.BOLD, 9));
         th.setBorder(BorderFactory.createMatteBorder(0,0,1,0,COL_BRD));
         th.setReorderingAllowed(false);
         th.setPreferredSize(new Dimension(0,36));
+        th.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override public Component getTableCellRendererComponent(
+                    JTable t, Object val, boolean sel, boolean foc, int row, int col) {
+                JLabel l = (JLabel) super.getTableCellRendererComponent(t,val,sel,foc,row,col);
+                l.setBackground(new Color(5, 12, 30));
+                l.setForeground(PURPLE_LT);
+                l.setFont(new Font("Segoe UI", Font.BOLD, 9));
+                l.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(0,0,1,0,COL_BRD),
+                    new EmptyBorder(0,16,0,16)));
+                l.setOpaque(true);
+                return l;
+            }
+        });
 
         int[] w = {50,185,130,115,100,110};
         for (int i=0; i<w.length; i++)
             tabla.getColumnModel().getColumn(i).setPreferredWidth(w[i]);
 
         tabla.setDefaultRenderer(Object.class, new CeldaRenderer());
-
-        tabla.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && tabla.getSelectedRow() >= 0) {
-                int id = (int) modeloTabla.getValueAt(tabla.getSelectedRow(), COL_ID);
-                addLog("SELECT","SELECT * FROM perfil_artista WHERE id_artista="+id,"1 fila seleccionada",CYAN);
-            }
-        });
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  ★ PANEL ESTADÍSTICAS (columna derecha, arriba) ★
+    //  PANEL ESTADÍSTICAS (columna derecha, arriba)
     // ══════════════════════════════════════════════════════════════════
     private JPanel panelEstadisticasCanciones() {
         JPanel inner = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(7,5,20));
+                g2.setColor(new Color(5, 12, 30));
                 g2.fillRoundRect(0,0,getWidth(),getHeight(),14,14);
                 g2.setColor(COL_BRD);
                 g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,14,14);
-                g2.setColor(CYAN);
+                g2.setColor(PURPLE);
                 g2.setStroke(new BasicStroke(2f));
                 g2.drawLine(16,0,getWidth()-16,0);
                 g2.dispose();
@@ -407,11 +392,10 @@ public class formArtista extends JPanel {
         inner.setOpaque(false);
         inner.setLayout(new BorderLayout(0,0));
 
-        // ── Cabecera ──────────────────────────────────────────────────
         JPanel cab = new JPanel(new BorderLayout(6,0)) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setPaint(new GradientPaint(0,0,new Color(6,182,212,25),
+                g2.setPaint(new GradientPaint(0,0,new Color(37,99,235,25),
                         0,getHeight(),new Color(0,0,0,0)));
                 g2.fillRoundRect(0,0,getWidth(),getHeight()+14,14,14);
                 g2.dispose();
@@ -423,7 +407,7 @@ public class formArtista extends JPanel {
 
         JLabel titulo = new JLabel("🎤  TOP ARTISTAS");
         titulo.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        titulo.setForeground(CYAN);
+        titulo.setForeground(PURPLE_LT);
 
         JLabel sub = new JLabel("por género musical");
         sub.setFont(F_MONO.deriveFont(9f));
@@ -435,7 +419,7 @@ public class formArtista extends JPanel {
         JPanel sep = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setPaint(new GradientPaint(0,0,CYAN,getWidth()*0.7f,0,new Color(0,0,0,0)));
+                g2.setPaint(new GradientPaint(0,0,PURPLE_LT,getWidth()*0.7f,0,new Color(0,0,0,0)));
                 g2.fillRect(0,0,getWidth(),1);
                 g2.dispose();
             }
@@ -448,21 +432,19 @@ public class formArtista extends JPanel {
         topSect.add(cab, BorderLayout.CENTER);
         topSect.add(sep, BorderLayout.SOUTH);
 
-        // ── Mini cards resumen ────────────────────────────────────────
-        lblStatTotal    = mkLabel("0", new Font("Segoe UI",Font.BOLD,22), CYAN);
-        lblStatArtistas = mkLabel("0", new Font("Segoe UI",Font.BOLD,22), PURPLE_LT);
-        lblStatProm     = mkLabel("0", new Font("Segoe UI",Font.BOLD,22), GREEN);
+        lblStatTotal    = mkLabel("0", new Font("Segoe UI",Font.BOLD,22), PURPLE_LT);
+        lblStatArtistas = mkLabel("0", new Font("Segoe UI",Font.BOLD,22), GREEN);
+        lblStatProm     = mkLabel("0", new Font("Segoe UI",Font.BOLD,22), CYAN);
         lblStatLider    = mkLabel("—", new Font("Segoe UI",Font.BOLD,11), ORO);
 
         JPanel miniGrid = new JPanel(new GridLayout(2,2,8,8));
         miniGrid.setOpaque(false);
         miniGrid.setBorder(new EmptyBorder(10,10,10,10));
-        miniGrid.add(miniCard("TOTAL",    lblStatTotal,    CYAN));
-        miniGrid.add(miniCard("ARTISTAS", lblStatArtistas, PURPLE_LT));
-        miniGrid.add(miniCard("GÉNEROS",  lblStatProm,     GREEN));
-        miniGrid.add(miniCard("LÍDER",    lblStatLider,    ORO));
+        miniGrid.add(miniCard("TOTAL",    lblStatTotal,    PURPLE_LT));
+        miniGrid.add(miniCard("ARTISTAS", lblStatArtistas, GREEN));
+        miniGrid.add(miniCard("GÉNEROS",  lblStatProm,     CYAN));
+        miniGrid.add(miniCard("LÍDER",    lblStatLider,    AMBER));
 
-        // ── Lista scrollable de barras ────────────────────────────────
         statsContainer = new JPanel();
         statsContainer.setOpaque(false);
         statsContainer.setLayout(new BoxLayout(statsContainer, BoxLayout.Y_AXIS));
@@ -514,18 +496,15 @@ public class formArtista extends JPanel {
         return c;
     }
 
-    /** Reconstruye la lista de barras de progreso. */
     private void actualizarEstadisticas(List<Artista> lista) {
         statsContainer.removeAll();
 
-        // Mini cards — usamos datos reales disponibles en perfil_artista
         long generos = lista.stream()
                             .map(Artista::getGeneroMusical)
                             .filter(g -> g != null && !g.isEmpty())
                             .distinct().count();
         String lider = lista.isEmpty() ? "—" :
-                       lista.stream()
-                            .findFirst()
+                       lista.stream().findFirst()
                             .map(a -> recortar(a.getNombreArtista(), 12))
                             .orElse("—");
 
@@ -535,24 +514,20 @@ public class formArtista extends JPanel {
         lblStatLider   .setText(lider);
 
         if (lista.isEmpty()) {
-            statsContainer.add(mkLabel("Sin artistas registrados",
-                    F_MONO.deriveFont(10f), TXT_SEC));
+            statsContainer.add(mkLabel("Sin artistas registrados", F_MONO.deriveFont(10f), TXT_SEC));
             statsContainer.revalidate();
             statsContainer.repaint();
             return;
         }
 
-        // Ordenar alfabéticamente por nombre
         List<Artista> ord = new ArrayList<>(lista);
         ord.sort(Comparator.comparing(a -> a.getNombreArtista() != null ? a.getNombreArtista() : ""));
 
         for (int i = 0; i < ord.size(); i++) {
             Artista a    = ord.get(i);
             Color acento = BAR_COLORS[i % BAR_COLORS.length];
-            // Ratio basado en posición para las barras decorativas
             double ratio = 1.0 - (i / (double) Math.max(ord.size(), 1));
             boolean esPodio = i < 3;
-
             statsContainer.add(filaArtista(i+1, a, acento, ratio, esPodio));
             statsContainer.add(Box.createVerticalStrut(esPodio ? 8 : 5));
         }
@@ -561,15 +536,12 @@ public class formArtista extends JPanel {
         statsContainer.repaint();
     }
 
-    /** Una fila del ranking con podio para los 3 primeros. */
     private JPanel filaArtista(int pos, Artista a, Color acento, double ratio, boolean esPodio) {
         final String medalla = switch (pos) {
-            case 1 -> "🥇"; case 2 -> "🥈"; case 3 -> "🥉";
-            default -> null;
+            case 1 -> "🥇"; case 2 -> "🥈"; case 3 -> "🥉"; default -> null;
         };
         final Color colorPos = switch (pos) {
-            case 1 -> ORO; case 2 -> PLATA; case 3 -> BRONCE;
-            default -> acento;
+            case 1 -> ORO; case 2 -> PLATA; case 3 -> BRONCE; default -> acento;
         };
 
         JPanel fila = new JPanel() {
@@ -578,7 +550,7 @@ public class formArtista extends JPanel {
                 if (esPodio) {
                     g2.setPaint(new GradientPaint(0,0,
                             new Color(colorPos.getRed(),colorPos.getGreen(),colorPos.getBlue(),18),
-                            getWidth(),0, new Color(7,5,20)));
+                            getWidth(),0, new Color(5,12,30)));
                     g2.fillRoundRect(0,0,getWidth(),getHeight(),10,10);
                     g2.setColor(new Color(colorPos.getRed(),colorPos.getGreen(),colorPos.getBlue(),90));
                     g2.setStroke(new BasicStroke(1.3f));
@@ -592,7 +564,7 @@ public class formArtista extends JPanel {
                 }
                 int barW = (int)((getWidth()-16)*ratio);
                 int barY = getHeight()-6;
-                g2.setColor(new Color(35,26,80,150));
+                g2.setColor(new Color(22,48,100,150));
                 g2.fillRoundRect(8,barY,getWidth()-16,4,4,4);
                 if (barW > 0) {
                     g2.setPaint(new GradientPaint(8,0,acento,8+barW,0,
@@ -624,14 +596,12 @@ public class formArtista extends JPanel {
         txt.setOpaque(false);
         txt.setLayout(new BoxLayout(txt, BoxLayout.Y_AXIS));
 
-        // ── CORREGIDO: usa getNombreArtista() ────────────────────────
         JLabel lblNom = mkLabel(recortar(a.getNombreArtista(), esPodio?18:20),
                 new Font("Segoe UI",Font.BOLD, esPodio?12:11),
-                esPodio ? TXT_PRI : new Color(210,200,240));
+                esPodio ? TXT_PRI : PURPLE_LT);
         lblNom.setAlignmentX(LEFT_ALIGNMENT);
         txt.add(lblNom);
 
-        // ── CORREGIDO: usa getGeneroMusical() ────────────────────────
         if (esPodio && a.getGeneroMusical() != null && !a.getGeneroMusical().isEmpty()) {
             JLabel lblGen = mkLabel(recortar(a.getGeneroMusical(),20), F_MONO.deriveFont(8.5f), TXT_SEC);
             lblGen.setAlignmentX(LEFT_ALIGNMENT);
@@ -639,7 +609,6 @@ public class formArtista extends JPanel {
             txt.add(lblGen);
         }
 
-        // Pastilla con el tipo de artista (Solista / Grupo)
         String tipoTxt = a.getTipoArtista() != null ? a.getTipoArtista() : "—";
         JLabel lblNum = new JLabel(tipoTxt) {
             @Override protected void paintComponent(Graphics g) {
@@ -663,17 +632,20 @@ public class formArtista extends JPanel {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  PANEL SQL LOG (columna derecha, abajo)
+    //  PANEL GRÁFICA DE DONA — DISTRIBUCIÓN POR GÉNERO
     // ══════════════════════════════════════════════════════════════════
-    private JPanel panelSqlLog() {
+    private JPanel panelGraficaGeneros() {
         JPanel inner = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(7,5,18));
+                g2.setColor(new Color(5, 12, 30));
                 g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
                 g2.setColor(COL_BRD);
                 g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,12,12);
+                g2.setColor(PURPLE);
+                g2.setStroke(new BasicStroke(2f));
+                g2.drawLine(16,0,getWidth()-16,0);
                 g2.dispose();
                 super.paintComponent(g);
             }
@@ -681,10 +653,12 @@ public class formArtista extends JPanel {
         inner.setOpaque(false);
         inner.setLayout(new BorderLayout());
 
+        // ── Cabecera ──
         JPanel cab = new JPanel(new BorderLayout(6,0)) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(10,8,24));
+                g2.setPaint(new GradientPaint(0,0,new Color(37,99,235,25),
+                        0,getHeight(),new Color(0,0,0,0)));
                 g2.fillRoundRect(0,0,getWidth(),getHeight()+12,12,12);
                 g2.dispose();
                 super.paintComponent(g);
@@ -693,166 +667,205 @@ public class formArtista extends JPanel {
         cab.setOpaque(false);
         cab.setBorder(new EmptyBorder(11,14,11,14));
 
-        JLabel titulo = new JLabel("⬡  SQL LOG");
-        titulo.setFont(F_MONO_B.deriveFont(13f));
-        titulo.setForeground(GREEN);
+        JLabel titulo = new JLabel("📊  DISTRIBUCIÓN");
+        titulo.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        titulo.setForeground(PURPLE_LT);
 
-        JLabel live = new JLabel("● LIVE");
-        live.setFont(F_MONO_B.deriveFont(9f));
-        live.setForeground(GREEN);
-        final float[] la = {1f}; final boolean[] ld = {false};
-        javax.swing.Timer liveTimer = new javax.swing.Timer(700, ev -> {
-            la[0] = ld[0] ? la[0]+0.08f : la[0]-0.08f;
-            if (la[0]<=0.3f){la[0]=0.3f;ld[0]=true;}
-            if (la[0]>=1f)  {la[0]=1f;  ld[0]=false;}
-            live.setForeground(new Color(52,211,153,(int)(la[0]*255)));
-        });
-        liveTimer.start();
+        JLabel sub = new JLabel("por género musical");
+        sub.setFont(F_MONO.deriveFont(9f));
+        sub.setForeground(TXT_SEC);
 
-        lblLogCount = new JLabel("0 entradas");
-        lblLogCount.setFont(F_MONO.deriveFont(9f));
-        lblLogCount.setForeground(TXT_SEC);
+        cab.add(titulo, BorderLayout.WEST);
+        cab.add(sub,    BorderLayout.EAST);
 
-        ZBtn btnLimpiar = new ZBtn("Limpiar", false);
-        btnLimpiar.setFont(F_BODY.deriveFont(10f));
-        btnLimpiar.setPreferredSize(new Dimension(64,24));
-        btnLimpiar.addActionListener(e -> limpiarLog());
-
-        JPanel rightBar = new JPanel(new FlowLayout(FlowLayout.RIGHT,5,0));
-        rightBar.setOpaque(false);
-        rightBar.add(lblLogCount); rightBar.add(live); rightBar.add(btnLimpiar);
-        cab.add(titulo,   BorderLayout.WEST);
-        cab.add(rightBar, BorderLayout.EAST);
-
-        JPanel sepVerde = new JPanel() {
+        JPanel sep = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setPaint(new GradientPaint(0,0,GREEN,getWidth()*0.6f,0,new Color(0,0,0,0)));
+                g2.setPaint(new GradientPaint(0,0,PURPLE_LT,getWidth()*0.6f,0,new Color(0,0,0,0)));
                 g2.fillRect(0,0,getWidth(),1);
                 g2.dispose();
             }
         };
-        sepVerde.setOpaque(false);
-        sepVerde.setPreferredSize(new Dimension(0,1));
+        sep.setOpaque(false);
+        sep.setPreferredSize(new Dimension(0,1));
 
         JPanel topSect = new JPanel(new BorderLayout());
         topSect.setOpaque(false);
-        topSect.add(cab,      BorderLayout.CENTER);
-        topSect.add(sepVerde, BorderLayout.SOUTH);
+        topSect.add(cab, BorderLayout.CENTER);
+        topSect.add(sep, BorderLayout.SOUTH);
 
-        logContainer = new JPanel();
-        logContainer.setOpaque(false);
-        logContainer.setLayout(new BoxLayout(logContainer, BoxLayout.Y_AXIS));
-        logContainer.setBorder(new EmptyBorder(8,8,8,8));
+        // ── Dona ──
+        panelDona = new PanelDona();
+        panelDona.setOpaque(false);
+        panelDona.setPreferredSize(new Dimension(0, 175));
+        panelDona.setBorder(new EmptyBorder(10,10,4,10));
 
-        JScrollPane scroll = new JScrollPane(logContainer);
+        // ── Leyenda con scroll ──
+        leyendaGenero = new JPanel();
+        leyendaGenero.setOpaque(false);
+        leyendaGenero.setLayout(new BoxLayout(leyendaGenero, BoxLayout.Y_AXIS));
+        leyendaGenero.setBorder(new EmptyBorder(4,10,10,10));
+
+        JScrollPane scroll = new JScrollPane(leyendaGenero);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
         scroll.getViewport().setBackground(new Color(0,0,0,0));
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getVerticalScrollBar().setPreferredSize(new Dimension(4,0));
-        scroll.getVerticalScrollBar().setUnitIncrement(12);
+        scroll.getVerticalScrollBar().setUnitIncrement(14);
 
-        JPanel leyenda = new JPanel(new GridLayout(3,2,4,3)) {
+        JPanel body = new JPanel(new BorderLayout());
+        body.setOpaque(false);
+        body.add(panelDona, BorderLayout.NORTH);
+        body.add(scroll,    BorderLayout.CENTER);
+
+        inner.add(topSect, BorderLayout.NORTH);
+        inner.add(body,    BorderLayout.CENTER);
+        return inner;
+    }
+
+    // ── Componente que pinta la dona ──────────────────────────────────
+    private class PanelDona extends JPanel {
+        @Override protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = g2d(g);
+
+            int total = 0;
+            for (int v : datosGenero.values()) total += v;
+
+            int w = getWidth(), h = getHeight();
+            int diam   = Math.min(w, h) - 24;
+            int grosor = 24;
+            int x = (w - diam) / 2;
+            int y = (h - diam) / 2;
+
+            if (total == 0) {
+                g2.setColor(COL_BRD);
+                g2.setStroke(new BasicStroke(grosor, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
+                g2.drawOval(x+grosor/2, y+grosor/2, diam-grosor, diam-grosor);
+                g2.setFont(F_MONO.deriveFont(10f));
+                g2.setColor(TXT_SEC);
+                String s = "Sin datos";
+                FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(s, w/2 - fm.stringWidth(s)/2, h/2 + 4);
+                g2.dispose();
+                return;
+            }
+
+            double ang = 90;
+            int i = 0;
+            for (Map.Entry<String,Integer> e : datosGenero.entrySet()) {
+                double ext = -360.0 * e.getValue() / total;
+                Color c = BAR_COLORS[i % BAR_COLORS.length];
+                g2.setColor(c);
+                g2.setStroke(new BasicStroke(grosor, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
+                g2.drawArc(x+grosor/2, y+grosor/2, diam-grosor, diam-grosor,
+                           (int)Math.round(ang), (int)Math.round(ext));
+                ang += ext;
+                i++;
+            }
+
+            // Centro: total
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 32));
+            g2.setColor(TXT_PRI);
+            String tot = String.valueOf(total);
+            FontMetrics fm1 = g2.getFontMetrics();
+            g2.drawString(tot, w/2 - fm1.stringWidth(tot)/2, h/2 + 6);
+
+            g2.setFont(F_SUB);
+            g2.setColor(TXT_SEC);
+            FontMetrics fm2 = g2.getFontMetrics();
+            g2.drawString("ARTISTAS", w/2 - fm2.stringWidth("ARTISTAS")/2, h/2 + 22);
+
+            g2.dispose();
+        }
+    }
+
+    private void actualizarGrafica(List<Artista> lista) {
+        Map<String,Integer> conteo = new HashMap<>();
+        for (Artista a : lista) {
+            String gen = a.getGeneroMusical();
+            if (gen == null || gen.trim().isEmpty()) gen = "Sin género";
+            conteo.merge(gen, 1, Integer::sum);
+        }
+
+        List<Map.Entry<String,Integer>> entradas = new ArrayList<>(conteo.entrySet());
+        entradas.sort((e1, e2) -> e2.getValue() - e1.getValue());
+
+        datosGenero.clear();
+        for (Map.Entry<String,Integer> e : entradas)
+            datosGenero.put(e.getKey(), e.getValue());
+
+        leyendaGenero.removeAll();
+        int total = lista.size();
+        if (datosGenero.isEmpty()) {
+            leyendaGenero.add(mkLabel("Sin géneros registrados",
+                    F_MONO.deriveFont(10f), TXT_SEC));
+        } else {
+            int i = 0;
+            for (Map.Entry<String,Integer> e : datosGenero.entrySet()) {
+                Color c = BAR_COLORS[i % BAR_COLORS.length];
+                leyendaGenero.add(filaLeyenda(e.getKey(), e.getValue(), total, c));
+                leyendaGenero.add(Box.createVerticalStrut(5));
+                i++;
+            }
+        }
+
+        leyendaGenero.revalidate();
+        leyendaGenero.repaint();
+        panelDona.repaint();
+    }
+
+    private JPanel filaLeyenda(String nombre, int cant, int total, Color color) {
+        final double ratio = total > 0 ? cant / (double) total : 0;
+        final double pct   = ratio * 100;
+
+        JPanel fila = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(10,8,24));
-                g2.fillRoundRect(0,0,getWidth(),getHeight()+12,12,12);
+                g2.setColor(BG_CARD);
+                g2.fillRoundRect(0,0,getWidth(),getHeight(),8,8);
+                g2.setColor(new Color(color.getRed(),color.getGreen(),color.getBlue(),55));
+                g2.setStroke(new BasicStroke(1f));
+                g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,8,8);
+                int barY = getHeight()-5;
+                int barW = (int)((getWidth()-16) * ratio);
+                g2.setColor(new Color(22,48,100,150));
+                g2.fillRoundRect(8,barY,getWidth()-16,3,3,3);
+                if (barW > 0) {
+                    g2.setColor(color);
+                    g2.fillRoundRect(8,barY,barW,3,3,3);
+                }
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        leyenda.setOpaque(false);
-        leyenda.setBorder(new EmptyBorder(8,12,10,12));
-        for (Object[] it : new Object[][]{
-            {"● INSERT",GREEN},{"● SELECT",CYAN},
-            {"● UPDATE",AMBER},{"● DELETE",PINK},
-            {"● ERROR",new Color(248,113,113)},{"",TXT_SEC}
-        }) {
-            JLabel l = new JLabel((String)it[0]);
-            l.setFont(F_MONO_B.deriveFont(9f));
-            l.setForeground((Color)it[1]);
-            leyenda.add(l);
-        }
+        fila.setOpaque(false);
+        fila.setLayout(new BorderLayout(8,0));
+        fila.setBorder(new EmptyBorder(6,10,9,10));
+        fila.setAlignmentX(LEFT_ALIGNMENT);
+        fila.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
-        JPanel sepGray = new JPanel() {
+        JPanel punto = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
-                g.setColor(COL_BRD); g.fillRect(0,0,getWidth(),1);
+                Graphics2D g2 = g2d(g);
+                g2.setColor(color);
+                g2.fillRoundRect(0, getHeight()/2-5, 11, 11, 4, 4);
+                g2.dispose();
             }
         };
-        sepGray.setOpaque(false);
-        sepGray.setPreferredSize(new Dimension(0,1));
+        punto.setOpaque(false);
+        punto.setPreferredSize(new Dimension(14,0));
 
-        JPanel bottom = new JPanel(new BorderLayout());
-        bottom.setOpaque(false);
-        bottom.add(sepGray, BorderLayout.NORTH);
-        bottom.add(leyenda, BorderLayout.CENTER);
+        JLabel lblNom = mkLabel(recortar(nombre, 15), F_BODY.deriveFont(11f), TXT_PRI);
 
-        inner.add(topSect, BorderLayout.NORTH);
-        inner.add(scroll,  BorderLayout.CENTER);
-        inner.add(bottom,  BorderLayout.SOUTH);
-        return inner;
-    }
+        JLabel lblVal = mkLabel(cant + "  ·  " + String.format("%.0f%%", pct),
+                F_MONO_B.deriveFont(10f), color);
 
-    private void addLog(String tipo, String sql, String resultado, Color acento) {
-        SwingUtilities.invokeLater(() -> {
-            logCount++;
-            lblLogCount.setText(logCount+" entradas");
-            JPanel entry = new JPanel() {
-                @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = g2d(g);
-                    g2.setColor(BG_CARD);
-                    g2.fillRoundRect(0,0,getWidth(),getHeight(),8,8);
-                    g2.setColor(acento);
-                    g2.fillRoundRect(0,0,3,getHeight(),3,3);
-                    g2.dispose();
-                    super.paintComponent(g);
-                }
-            };
-            entry.setOpaque(false);
-            entry.setLayout(new BoxLayout(entry, BoxLayout.Y_AXIS));
-            entry.setBorder(new EmptyBorder(7,12,7,8));
-            entry.setMaximumSize(new Dimension(Integer.MAX_VALUE,9999));
-            entry.setAlignmentX(LEFT_ALIGNMENT);
-
-            String hora = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-            JLabel meta = mkLabel(hora+"  ·  "+tipo, F_MONO_B.deriveFont(9f),
-                    new Color(acento.getRed(),acento.getGreen(),acento.getBlue(),220));
-            meta.setAlignmentX(LEFT_ALIGNMENT);
-
-            JTextArea sqlArea = new JTextArea(sql);
-            sqlArea.setFont(F_MONO);
-            sqlArea.setForeground(PURPLE_LT);
-            sqlArea.setOpaque(false);
-            sqlArea.setEditable(false);
-            sqlArea.setLineWrap(true);
-            sqlArea.setWrapStyleWord(true);
-            sqlArea.setBorder(new EmptyBorder(3,0,3,0));
-            sqlArea.setAlignmentX(LEFT_ALIGNMENT);
-            sqlArea.setMaximumSize(new Dimension(Integer.MAX_VALUE,9999));
-
-            JLabel res = mkLabel("✓ "+resultado, F_MONO.deriveFont(9f),
-                    new Color(acento.getRed(),acento.getGreen(),acento.getBlue(),170));
-            res.setAlignmentX(LEFT_ALIGNMENT);
-
-            entry.add(meta); entry.add(sqlArea); entry.add(res);
-            JPanel gap = new JPanel();
-            gap.setOpaque(false);
-            gap.setMaximumSize(new Dimension(Integer.MAX_VALUE,6));
-            gap.setAlignmentX(LEFT_ALIGNMENT);
-            logContainer.add(entry,0);
-            logContainer.add(gap,  1);
-            logContainer.revalidate();
-            logContainer.repaint();
-        });
-    }
-
-    private void limpiarLog() {
-        logContainer.removeAll();
-        logCount = 0;
-        lblLogCount.setText("0 entradas");
-        logContainer.revalidate();
-        logContainer.repaint();
+        fila.add(punto,  BorderLayout.WEST);
+        fila.add(lblNom, BorderLayout.CENTER);
+        fila.add(lblVal, BorderLayout.EAST);
+        return fila;
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -875,15 +888,14 @@ public class formArtista extends JPanel {
                 c.setForeground(CYAN);
             }
             if (col == COL_PAIS && val != null) {
-                c.setForeground(new Color(129,230,217));
+                c.setForeground(GREEN);
             }
-            // ── CORREGIDO: estados de perfil_artista ─────────────────
             if (col == COL_ESTADO && val != null) {
                 String s = val.toString();
                 Color color = switch (s) {
                     case Artista.ESTADO_ACTIVO   -> GREEN;
                     case Artista.ESTADO_EN_PAUSA -> AMBER;
-                    default                      -> PINK;   // Inactivo
+                    default                      -> PINK;
                 };
                 c.setForeground(color);
                 c.setFont(F_BOLD);
@@ -904,10 +916,6 @@ public class formArtista extends JPanel {
         worker(() -> svc.obtenerTodos(), lista -> {
             listaActual = lista;
             poblar(lista);
-            addLog("SELECT",
-                   "SELECT id_artista, nombre_artista, genero_musical, nacionalidad, " +
-                   "tipo_artista, estado_artista FROM perfil_artista ORDER BY id_artista",
-                   lista.size()+" fila(s) cargadas", CYAN);
         }, "Error al cargar");
     }
 
@@ -916,17 +924,11 @@ public class formArtista extends JPanel {
         worker(() -> svc.buscar(q), lista -> {
             listaActual = lista;
             poblar(lista);
-            if (!q.isEmpty())
-                addLog("SELECT",
-                       "SELECT * FROM perfil_artista WHERE LOWER(nombre_artista) " +
-                       "LIKE '%"+q+"%' OR LOWER(genero_musical) LIKE '%"+q+"%'",
-                       lista.size()+" resultado(s)", CYAN);
         }, "Error al buscar");
     }
 
     private void poblar(List<Artista> lista) {
         modeloTabla.setRowCount(0);
-        // ── CORREGIDO: usa los getters del nuevo modelo ───────────────
         for (Artista a : lista) {
             modeloTabla.addRow(new Object[]{
                 a.getIdArtista(),
@@ -937,7 +939,6 @@ public class formArtista extends JPanel {
                 a.getEstadoArtista()
             });
         }
-        // ── CORREGIDO: stat cards con datos reales ────────────────────
         long act     = lista.stream()
                             .filter(a -> Artista.ESTADO_ACTIVO.equals(a.getEstadoArtista()))
                             .count();
@@ -953,6 +954,7 @@ public class formArtista extends JPanel {
         lblPaises .setText(String.valueOf(paises));
         lblTipos  .setText(String.valueOf(solistas));
         actualizarEstadisticas(lista);
+        actualizarGrafica(lista);
     }
 
     private void accionEditar() {
@@ -973,9 +975,6 @@ public class formArtista extends JPanel {
                 return svc.obtenerTodos();
             }, lista->{
                 poblar(lista);
-                addLog("DELETE",
-                       "DELETE FROM perfil_artista WHERE id_artista="+id,
-                       "Commit OK · \""+nombre+"\" eliminado", PINK);
                 toast("Artista eliminado", MainFrame.ToastType.SUCCESS);
             },"Error al eliminar");
         }
@@ -986,7 +985,6 @@ public class formArtista extends JPanel {
     // ══════════════════════════════════════════════════════════════════
     private void dialogFormulario(Integer filaEditar) {
         boolean esEdit = filaEditar != null;
-        // ── CORREGIDO: lee los valores con los índices actualizados ───
         int    id  = esEdit ? (int)   modeloTabla.getValueAt(filaEditar, COL_ID)     : 0;
         String nom = esEdit ? (String)modeloTabla.getValueAt(filaEditar, COL_NOMBRE) : "";
         String gen = esEdit ? (String)modeloTabla.getValueAt(filaEditar, COL_GENERO) : "";
@@ -1001,7 +999,7 @@ public class formArtista extends JPanel {
         JPanel root = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(10,8,24));
+                g2.setColor(new Color(5, 12, 30));
                 g2.fillRect(0,0,getWidth(),getHeight());
                 g2.dispose();
                 super.paintComponent(g);
@@ -1053,8 +1051,8 @@ public class formArtista extends JPanel {
         JPanel band = new JPanel(new BorderLayout(14,0)) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setPaint(new GradientPaint(0,0,new Color(124,58,237),
-                        getWidth(),getHeight(),new Color(6,120,180)));
+                g2.setPaint(new GradientPaint(0,0,new Color(37,99,235),
+                        getWidth(),getHeight(),new Color(14,50,140)));
                 g2.fillRect(0,0,getWidth(),getHeight());
                 g2.setPaint(new GradientPaint(0,0,new Color(255,255,255,40),
                         0,getHeight(),new Color(255,255,255,0)));
@@ -1105,42 +1103,20 @@ public class formArtista extends JPanel {
     private void guardar(boolean esEdit, int id,
             JTextField fNom, JTextField fGen, JTextField fPai,
             JComboBox<String> cTip, JComboBox<String> cEst, JDialog dlg) {
-
         String nom  = fNom.getText().trim();
         String gen  = fGen.getText().trim();
         String pai  = fPai.getText().trim();
         String tip  = (String) cTip.getSelectedItem();
         String est  = (String) cEst.getSelectedItem();
 
-        // ── CORREGIDO: llama al service con la firma nueva ────────────
         worker(()->{
             if (esEdit)
-                svc.modificar(id, nom, null,
-                              null, null,
-                              pai, gen,
-                              null, null,
-                              est, tip);
+                svc.modificar(id, nom, null, null, null, pai, gen, null, null, est, tip);
             else
-                svc.registrar(nom, null,
-                              null, null,
-                              pai, gen,
-                              null, null,
-                              est, tip);
+                svc.registrar(nom, null, null, null, pai, gen, null, null, est, tip);
             return svc.obtenerTodos();
         }, lista -> {
             poblar(lista);
-            if (esEdit)
-                addLog("UPDATE",
-                       "UPDATE perfil_artista SET nombre_artista='"+nom+
-                       "', genero_musical='"+gen+"', estado_artista='"+est+
-                       "' WHERE id_artista="+id,
-                       "Commit OK · 1 fila actualizada", AMBER);
-            else
-                addLog("INSERT",
-                       "INSERT INTO perfil_artista (nombre_artista, genero_musical, " +
-                       "nacionalidad, estado_artista, tipo_artista) VALUES ('"+
-                       nom+"','"+gen+"','"+pai+"','"+est+"','"+tip+"')",
-                       "Commit OK · 1 fila insertada", GREEN);
             toast(esEdit ? "Artista actualizado" : "Artista creado: "+nom,
                   MainFrame.ToastType.SUCCESS);
             dlg.dispose();
@@ -1153,10 +1129,13 @@ public class formArtista extends JPanel {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
                 boolean foco = isFocusOwner();
-                if (foco) { g2.setColor(new Color(124,58,237,60)); g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12); }
-                g2.setColor(foco?new Color(30,23,64):BG_FIELD);
+                if (foco) {
+                    g2.setColor(new Color(37,99,235,60));
+                    g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
+                }
+                g2.setColor(foco ? new Color(10,22,60) : BG_FIELD);
                 g2.fillRoundRect(2,2,getWidth()-5,getHeight()-5,10,10);
-                g2.setColor(foco?PURPLE:COL_BRD);
+                g2.setColor(foco ? PURPLE : COL_BRD);
                 g2.setStroke(new BasicStroke(foco?1.8f:1f));
                 g2.drawRoundRect(2,2,getWidth()-6,getHeight()-6,10,10);
                 g2.dispose();
@@ -1202,7 +1181,7 @@ public class formArtista extends JPanel {
                 lb.setForeground(s?Color.WHITE:TXT_PRI);
                 lb.setBorder(new EmptyBorder(9,12,9,12));
                 lb.setOpaque(true);
-                lb.setBackground(s?PURPLE:BG_FIELD);
+                lb.setBackground(s ? PURPLE : BG_FIELD);
                 return lb;
             }
         });
@@ -1273,7 +1252,7 @@ public class formArtista extends JPanel {
     private void toast(String msg,MainFrame.ToastType tipo){ MainFrame.showToast(msg,tipo); }
 
     // ══════════════════════════════════════════════════════════════════
-    //  ZBtn — botón estilo Z-One
+    //  ZBtn
     // ══════════════════════════════════════════════════════════════════
     static class ZBtn extends JButton {
         private final boolean primary;
@@ -1289,20 +1268,25 @@ public class formArtista extends JPanel {
         @Override protected void paintComponent(Graphics g){
             Graphics2D g2=g2d(g);
             if(primary){
-                g2.setColor(getModel().isPressed()?new Color(109,40,217):PURPLE);
+                g2.setColor(getModel().isPressed() ? new Color(29,78,216) : PURPLE);
                 g2.fillRoundRect(0,0,getWidth(),getHeight(),10,10);
                 if(!getModel().isPressed()){
                     g2.setPaint(new GradientPaint(0,0,new Color(255,255,255,28),0,getHeight()/2f,new Color(0,0,0,0)));
                     g2.fillRoundRect(0,0,getWidth(),getHeight()/2,10,10);
                 }
             } else {
-                g2.setColor(getModel().isRollover()?new Color(28,20,66):BG_CARD);
+                g2.setColor(getModel().isRollover() ? new Color(14,34,80) : BG_CARD);
                 g2.fillRoundRect(0,0,getWidth(),getHeight(),10,10);
                 g2.setColor(COL_BRD);
                 g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,10,10);
             }
             g2.dispose(); super.paintComponent(g);
+        }
+        private static Graphics2D g2d(Graphics g){
+            Graphics2D g2=(Graphics2D)g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+            return g2;
         }
     }
 }
