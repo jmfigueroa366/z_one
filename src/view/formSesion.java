@@ -1394,6 +1394,6 @@ private JPanel cardCostoEstimado(JLabel valor, JLabel meta) {
     }
 
     private void toast(String msg, MainFrame.ToastType t) {
-        MainFrame.showToast(msg, t);
+        SwingUtilities.invokeLater(() -> MainFrame.showToast(msg, t));
     }
 }

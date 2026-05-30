@@ -285,6 +285,7 @@ public class MainFrame extends JFrame {
     // =================================================================
     public static void showToast(String mensaje, ToastType tipo) {
         if (instance == null) return;
+        if (!instance.isShowing()) return;
         instance.mostrarToastInterno(mensaje, tipo);
     }
 

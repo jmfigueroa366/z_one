@@ -1,12 +1,15 @@
 package view;
 
+import model.Album;
+import model.Artista;
+import model.Cancion;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.*;
 import java.awt.*;
-import java.awt.event.*;
-import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,96 +17,164 @@ import static view.ModernUI.*;
 
 /**
  * Panel del catálogo musical.
- * Adaptado al modelo entidad-relación:
- *   cancion (id_cancion, titulo, genero, bpm, fecha_composicion,
- *            fecha_compilacion, idiomas, estado_cancion)
- *   perfil_artista (Id_artista, nombre_artista, genero_musical, ...)
- *   formato (id_formato, titulo, año, tipo_proyecto)
+ * Permite explorar canciones filtradas por género y búsqueda de texto.
  *
- * Permite explorar canciones filtradas por género y búsqueda de texto,
- * y agregar nuevos géneros al combo desplegable en tiempo de ejecución.
+ * Adaptado a los cambios del merge:
+ *  - Artista: nuevo constructor completo (12 parámetros), getter renombrado
+ *    getNombre() → getNombreArtista(), genero musical en getGeneroMusical().
+ *  - ModernUI: paleta actualizada de morado a azul marino; se reemplazaron
+ *    los colores locales por las constantes vigentes de ModernUI.
  */
 public class formCatalogo extends JPanel {
 
     // ── Columnas de tabla ─────────────────────────────────────────────
-    private static final String[] COLUMNAS_TABLA = {"ID", "Título", "Artista", "Género", "BPM", "Idioma", "Estado"};
-    private static final int[]    ANCHOS_COLUMNAS = {50, 200, 160, 120, 60, 100, 90};
-    private static final int      COL_GENERO = 3;
+
+    private static final String[] COLUMNAS_TABLA = {"Título", "Artista", "Álbum", "Género", "Duración"};
+    private static final int[]    ANCHOS_COLUMNAS = {200, 160, 200, 120, 80};
+    private static final int      COL_GENERO      = 3;
+
+    // ── Géneros disponibles ───────────────────────────────────────────
+
+    private static final String   GENERO_TODOS = "[ Todos ]";
+    private static final String[] GENEROS = {
+        GENERO_TODOS, "Vallenato", "Pop", "Reggaeton", "Rock", "Urbano", "Salsa", "Cumbia"
+    };
 
     // ── Layout ────────────────────────────────────────────────────────
+
     private static final int FILA_ALTURA        = 40;
-    private static final int ANCHO_BUSCADOR     = 220;
+    private static final int ANCHO_BUSCADOR     = 260;
     private static final int ALTO_CONTROL       = 36;
     private static final int ANCHO_COMBO_GENERO = 160;
 
-    // ── Colores ───────────────────────────────────────────────────────
-    private static final Color COLOR_FONDO        = new Color(18, 18, 40);
-    private static final Color COLOR_FONDO_CAMPO  = new Color(24, 24, 52);
-    private static final Color COLOR_MORADO       = new Color(139, 92, 246);
-    private static final Color COLOR_EXITO        = new Color(34, 197, 94);
-    private static final Color COLOR_ADVERTENCIA  = new Color(250, 180, 40);
-    private static final Color COLOR_INFO         = new Color(6, 182, 212);
-    private static final Color COLOR_FILA_IMPAR   = new Color(22, 22, 50);
-    private static final Color COLOR_SELECCION    = new Color(139, 92, 246, 60);
-    private static final Color COLOR_ENCABEZADO   = new Color(13, 13, 30);
-    private static final Color COLOR_BORDE_TABLA  = new Color(139, 92, 246, 50);
-    private static final Color COLOR_BORDE_BUS    = new Color(139, 92, 246, 80);
-    private static final Color COLOR_BORDE_POPUP  = new Color(139, 92, 246, 120);
-    private static final Color COLOR_COMBO_BORDE  = new Color(139, 92, 246, 90);
-    private static final Color COLOR_FONDO_BUS    = new Color(20, 20, 45);
+    // ── Colores (usando la paleta actualizada de ModernUI) ────────────
+
+    // Fondos
+    private static final Color COLOR_FONDO       = BG_DARK;           // azul muy oscuro
+    private static final Color COLOR_FONDO_CAMPO = new Color(6, 38, 74);  // INPUT_BG de ModernUI
+    private static final Color COLOR_FONDO_BUS   = new Color(4, 28, 58);
+
+    // Acentos de género (adaptados a la nueva paleta azul)
+    private static final Color COLOR_ACENTO      = PRIMARY;            // azul brillante
+    private static final Color COLOR_EXITO       = SUCCESS;            // turquesa
+    private static final Color COLOR_INFO        = ACCENT_CYAN;        // celeste eléctrico
+    private static final Color COLOR_ADVERTENCIA = new Color(250, 180, 40); // amarillo (sin equivalente en ModernUI)
+    private static final Color COLOR_ROCK        = ACCENT_PINK;        // turquesa rosado
+
+    // Tabla
+    private static final Color COLOR_FILA_IMPAR  = new Color(3, 22, 52);
+    private static final Color COLOR_SELECCION   = new Color(1, 138, 190, 60);  // PRIMARY con alpha
+    private static final Color COLOR_ENCABEZADO  = new Color(2, 15, 38);
+    private static final Color COLOR_BORDE_TABLA = new Color(26, 72, 120, 80);  // BORDER más suave
+
+    // Bordes de controles
+    private static final Color COLOR_BORDE_BUS   = new Color(1, 138, 190, 100);
+    private static final Color COLOR_BORDE_POPUP = new Color(1, 138, 190, 150);
+    private static final Color COLOR_COMBO_BORDE = new Color(1, 138, 190, 110);
 
     // ── Fuentes ───────────────────────────────────────────────────────
-    private static final Font FUENTE_TITULO     = new Font("Segoe UI", Font.BOLD,  26);
-    private static final Font FUENTE_SUBTITULO  = new Font("Segoe UI", Font.PLAIN, 13);
-    private static final Font FUENTE_CUERPO     = new Font("Segoe UI", Font.PLAIN, 13);
-    private static final Font FUENTE_ETIQUETA   = new Font("Segoe UI", Font.PLAIN, 11);
-    private static final Font FUENTE_ENCABEZADO = new Font("Segoe UI", Font.BOLD,  11);
+
+    private static final Font FUENTE_TITULO     = FONT_TITLE;
+    private static final Font FUENTE_SUBTITULO  = FONT_SUBTITLE;
+    private static final Font FUENTE_CUERPO     = FONT_LABEL;
+    private static final Font FUENTE_ETIQUETA   = FONT_SMALL;
+    private static final Font FUENTE_ENCABEZADO = new Font("Segoe UI", Font.BOLD, 11);
 
     // ── Estado ────────────────────────────────────────────────────────
-    /** Géneros cargados en runtime (se pueden agregar desde la UI) */
-    private final List<String>         generosDisponibles = new ArrayList<>();
-    /** Filas mostradas en la tabla: cada Object[] = {id, titulo, artista, genero, bpm, idioma, estado} */
-    private final List<Object[]>       filasActuales      = new ArrayList<>();
 
-    private DefaultTableModel          modeloTabla;
-    private JTable                     tabla;
-    private JTextField                 campoBusqueda;
-    private JComboBox<String>          comboGenero;
-    private JLabel                     etiquetaConteo;
-    private JPanel                     panelChips;
+    private final List<Artista> artistas  = new ArrayList<>();
+    private final List<Album>   albums    = new ArrayList<>();
+    private final List<Cancion> canciones = new ArrayList<>();
 
-    // ── Géneros fijos iniciales ───────────────────────────────────────
-    private static final String GENERO_TODOS = "[ Todos ]";
+    private DefaultTableModel  modeloTabla;
+    private JTable             tabla;
+    private JTextField         campoBusqueda;
+    private JComboBox<String>  comboGenero;
+    private JLabel             etiquetaConteo;
 
     // ── Constructor ───────────────────────────────────────────────────
+
     public formCatalogo() {
         setOpaque(false);
-        setLayout(new BorderLayout(0, 12));
+        setLayout(new BorderLayout());
         setBorder(new EmptyBorder(0, 0, 0, 0));
-
-        // Géneros base
-        generosDisponibles.add(GENERO_TODOS);
-        generosDisponibles.addAll(List.of("Vallenato", "Pop", "Reggaeton", "Rock", "Urbano", "Salsa", "Cumbia"));
-
+        cargarDatosDemo();
         add(construirEncabezado(),   BorderLayout.NORTH);
         add(construirTarjetaTabla(), BorderLayout.CENTER);
-
-        // Cargar datos (intentar BD, si falla usar demo)
-        cargarDatos();
     }
 
-    // ================================================================
-    // ENCABEZADO: títulos + barra de filtros + sección agregar género
-    // ================================================================
+    // ── Datos demo ────────────────────────────────────────────────────
+
+    /**
+     * Crea artistas de prueba usando el constructor actualizado de Artista
+     * (12 parámetros): idArtista, idUsuario, nombreArtista, nombreReal,
+     * fechaNacimiento, genero, nacionalidad, generoMusical,
+     * redesSociales, fechaFirma, estadoArtista, tipoArtista.
+     */
+    private void cargarDatosDemo() {
+        Artista carlosVives   = new Artista(1, null, "Carlos Vives",   "Carlos Eduardo Vives Restrepo",
+                                            LocalDate.of(1961, 8, 7),  "M", "Colombia",   "Vallenato",
+                                            "@carlosvives",   LocalDate.of(2010, 1, 1),
+                                            Artista.ESTADO_ACTIVO, Artista.TIPO_SOLISTA);
+
+        Artista shakira       = new Artista(2, null, "Shakira",         "Shakira Isabel Mebarak Ripoll",
+                                            LocalDate.of(1977, 2, 2),  "F", "Colombia",   "Pop",
+                                            "@shakira",       LocalDate.of(2005, 3, 1),
+                                            Artista.ESTADO_ACTIVO, Artista.TIPO_SOLISTA);
+
+        Artista badBunny      = new Artista(3, null, "Bad Bunny",       "Benito Antonio Martínez Ocasio",
+                                            LocalDate.of(1994, 3, 10), "M", "Puerto Rico", "Reggaeton",
+                                            "@badbunny",      LocalDate.of(2018, 6, 1),
+                                            Artista.ESTADO_ACTIVO, Artista.TIPO_SOLISTA);
+
+        Artista karolG        = new Artista(4, null, "Karol G",         "Carolina Giraldo Navarro",
+                                            LocalDate.of(1991, 2, 14), "F", "Colombia",   "Urbano",
+                                            "@karolg",        LocalDate.of(2017, 1, 1),
+                                            Artista.ESTADO_ACTIVO, Artista.TIPO_SOLISTA);
+
+        Artista carlosSantana = new Artista(5, null, "Carlos Santana",  "Carlos Augusto Santana Alves",
+                                            LocalDate.of(1947, 7, 20), "M", "México",     "Rock",
+                                            "@santana",       LocalDate.of(1998, 9, 1),
+                                            Artista.ESTADO_ACTIVO, Artista.TIPO_SOLISTA);
+
+        artistas.addAll(List.of(carlosVives, shakira, badBunny, karolG, carlosSantana));
+
+        Album laTierra    = new Album(1, "La Tierra de la Música", 2019, carlosVives,   new ArrayList<>());
+        Album oralFixation= new Album(2, "Oral Fixation Vol. 2",  2006, shakira,        new ArrayList<>());
+        Album un_verano   = new Album(3, "Un Verano Sin Ti",       2022, badBunny,      new ArrayList<>());
+        Album mañana      = new Album(4, "Mañana Será Bonito",     2023, karolG,        new ArrayList<>());
+        Album supernatural= new Album(5, "Supernatural",           1999, carlosSantana, new ArrayList<>());
+        albums.addAll(List.of(laTierra, oralFixation, un_verano, mañana, supernatural));
+
+        // generoMusical del artista se usa como género de la canción
+        canciones.addAll(List.of(
+            new Cancion(1,  "Pa' Mayte",          3.5, carlosVives.getGeneroMusical(),   carlosVives),
+            new Cancion(2,  "La Bicicleta",        3.8, carlosVives.getGeneroMusical(),   carlosVives),
+            new Cancion(3,  "Hips Don't Lie",      3.7, shakira.getGeneroMusical(),       shakira),
+            new Cancion(4,  "Waka Waka",           3.5, shakira.getGeneroMusical(),       shakira),
+            new Cancion(5,  "Me Porto Bonito",     3.2, badBunny.getGeneroMusical(),      badBunny),
+            new Cancion(6,  "Tití Me Preguntó",    4.1, badBunny.getGeneroMusical(),      badBunny),
+            new Cancion(7,  "PROVENZA",            3.9, karolG.getGeneroMusical(),        karolG),
+            new Cancion(8,  "Cairo",               3.6, karolG.getGeneroMusical(),        karolG),
+            new Cancion(9,  "Smooth",              4.5, carlosSantana.getGeneroMusical(), carlosSantana),
+            new Cancion(10, "Maria Maria",         4.3, carlosSantana.getGeneroMusical(), carlosSantana)
+        ));
+
+        laTierra.agregarCancion(canciones.get(0));     laTierra.agregarCancion(canciones.get(1));
+        oralFixation.agregarCancion(canciones.get(2)); oralFixation.agregarCancion(canciones.get(3));
+        un_verano.agregarCancion(canciones.get(4));    un_verano.agregarCancion(canciones.get(5));
+        mañana.agregarCancion(canciones.get(6));       mañana.agregarCancion(canciones.get(7));
+        supernatural.agregarCancion(canciones.get(8)); supernatural.agregarCancion(canciones.get(9));
+    }
+
+    // ── Construcción de UI ────────────────────────────────────────────
+
     private JPanel construirEncabezado() {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.add(construirTitulos());
-        panel.add(Box.createVerticalStrut(12));
         panel.add(construirBarraFiltros());
-        panel.add(Box.createVerticalStrut(8));
-        panel.add(construirSeccionAgregarGenero());
         return panel;
     }
 
@@ -111,10 +182,12 @@ public class formCatalogo extends JPanel {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
         JLabel titulo    = etiqueta("Catálogo musical", FUENTE_TITULO, TEXT_PRIMARY);
-        JLabel subtitulo = etiqueta("Canciones registradas · filtro por género y búsqueda libre", FUENTE_SUBTITULO, TEXT_MUTED);
+        JLabel subtitulo = etiqueta("Álbumes, canciones y géneros disponibles", FUENTE_SUBTITULO, TEXT_MUTED);
         titulo.setAlignmentX(LEFT_ALIGNMENT);
         subtitulo.setAlignmentX(LEFT_ALIGNMENT);
+
         panel.add(titulo);
         panel.add(Box.createVerticalStrut(4));
         panel.add(subtitulo);
@@ -124,15 +197,14 @@ public class formCatalogo extends JPanel {
     private JPanel construirBarraFiltros() {
         JPanel barra = new JPanel(new BorderLayout(12, 0));
         barra.setOpaque(false);
+        barra.setBorder(new EmptyBorder(16, 0, 12, 0));
 
-        // Izquierda: combo género
         JPanel izquierda = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         izquierda.setOpaque(false);
-        izquierda.add(etiqueta("Filtrar por género:", FUENTE_CUERPO, TEXT_MUTED));
         comboGenero = construirComboGenero();
+        izquierda.add(etiqueta("Filtrar por género:", FUENTE_CUERPO, TEXT_MUTED));
         izquierda.add(comboGenero);
 
-        // Derecha: buscar + conteo
         JPanel derecha = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         derecha.setOpaque(false);
         etiquetaConteo = etiqueta("", FUENTE_ETIQUETA, TEXT_MUTED);
@@ -146,125 +218,6 @@ public class formCatalogo extends JPanel {
         return barra;
     }
 
-    // ================================================================
-    // SECCIÓN AGREGAR GÉNERO  ← nueva funcionalidad
-    // ================================================================
-    private JPanel construirSeccionAgregarGenero() {
-        // Contenedor principal con borde suave
-        JPanel contenedor = new JPanel();
-        contenedor.setOpaque(true);
-        contenedor.setBackground(new Color(24, 24, 52, 180));
-        contenedor.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(139, 92, 246, 50), 1, true),
-            new EmptyBorder(10, 14, 10, 14)));
-        contenedor.setLayout(new BoxLayout(contenedor, BoxLayout.Y_AXIS));
-        contenedor.setAlignmentX(LEFT_ALIGNMENT);
-
-        // — Fila superior: campo + botón —
-        JPanel fila = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        fila.setOpaque(false);
-        fila.setAlignmentX(LEFT_ALIGNMENT);
-
-        JLabel lblTitulo = etiqueta("➕  Agregar género musical:", FUENTE_CUERPO, TEXT_SECONDARY);
-        JTextField txtNuevoGenero = construirCampoGenero();
-        JButton    btnAgregar     = construirBotonAgregar(txtNuevoGenero);
-
-        fila.add(lblTitulo);
-        fila.add(txtNuevoGenero);
-        fila.add(btnAgregar);
-
-        // — Fila inferior: chips de géneros actuales —
-        panelChips = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
-        panelChips.setOpaque(false);
-        panelChips.setAlignmentX(LEFT_ALIGNMENT);
-        refrescarChips();
-
-        contenedor.add(fila);
-        contenedor.add(Box.createVerticalStrut(6));
-        contenedor.add(panelChips);
-
-        // Wrapper para que no se estire al ancho completo
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setOpaque(false);
-        wrapper.add(contenedor, BorderLayout.WEST);
-        return wrapper;
-    }
-
-    private JTextField construirCampoGenero() {
-        JTextField tf = new JTextField();
-        tf.setPreferredSize(new Dimension(180, ALTO_CONTROL));
-        tf.setFont(FUENTE_CUERPO);
-        tf.setForeground(TEXT_PRIMARY);
-        tf.setBackground(COLOR_FONDO_BUS);
-        tf.setCaretColor(TEXT_PRIMARY);
-        tf.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(COLOR_COMBO_BORDE, 1, true),
-            new EmptyBorder(6, 10, 6, 10)));
-        tf.putClientProperty("JTextField.placeholderText", "Ej: Jazz, Cumbia...");
-        return tf;
-    }
-
-    private JButton construirBotonAgregar(JTextField txtNuevoGenero) {
-        ModernUI.RoundedButton btn = new ModernUI.RoundedButton("Agregar", true);
-        btn.setPreferredSize(new Dimension(100, ALTO_CONTROL));
-
-        ActionListener accion = e -> {
-            String nuevoGenero = txtNuevoGenero.getText().trim();
-
-            // Validar vacío
-            if (nuevoGenero.isEmpty()) {
-                MainFrame.showToast("Escribe un nombre de género primero", MainFrame.ToastType.ERROR);
-                txtNuevoGenero.requestFocus();
-                return;
-            }
-
-            // Validar duplicado (ignorando mayúsculas)
-            boolean yaExiste = generosDisponibles.stream()
-                .anyMatch(g -> g.equalsIgnoreCase(nuevoGenero));
-            if (yaExiste) {
-                MainFrame.showToast("El género '" + nuevoGenero + "' ya existe", MainFrame.ToastType.ERROR);
-                return;
-            }
-
-            // Agregar al modelo del combo y a la lista interna
-            generosDisponibles.add(nuevoGenero);
-            comboGenero.addItem(nuevoGenero);
-
-            // Actualizar chips visuales
-            refrescarChips();
-
-            // Seleccionar el género recién agregado en el combo
-            comboGenero.setSelectedItem(nuevoGenero);
-
-            txtNuevoGenero.setText("");
-            MainFrame.showToast("Género '" + nuevoGenero + "' agregado al filtro", MainFrame.ToastType.SUCCESS);
-        };
-
-        btn.addActionListener(accion);
-
-        // También activar con Enter desde el campo de texto
-        txtNuevoGenero.addActionListener(accion);
-
-        return btn;
-    }
-
-    /** Redibuja los chips de género debajo del campo de agregar */
-    private void refrescarChips() {
-        panelChips.removeAll();
-        JLabel lbl = etiqueta("Géneros activos: ", FUENTE_ETIQUETA, TEXT_MUTED);
-        panelChips.add(lbl);
-
-        for (String genero : generosDisponibles) {
-            if (genero.equals(GENERO_TODOS)) continue;
-            panelChips.add(crearChipGenero(genero));
-        }
-        panelChips.revalidate();
-        panelChips.repaint();
-    }
-
-    // ================================================================
-    // COMPONENTES DE FILTRO
-    // ================================================================
     private JTextField construirCampoBusqueda() {
         JTextField campo = new JTextField();
         campo.setPreferredSize(new Dimension(ANCHO_BUSCADOR, ALTO_CONTROL));
@@ -275,13 +228,13 @@ public class formCatalogo extends JPanel {
         campo.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(COLOR_BORDE_BUS, 1, true),
             new EmptyBorder(6, 12, 6, 12)));
-        campo.putClientProperty("JTextField.placeholderText", "Título, artista, género...");
+        campo.putClientProperty("JTextField.placeholderText", "Título, artista o álbum...");
         campo.getDocument().addDocumentListener(docListener(this::aplicarFiltros));
         return campo;
     }
 
     private JComboBox<String> construirComboGenero() {
-        JComboBox<String> combo = new JComboBox<>() {
+        JComboBox<String> combo = new JComboBox<>(GENEROS) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -295,17 +248,13 @@ public class formCatalogo extends JPanel {
                 super.paintComponent(g);
             }
         };
-
-        // Poblar con géneros iniciales
-        for (String g : generosDisponibles) combo.addItem(g);
-
         combo.setPreferredSize(new Dimension(ANCHO_COMBO_GENERO, ALTO_CONTROL));
         combo.setEditable(false);
         combo.setOpaque(false);
         combo.setFont(FUENTE_CUERPO);
         combo.setForeground(TEXT_PRIMARY);
         combo.setBackground(COLOR_FONDO_CAMPO);
-        combo.setMaximumRowCount(12);
+        combo.setMaximumRowCount(8);
         combo.setFocusable(false);
         combo.setBorder(new EmptyBorder(0, 0, 0, 0));
         combo.setRenderer(rendererComboString());
@@ -314,13 +263,13 @@ public class formCatalogo extends JPanel {
         return combo;
     }
 
-    // ================================================================
-    // TABLA
-    // ================================================================
+    // ── Tarjeta de tabla ──────────────────────────────────────────────
+
     private ModernUI.CardPanel construirTarjetaTabla() {
         modeloTabla = new DefaultTableModel(COLUMNAS_TABLA, 0) {
-            @Override public boolean isCellEditable(int f, int c) { return false; }
+            @Override public boolean isCellEditable(int fila, int col) { return false; }
         };
+        refrescarTabla(canciones);
 
         tabla = new JTable(modeloTabla);
         aplicarEstiloTabla();
@@ -334,9 +283,60 @@ public class formCatalogo extends JPanel {
 
         ModernUI.CardPanel tarjeta = new ModernUI.CardPanel(16);
         tarjeta.setLayout(new BorderLayout());
-        tarjeta.add(scroll, BorderLayout.CENTER);
+        tarjeta.add(scroll,                BorderLayout.CENTER);
+        tarjeta.add(construirPieTarjeta(), BorderLayout.SOUTH);
         return tarjeta;
     }
+
+    private JPanel construirPieTarjeta() {
+        JPanel pie = new JPanel(new BorderLayout());
+        pie.setOpaque(false);
+        pie.setBorder(new EmptyBorder(12, 4, 4, 4));
+
+        JPanel chips = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        chips.setOpaque(false);
+        for (String genero : List.of("Vallenato", "Pop", "Reggaeton", "Urbano", "Rock")) {
+            chips.add(crearChipGenero(genero));
+        }
+        pie.add(chips, BorderLayout.WEST);
+        return pie;
+    }
+
+    private JLabel crearChipGenero(String genero) {
+        long conteo = canciones.stream()
+            .filter(c -> c.getGenero().equalsIgnoreCase(genero))
+            .count();
+        Color col = colorChipGenero(genero);
+        JLabel chip = new JLabel(genero + " (" + conteo + ")");
+        chip.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        chip.setForeground(col);
+        chip.setOpaque(true);
+        chip.setBackground(new Color(col.getRed(), col.getGreen(), col.getBlue(), 25));
+        chip.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(col.getRed(), col.getGreen(), col.getBlue(), 80), 1, true),
+            new EmptyBorder(3, 8, 3, 8)));
+        chip.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        chip.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                comboGenero.setSelectedItem(genero);
+            }
+        });
+        return chip;
+    }
+
+    /** Asigna un color de acento a cada género, usando la paleta azul de ModernUI. */
+    private Color colorChipGenero(String genero) {
+        return switch (genero) {
+            case "Vallenato" -> COLOR_EXITO;       // turquesa
+            case "Pop"       -> COLOR_INFO;        // celeste eléctrico
+            case "Reggaeton" -> PRIMARY_LIGHT;     // celeste claro
+            case "Urbano"    -> COLOR_ADVERTENCIA; // amarillo
+            case "Rock"      -> COLOR_ROCK;        // turquesa rosado
+            default          -> TEXT_MUTED;
+        };
+    }
+
+    // ── Estilo de tabla ───────────────────────────────────────────────
 
     private void aplicarEstiloTabla() {
         tabla.setOpaque(false);
@@ -358,12 +358,7 @@ public class formCatalogo extends JPanel {
         encabezado.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, COLOR_BORDE_TABLA));
         encabezado.setReorderingAllowed(false);
 
-        // Ocultar columna ID
-        tabla.getColumnModel().getColumn(0).setMinWidth(0);
-        tabla.getColumnModel().getColumn(0).setMaxWidth(0);
-        tabla.getColumnModel().getColumn(0).setWidth(0);
-
-        for (int i = 1; i < ANCHOS_COLUMNAS.length; i++) {
+        for (int i = 0; i < ANCHOS_COLUMNAS.length; i++) {
             tabla.getColumnModel().getColumn(i).setPreferredWidth(ANCHOS_COLUMNAS[i]);
         }
         tabla.setDefaultRenderer(Object.class, crearRendererCeldas());
@@ -377,10 +372,10 @@ public class formCatalogo extends JPanel {
                 JLabel celda = (JLabel) super.getTableCellRendererComponent(t, valor, sel, foco, fila, col);
                 celda.setBorder(new EmptyBorder(0, 14, 0, 14));
                 celda.setOpaque(true);
-                celda.setBackground(sel ? COLOR_SELECCION
-                                       : (fila % 2 == 0 ? COLOR_FONDO : COLOR_FILA_IMPAR));
+                celda.setBackground(sel ? COLOR_SELECCION : (fila % 2 == 0 ? COLOR_FONDO : COLOR_FILA_IMPAR));
+
                 if (col == COL_GENERO) {
-                    celda.setForeground(colorChip(valor == null ? "" : valor.toString()));
+                    celda.setForeground(colorChipGenero(valor == null ? "" : valor.toString()));
                     celda.setFont(FUENTE_CUERPO.deriveFont(Font.BOLD));
                 } else {
                     celda.setForeground(TEXT_PRIMARY);
@@ -391,172 +386,75 @@ public class formCatalogo extends JPanel {
         };
     }
 
-    // ================================================================
-    // CHIPS DE GÉNERO (barra inferior y sección agregar)
-    // ================================================================
-    private JLabel crearChipGenero(String genero) {
-        Color c = colorChip(genero);
-        JLabel chip = new JLabel(genero);
-        chip.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        chip.setForeground(c);
-        chip.setOpaque(true);
-        chip.setBackground(new Color(c.getRed(), c.getGreen(), c.getBlue(), 25));
-        chip.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(c.getRed(), c.getGreen(), c.getBlue(), 80), 1, true),
-            new EmptyBorder(3, 8, 3, 8)));
-        chip.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        chip.setToolTipText("Filtrar por " + genero);
-        chip.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) {
-                comboGenero.setSelectedItem(genero);
-            }
+    // ── Datos de tabla ────────────────────────────────────────────────
+
+    private void refrescarTabla(List<Cancion> datos) {
+        modeloTabla.setRowCount(0);
+        datos.forEach(c -> {
+            String albumTitulo = buscarAlbumDeCancion(c);
+            String duracion    = formatearDuracion(c.getDuracionMinutos());
+            modeloTabla.addRow(new Object[]{
+                c.getTitulo(),
+                c.getArtista().getNombreArtista(),   // ← getNombreArtista() (antes getNombre())
+                albumTitulo,
+                c.getGenero(),
+                duracion
+            });
         });
-        return chip;
+        actualizarConteo(datos.size());
     }
 
-    private Color colorChip(String genero) {
-        return switch (genero.toLowerCase()) {
-            case "vallenato" -> COLOR_EXITO;
-            case "pop"       -> COLOR_INFO;
-            case "reggaeton" -> COLOR_MORADO;
-            case "urbano"    -> COLOR_ADVERTENCIA;
-            case "rock"      -> new Color(255, 100, 100);
-            case "salsa"     -> new Color(255, 165, 0);
-            case "cumbia"    -> new Color(180, 100, 255);
-            default          -> TEXT_MUTED;
-        };
+    private String buscarAlbumDeCancion(Cancion cancion) {
+        return albums.stream()
+            .filter(a -> a.getCanciones().contains(cancion))
+            .map(Album::getTitulo)
+            .findFirst()
+            .orElse("—");
     }
 
-    // ================================================================
-    // CARGA DE DATOS (BD → demo si falla)
-    // ================================================================
-    private void cargarDatos() {
-        try {
-            cargarDesdeBD();
-        } catch (Exception ex) {
-            System.err.println("[formCatalogo] BD no disponible, usando demo: " + ex.getMessage());
-            cargarDatosDemo();
+    private String formatearDuracion(double minutos) {
+        int min = (int) minutos;
+        int seg = (int) Math.round((minutos - min) * 60);
+        return String.format("%d:%02d", min, seg);
+    }
+
+    private void actualizarConteo(int total) {
+        if (etiquetaConteo != null) {
+            etiquetaConteo.setText(total + " resultado" + (total != 1 ? "s" : ""));
         }
     }
 
-    /**
-     * Consulta las tablas cancion y perfil_artista según el modelo ER.
-     * Reemplaza la cadena de conexión con la de tu proyecto.
-     */
-    private void cargarDesdeBD() throws SQLException {
-        // ── Ajusta estos datos según tu configuración ──────────────────
-        String url    = "jdbc:oracle:thin:@localhost:1521:xe";
-        String user   = "z_one";
-        String pass   = "z_one";
-        // ──────────────────────────────────────────────────────────────
+    // ── Filtrado ──────────────────────────────────────────────────────
 
-        String sql = """
-            SELECT c.id_cancion,
-                   c.titulo,
-                   NVL(a.nombre_artista, '—') AS artista,
-                   c.genero,
-                   c.bpm,
-                   c.idiomas,
-                   c.estado_cancion
-            FROM   cancion c
-            LEFT JOIN perfil_artista a ON a.Id_artista = c.Id_artista
-            ORDER  BY c.titulo
-            """;
-
-        try (Connection conn = DriverManager.getConnection(url, user, pass);
-             Statement  stmt = conn.createStatement();
-             ResultSet  rs   = stmt.executeQuery(sql)) {
-
-            filasActuales.clear();
-            while (rs.next()) {
-                String genero = rs.getString("genero");
-
-                // Registrar género en el combo si es nuevo
-                if (genero != null && !genero.isBlank()) {
-                    boolean nuevo = generosDisponibles.stream()
-                        .noneMatch(g -> g.equalsIgnoreCase(genero));
-                    if (nuevo) {
-                        generosDisponibles.add(genero);
-                        comboGenero.addItem(genero);
-                    }
-                }
-
-                filasActuales.add(new Object[]{
-                    rs.getInt("id_cancion"),
-                    rs.getString("titulo"),
-                    rs.getString("artista"),
-                    genero,
-                    rs.getString("bpm"),
-                    rs.getString("idiomas"),
-                    rs.getString("estado_cancion")
-                });
-            }
-        }
-        refrescarTabla(filasActuales);
-        refrescarChips();
-    }
-
-    /** Datos de ejemplo que reflejan la estructura de la BD */
-    private void cargarDatosDemo() {
-        filasActuales.clear();
-        filasActuales.addAll(List.of(
-            new Object[]{1,  "Pa' Mayte",          "Carlos Vives",   "Vallenato", "92",  "Español", "ACTIVO"},
-            new Object[]{2,  "La Bicicleta",        "Carlos Vives",   "Vallenato", "98",  "Español", "ACTIVO"},
-            new Object[]{3,  "Hips Don't Lie",      "Shakira",        "Pop",       "100", "Inglés",  "ACTIVO"},
-            new Object[]{4,  "Waka Waka",           "Shakira",        "Pop",       "112", "Inglés",  "ACTIVO"},
-            new Object[]{5,  "Me Porto Bonito",     "Bad Bunny",      "Reggaeton", "88",  "Español", "ACTIVO"},
-            new Object[]{6,  "Tití Me Preguntó",    "Bad Bunny",      "Reggaeton", "96",  "Español", "ACTIVO"},
-            new Object[]{7,  "PROVENZA",            "Karol G",        "Urbano",    "78",  "Español", "ACTIVO"},
-            new Object[]{8,  "Cairo",               "Karol G",        "Urbano",    "82",  "Español", "ACTIVO"},
-            new Object[]{9,  "Smooth",              "Carlos Santana", "Rock",      "104", "Inglés",  "ACTIVO"},
-            new Object[]{10, "Maria Maria",         "Carlos Santana", "Rock",      "95",  "Inglés",  "ACTIVO"}
-        ));
-        refrescarTabla(filasActuales);
-    }
-
-    // ================================================================
-    // FILTRADO Y REFRESCO DE TABLA
-    // ================================================================
     private void aplicarFiltros() {
-        String generoSel = (String) comboGenero.getSelectedItem();
-        String texto     = campoBusqueda.getText().trim().toLowerCase();
+        String generoSeleccionado = (String) comboGenero.getSelectedItem();
+        String textoBusqueda      = campoBusqueda.getText().trim().toLowerCase();
 
-        List<Object[]> resultado = filasActuales.stream()
-            .filter(f -> generoCoincide(f, generoSel))
-            .filter(f -> textoCoincide(f, texto))
+        List<Cancion> resultado = canciones.stream()
+            .filter(c -> generoCoincide(c, generoSeleccionado))
+            .filter(c -> textoCoincide(c, textoBusqueda))
             .toList();
 
         refrescarTabla(resultado);
     }
 
-    private boolean generoCoincide(Object[] fila, String filtro) {
-        if (filtro == null || filtro.equals(GENERO_TODOS)) return true;
-        String generoFila = fila[3] == null ? "" : fila[3].toString();
-        return generoFila.equalsIgnoreCase(filtro);
+    private boolean generoCoincide(Cancion cancion, String generoFiltro) {
+        return generoFiltro == null
+            || generoFiltro.equals(GENERO_TODOS)
+            || cancion.getGenero().equalsIgnoreCase(generoFiltro);
     }
 
-    private boolean textoCoincide(Object[] fila, String texto) {
+    private boolean textoCoincide(Cancion cancion, String texto) {
         if (texto.isEmpty()) return true;
-        for (int i = 1; i < fila.length; i++) {
-            if (fila[i] != null && fila[i].toString().toLowerCase().contains(texto)) return true;
-        }
-        return false;
+        String albumTitulo = buscarAlbumDeCancion(cancion).toLowerCase();
+        return cancion.getTitulo().toLowerCase().contains(texto)
+            || cancion.getArtista().getNombreArtista().toLowerCase().contains(texto)  // ← getNombreArtista()
+            || albumTitulo.contains(texto)
+            || cancion.getGenero().toLowerCase().contains(texto);
     }
 
-    private void refrescarTabla(List<Object[]> datos) {
-        modeloTabla.setRowCount(0);
-        datos.forEach(f -> modeloTabla.addRow(f));
-        actualizarConteo(datos.size());
-    }
+    // ── Helpers de componentes ────────────────────────────────────────
 
-    private void actualizarConteo(int total) {
-        if (etiquetaConteo != null)
-            etiquetaConteo.setText(total + " resultado" + (total != 1 ? "s" : ""));
-    }
-
-    // ================================================================
-    // HELPERS DE COMPONENTES
-    // ================================================================
     private JLabel etiqueta(String texto, Font fuente, Color color) {
         JLabel lbl = new JLabel(texto);
         lbl.setFont(fuente);
@@ -568,9 +466,9 @@ public class formCatalogo extends JPanel {
         return new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(
-                    JList<?> lista, Object valor, int idx, boolean sel, boolean foco) {
+                    JList<?> lista, Object valor, int indice, boolean sel, boolean foco) {
                 JLabel celda = new JLabel(valor == null ? "" : valor.toString());
-                celda.setBackground(idx == -1 ? COLOR_FONDO_CAMPO : sel ? COLOR_MORADO : COLOR_FONDO_CAMPO);
+                celda.setBackground(indice == -1 ? COLOR_FONDO_CAMPO : sel ? PRIMARY : COLOR_FONDO_CAMPO);
                 celda.setForeground(TEXT_PRIMARY);
                 celda.setBorder(new EmptyBorder(7, 12, 7, 12));
                 celda.setOpaque(true);
