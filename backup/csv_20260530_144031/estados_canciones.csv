@@ -1,0 +1,7 @@
+ID_ESTADO_CANCION,NOMBRE,DESCRIPCION
+1,En composicion,Cancion en proceso de creacion
+2,Grabando,En sesion de grabacion
+3,Mezcla,En proceso de mezcla
+4,Master,En proceso de masterizacion
+5,Publicada,Lanzada al publico
+6,Archivada,No disponible

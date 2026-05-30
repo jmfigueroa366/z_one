@@ -55,17 +55,17 @@
             contentPanel = new JPanel(cardLayout);
             contentPanel.setOpaque(false);
             contentPanel.setBorder(new EmptyBorder(24, 24, 24, 24));
-    contentPanel.add(new DashboardPanel(usuarioActual), "dashboard");
-    contentPanel.add(new formArtista(),                 "artistas");
-    contentPanel.add(new formProductor(),               "productores");
-    contentPanel.add(new formCancion(),                 "canciones");
-    contentPanel.add(new formSesion(),                  "sesiones");
-    contentPanel.add(new formCabina(),                  "cabinas");
-    contentPanel.add(new formEvento(),                  "eventos");
-    contentPanel.add(new formColaboracion(),            "colaboraciones");
-    contentPanel.add(new Jesusitochatview(), "asistente");
-    contentPanel.add(stubPanel("Configuración", "Preferencias del sistema y de cuenta"), "configuracion");
-
+contentPanel.add(new DashboardPanel(usuarioActual), "dashboard");
+contentPanel.add(new formArtista(),                 "artistas");
+contentPanel.add(new formProductor(),               "productores");
+contentPanel.add(new formCancion(),                 "canciones");
+contentPanel.add(new formSesion(),                  "sesiones");
+contentPanel.add(new formCabina(),                  "cabinas");
+contentPanel.add(new formEvento(),                  "eventos");
+contentPanel.add(new formColaboracion(),            "colaboraciones");
+contentPanel.add(new formCalendario(),              "calendario");
+contentPanel.add(new Jesusitochatview(),            "asistente");
+contentPanel.add(new formConfiguracion(usuarioActual), "configuracion");
             root.add(contentPanel,         BorderLayout.CENTER);
             root.add(construirStatusBar(), BorderLayout.SOUTH);
 
@@ -113,18 +113,18 @@
             sidebar.add(Box.createVerticalStrut(36));
 
             // ---- Items del menú ----
-    Map<String, String> items = new LinkedHashMap<>();
-    items.put("Dashboard",      "dashboard");
-    items.put("Artistas",       "artistas");
-    items.put("Productores",    "productores");
-    items.put("Canciones",      "canciones");
-    items.put("Sesiones",       "sesiones");
-    items.put("Cabinas",        "cabinas");
-    items.put("Eventos",        "eventos");
-    items.put("Colaboraciones", "colaboraciones");
-    items.put("Asistente ♬", "asistente");
-    items.put("Configuración",  "configuracion");
-
+Map<String, String> items = new LinkedHashMap<>();
+items.put("Dashboard",      "dashboard");
+items.put("Artistas",       "artistas");
+items.put("Productores",    "productores");
+items.put("Canciones",      "canciones");
+items.put("Sesiones",       "sesiones");
+items.put("Cabinas",        "cabinas");
+items.put("Eventos",        "eventos");
+items.put("Colaboraciones", "colaboraciones");
+items.put("Calendario",     "calendario");
+items.put("Asistente",      "asistente");
+items.put("Configuración",  "configuracion");
             for (Map.Entry<String, String> e : items.entrySet()) {
                 SidebarItem item = new SidebarItem(e.getKey(), e.getValue());
                 if (e.getValue().equals("dashboard")) {
