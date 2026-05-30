@@ -7,162 +7,174 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * ArtistaDAO — acceso a datos para PERFIL_ARTISTA en Oracle.
- * Tabla real: PERFIL_ARTISTA  |  PK: ID_ARTISTA
- */
 public class ArtistaDAO {
 
-    // ── Columnas a seleccionar (evita SELECT *) ──────────────────────
-    private static final String COLS =
-        "ID_ARTISTA, ID_USUARIO, NOMBRE_ARTISTA, NOMBRE_REAL, " +
-        "FECHA_NACIMIENTO, GENERO, NACIONALIDAD, GENERO_MUSICAL, " +
-        "REDES_SOCIALES, FECHA_FIRMA, ESTADO_ARTISTA, TIPO_ARTISTA";
+    private static final String SELECT_BASE =
+        "SELECT a.id_artista, a.id_usuario, a.nombre_artista, a.nombre_real, " +
+        "       a.fecha_nacimiento, a.redes_sociales, a.fecha_firma, a.num_identificacion, " +
+        "       gp.descripcion AS genero_persona, " +
+        "       n.nombre        AS nacionalidad, " +
+        "       gm.nombre       AS genero_musical, " +
+        "       ta.nombre       AS tipo_artista, " +
+        "       es.nombre       AS estado " +
+        "FROM artistas a " +
+        "LEFT JOIN genero_persona     gp ON a.id_genero_persona = gp.id_genero_persona " +
+        "LEFT JOIN nacionalidades     n  ON a.id_nacionalidad   = n.id_nacionalidad " +
+        "LEFT JOIN genero_musicales   gm ON a.id_genero_musical = gm.id_genero " +
+        "LEFT JOIN tipo_artista       ta ON a.id_tipo_artista   = ta.id_tipo_artista " +
+        "LEFT JOIN estados_art_pro    es ON a.id_estado         = es.id_estado ";
 
-    private static final String SQL_LISTAR_TODOS =
-        "SELECT " + COLS + " FROM PERFIL_ARTISTA ORDER BY ID_ARTISTA";
-
-    private static final String SQL_BUSCAR_POR_ID =
-        "SELECT " + COLS + " FROM PERFIL_ARTISTA WHERE ID_ARTISTA = ?";
-
-    private static final String SQL_INSERTAR =
-        "INSERT INTO PERFIL_ARTISTA " +
-        "(ID_USUARIO, NOMBRE_ARTISTA, NOMBRE_REAL, FECHA_NACIMIENTO, " +
-        " GENERO, NACIONALIDAD, GENERO_MUSICAL, REDES_SOCIALES, " +
-        " FECHA_FIRMA, ESTADO_ARTISTA, TIPO_ARTISTA) " +
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-    private static final String SQL_ACTUALIZAR =
-        "UPDATE PERFIL_ARTISTA SET " +
-        "ID_USUARIO=?, NOMBRE_ARTISTA=?, NOMBRE_REAL=?, FECHA_NACIMIENTO=?, " +
-        "GENERO=?, NACIONALIDAD=?, GENERO_MUSICAL=?, REDES_SOCIALES=?, " +
-        "FECHA_FIRMA=?, ESTADO_ARTISTA=?, TIPO_ARTISTA=? " +
-        "WHERE ID_ARTISTA=?";
-
-    private static final String SQL_ELIMINAR =
-        "DELETE FROM PERFIL_ARTISTA WHERE ID_ARTISTA = ?";
-
-    private static final String SQL_BUSCAR_POR_TEXTO =
-        "SELECT " + COLS + " FROM PERFIL_ARTISTA " +
-        "WHERE LOWER(NOMBRE_ARTISTA) LIKE ? " +
-        "   OR LOWER(GENERO_MUSICAL) LIKE ? " +
-        "   OR LOWER(NACIONALIDAD)   LIKE ? " +
-        "ORDER BY ID_ARTISTA";
-
-    // ── CRUD ─────────────────────────────────────────────────────────
-
-    public List<Artista> listarTodos() {
-        List<Artista> lista = new ArrayList<>();
-        try (Connection con = ConexionDB.getConexion();
-             PreparedStatement ps = con.prepareStatement(SQL_LISTAR_TODOS);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) lista.add(mapearFila(rs));
-        } catch (SQLException e) {
-            throw new RuntimeException("Error al listar artistas: " + e.getMessage(), e);
-        }
-        return lista;
+    // ── LISTAR / BUSCAR ──
+    public List<Artista> listarTodos() throws SQLException {
+        return ejecutar(SELECT_BASE + "ORDER BY a.nombre_artista", null);
     }
 
-    public List<Artista> buscarPorTexto(String texto) {
-        List<Artista> lista = new ArrayList<>();
-        String patron = "%" + texto.toLowerCase() + "%";
-        try (Connection con = ConexionDB.getConexion();
-             PreparedStatement ps = con.prepareStatement(SQL_BUSCAR_POR_TEXTO)) {
-            ps.setString(1, patron);
-            ps.setString(2, patron);
-            ps.setString(3, patron);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) lista.add(mapearFila(rs));
+    public Artista buscarPorId(int id) throws SQLException {
+        List<Artista> r = ejecutar(SELECT_BASE + "WHERE a.id_artista = ?", new Object[]{id});
+        return r.isEmpty() ? null : r.get(0);
+    }
+
+    // ── INSERTAR ──
+    public int crear(Artista a) throws SQLException {
+        // Resolver IDs ANTES de insertar (falla ruidoso si no existe)
+        Integer idNac    = resolverId("nacionalidades",   "id_nacionalidad",   "nombre",      a.getNacionalidad(),  "Nacionalidad");
+        Integer idGenPer = resolverId("genero_persona",   "id_genero_persona", "descripcion", a.getGeneroPersona(), "Genero persona");
+        Integer idGenMus = resolverId("genero_musicales", "id_genero",         "nombre",      a.getGeneroMusical(), "Genero musical");
+        Integer idTipo   = resolverId("tipo_artista",     "id_tipo_artista",   "nombre",      a.getTipoArtista(),   "Tipo artista");
+        Integer idEstado = resolverId("estados_art_pro",  "id_estado",         "nombre",      a.getEstadoArtista(), "Estado");
+
+        String sql = "INSERT INTO artistas (nombre_artista, nombre_real, fecha_nacimiento, " +
+                     "redes_sociales, fecha_firma, num_identificacion, id_nacionalidad, " +
+                     "id_genero_persona, id_genero_musical, id_tipo_artista, id_estado, id_usuario) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection c = ConexionDB.getConexion();
+             PreparedStatement ps = c.prepareStatement(sql, new String[]{"id_artista"})) {
+
+            ps.setString(1, a.getNombreArtista());
+            ps.setString(2, a.getNombreReal());
+            ps.setDate  (3, a.getFechaNacimiento() != null ? Date.valueOf(a.getFechaNacimiento()) : null);
+            ps.setString(4, a.getRedesSociales());
+            ps.setDate  (5, a.getFechaFirma() != null ? Date.valueOf(a.getFechaFirma()) : null);
+            ps.setString(6, a.getNumIdentificacion());
+            setIntOrNull(ps, 7,  idNac);
+            setIntOrNull(ps, 8,  idGenPer);
+            setIntOrNull(ps, 9,  idGenMus);
+            setIntOrNull(ps, 10, idTipo);
+            setIntOrNull(ps, 11, idEstado);
+            setIntOrNull(ps, 12, a.getIdUsuario());
+
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) return rs.getInt(1);
             }
-        } catch (SQLException e) {
-            throw new RuntimeException("Error al buscar artistas: " + e.getMessage(), e);
         }
-        return lista;
+        return -1;
     }
 
-    public Artista insertar(Artista a) {
-        try (Connection con = ConexionDB.getConexion();
-             PreparedStatement ps = con.prepareStatement(
-                 SQL_INSERTAR, new String[]{"ID_ARTISTA"})) {
-            asignarParametros(ps, a);
-            ps.executeUpdate();
-            try (ResultSet keys = ps.getGeneratedKeys()) {
-                if (keys.next()) a.setIdArtista(keys.getInt(1));
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Error al insertar artista: " + e.getMessage(), e);
-        }
-        return a;
-    }
+    // ── ACTUALIZAR ──
+    public boolean actualizar(Artista a) throws SQLException {
+        Integer idNac    = resolverId("nacionalidades",   "id_nacionalidad",   "nombre",      a.getNacionalidad(),  "Nacionalidad");
+        Integer idGenPer = resolverId("genero_persona",   "id_genero_persona", "descripcion", a.getGeneroPersona(), "Genero persona");
+        Integer idGenMus = resolverId("genero_musicales", "id_genero",         "nombre",      a.getGeneroMusical(), "Genero musical");
+        Integer idTipo   = resolverId("tipo_artista",     "id_tipo_artista",   "nombre",      a.getTipoArtista(),   "Tipo artista");
+        Integer idEstado = resolverId("estados_art_pro",  "id_estado",         "nombre",      a.getEstadoArtista(), "Estado");
 
-    public void actualizar(Artista a) {
-        try (Connection con = ConexionDB.getConexion();
-             PreparedStatement ps = con.prepareStatement(SQL_ACTUALIZAR)) {
-            asignarParametros(ps, a);
-            ps.setInt(12, a.getIdArtista());   // WHERE ID_ARTISTA = ?
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("Error al actualizar artista: " + e.getMessage(), e);
-        }
-    }
+        String sql = "UPDATE artistas SET " +
+                     "nombre_artista = ?, nombre_real = ?, fecha_nacimiento = ?, " +
+                     "redes_sociales = ?, fecha_firma = ?, num_identificacion = ?, " +
+                     "id_nacionalidad = ?, id_genero_persona = ?, id_genero_musical = ?, " +
+                     "id_tipo_artista = ?, id_estado = ? " +
+                     "WHERE id_artista = ?";
 
-    public void eliminar(int id) {
-        try (Connection con = ConexionDB.getConexion();
-             PreparedStatement ps = con.prepareStatement(SQL_ELIMINAR)) {
-            ps.setInt(1, id);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("Error al eliminar artista: " + e.getMessage(), e);
+        try (Connection c = ConexionDB.getConexion();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+
+            ps.setString(1, a.getNombreArtista());
+            ps.setString(2, a.getNombreReal());
+            ps.setDate  (3, a.getFechaNacimiento() != null ? Date.valueOf(a.getFechaNacimiento()) : null);
+            ps.setString(4, a.getRedesSociales());
+            ps.setDate  (5, a.getFechaFirma() != null ? Date.valueOf(a.getFechaFirma()) : null);
+            ps.setString(6, a.getNumIdentificacion());
+            setIntOrNull(ps, 7,  idNac);
+            setIntOrNull(ps, 8,  idGenPer);
+            setIntOrNull(ps, 9,  idGenMus);
+            setIntOrNull(ps, 10, idTipo);
+            setIntOrNull(ps, 11, idEstado);
+            ps.setInt(12, a.getIdArtista());
+            return ps.executeUpdate() > 0;
         }
     }
 
-    // ── Helpers privados ─────────────────────────────────────────────
-
-    /** Convierte una fila del ResultSet en un objeto Artista. */
-    private Artista mapearFila(ResultSet rs) throws SQLException {
-        // FECHA_NACIMIENTO y FECHA_FIRMA pueden ser null en la BD
-        Date dbFechaNac  = rs.getDate("FECHA_NACIMIENTO");
-        Date dbFechaFirma = rs.getDate("FECHA_FIRMA");
-
-        return new Artista(
-            rs.getInt("ID_ARTISTA"),
-            rs.getObject("ID_USUARIO") != null ? rs.getInt("ID_USUARIO") : null,
-            rs.getString("NOMBRE_ARTISTA"),
-            rs.getString("NOMBRE_REAL"),
-            dbFechaNac  != null ? dbFechaNac.toLocalDate()  : null,
-            rs.getString("GENERO"),
-            rs.getString("NACIONALIDAD"),
-            rs.getString("GENERO_MUSICAL"),
-            rs.getString("REDES_SOCIALES"),
-            dbFechaFirma != null ? dbFechaFirma.toLocalDate() : null,
-            rs.getString("ESTADO_ARTISTA"),
-            rs.getString("TIPO_ARTISTA")
-        );
+    // ── ELIMINAR ──
+    public boolean eliminar(int idArtista) throws SQLException {
+        String sql = "DELETE FROM artistas WHERE id_artista = ?";
+        try (Connection c = ConexionDB.getConexion();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, idArtista);
+            return ps.executeUpdate() > 0;
+        }
     }
+
+    // ── Helpers ──
 
     /**
-     * Asigna los 11 parámetros de INSERT/UPDATE al PreparedStatement.
-     * El parámetro 12 (ID_ARTISTA para el WHERE) lo pone actualizar().
+     * Busca el ID de un catalogo por nombre. Normaliza tildes y mayusculas.
+     * Si el nombre viene vacio, devuelve null (campo opcional).
+     * Si el nombre viene con valor pero no se encuentra, LANZA error claro.
      */
-    private void asignarParametros(PreparedStatement ps, Artista a) throws SQLException {
-        if (a.getIdUsuario() != null) ps.setInt(1, a.getIdUsuario());
-        else                          ps.setNull(1, Types.NUMERIC);
+    private Integer resolverId(String tabla, String colId, String colNombre,
+                                String valor, String etiqueta) throws SQLException {
+        if (valor == null || valor.isBlank()) return null;
+        String sql = "SELECT " + colId + " FROM " + tabla +
+                     " WHERE UPPER(TRIM(" + colNombre + ")) = UPPER(TRIM(?))";
+        try (Connection c = ConexionDB.getConexion();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, valor);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        }
+        throw new SQLException(etiqueta + " '" + valor + "' no existe en la BD. " +
+                "Verifica que este registrado en la tabla " + tabla + ".");
+    }
 
-        ps.setString(2, a.getNombreArtista());
-        ps.setString(3, a.getNombreReal());
+    private void setIntOrNull(PreparedStatement ps, int idx, Integer val) throws SQLException {
+        if (val != null) ps.setInt(idx, val);
+        else             ps.setNull(idx, Types.NUMERIC);
+    }
 
-        ps.setDate(4, a.getFechaNacimiento() != null
-            ? Date.valueOf(a.getFechaNacimiento()) : null);
+    private List<Artista> ejecutar(String sql, Object[] params) throws SQLException {
+        List<Artista> out = new ArrayList<>();
+        try (Connection c = ConexionDB.getConexion();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            if (params != null)
+                for (int i = 0; i < params.length; i++) ps.setObject(i + 1, params[i]);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) out.add(mapear(rs));
+            }
+        }
+        return out;
+    }
 
-        ps.setString(5,  a.getGenero());
-        ps.setString(6,  a.getNacionalidad());
-        ps.setString(7,  a.getGeneroMusical());
-        ps.setString(8,  a.getRedesSociales());
-
-        ps.setDate(9, a.getFechaFirma() != null
-            ? Date.valueOf(a.getFechaFirma()) : null);
-
-        ps.setString(10, a.getEstadoArtista());
-        ps.setString(11, a.getTipoArtista());
+    private Artista mapear(ResultSet rs) throws SQLException {
+        Artista a = new Artista();
+        a.setIdArtista(rs.getInt("id_artista"));
+        int idU = rs.getInt("id_usuario");
+        a.setIdUsuario(rs.wasNull() ? null : idU);
+        a.setNombreArtista(rs.getString("nombre_artista"));
+        a.setNombreReal(rs.getString("nombre_real"));
+        Date fn = rs.getDate("fecha_nacimiento");
+        a.setFechaNacimiento(fn != null ? fn.toLocalDate() : null);
+        a.setRedesSociales(rs.getString("redes_sociales"));
+        Date ff = rs.getDate("fecha_firma");
+        a.setFechaFirma(ff != null ? ff.toLocalDate() : null);
+        a.setNumIdentificacion(rs.getString("num_identificacion"));
+        a.setGeneroPersona(rs.getString("genero_persona"));
+        a.setNacionalidad(rs.getString("nacionalidad"));
+        a.setGeneroMusical(rs.getString("genero_musical"));
+        a.setTipoArtista(rs.getString("tipo_artista"));
+        a.setEstadoArtista(rs.getString("estado"));
+        return a;
     }
 }
