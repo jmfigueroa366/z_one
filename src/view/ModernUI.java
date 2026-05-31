@@ -10,16 +10,6 @@ import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-/**
- * ModernUI — Biblioteca de componentes visuales globales de Z-One.
- *
- * RESPONSABILIDAD: componentes reutilizables por TODOS los módulos
- * (GradientPanel, CardPanel, StatCard, LogoPanel, RoundedButton,
- *  RoundedTextField, RoundedPasswordField, Pildora, StatusDot).
- *
- * COLORES Y FUENTES: se toman de CSS.CSSCancion para mantener
- * una única fuente de verdad de diseño en el proyecto.
- */
 public final class ModernUI {
 
     private ModernUI() {}

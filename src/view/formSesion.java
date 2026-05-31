@@ -166,27 +166,32 @@ import javax.sound.sampled.LineEvent;
             busqueda = new ModernUI.RoundedTextField("Buscar sesión...");
             busqueda.setPreferredSize(new Dimension(210, 38));
             busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
+            ModernUI.RoundedButton bGrabar   = btn("🎙  Grabar",     false, 120);
+ModernUI.RoundedButton bFacturar = btn("💳  Facturar",   false, 125);
+ModernUI.RoundedButton bRefr     = btn("↺  Refrescar",   false, 130);
+btnVista                         = btn("Ver tarjetas",   false, 130);
+ModernUI.RoundedButton bNueva    = btn("＋ Nueva sesión", true,  158);
 
-            ModernUI.RoundedButton bGrabar = btn("🎙  Grabar",     false, 120);
-            ModernUI.RoundedButton bRefr   = btn("↺  Refrescar",   false, 130);
-            btnVista                       = btn("Ver tarjetas",   false, 130);
-            ModernUI.RoundedButton bNueva  = btn("＋ Nueva sesión", true,  158);
+bGrabar.addActionListener(e -> abrirGrabacion());
+bFacturar.addActionListener(e -> facturarSesionSeleccionada());
+bRefr.addActionListener(e -> {
+    busqueda.setText("");
+    cargarSesionesDesdeServicio();
+    aplicarFiltro();
+    toast("Lista actualizada", MainFrame.ToastType.INFO);
+});
+btnVista.addActionListener(e -> alternarVista());
+bNueva.addActionListener(e -> openForm(null));
 
-            bGrabar.addActionListener(e -> abrirGrabacion());
-            bRefr.addActionListener(e -> {
-                busqueda.setText("");
-                cargarSesionesDesdeServicio();
-                aplicarFiltro();
-                toast("Lista actualizada", MainFrame.ToastType.INFO);
-            });
-            btnVista.addActionListener(e -> alternarVista());
-            bNueva.addActionListener(e -> openForm(null));
+// Color verde para resaltar el botón de factura
+bFacturar.setForeground(new Color(0x22C55E));
 
-            der.add(busqueda);
-            der.add(btnVista);
-            der.add(bGrabar);
-            der.add(bRefr);
-            der.add(bNueva);
+der.add(busqueda);
+der.add(btnVista);
+der.add(bGrabar);
+der.add(bFacturar);
+der.add(bRefr);
+der.add(bNueva);
 
             p.add(izq, BorderLayout.WEST);
             p.add(der, BorderLayout.EAST);
@@ -1027,18 +1032,20 @@ private void reproducir(String ruta, JButton btn) {
                         aplicarFiltro();
                         cerrarConFade(dlg);
                     }
-                } else {
-                    Sesion nueva = new Sesion(0, art, prod, idCab, nm, fecha, hi, hf, dur, estado, obs);
-                    int idGenerado = crearEnServicio(nueva);
-                    if (idGenerado > 0) {
-                        nueva.setIdSesion(idGenerado);
-                        sesiones.add(nueva);
-                        seleccionada = nueva;
-                        toast("Sesión creada correctamente", MainFrame.ToastType.SUCCESS);
-                        aplicarFiltro();
-                        cerrarConFade(dlg);
-                    }
-                }
+        } else {
+    Sesion nueva = new Sesion(0, art, prod, idCab, nm, fecha, hi, hf, dur, estado, obs);
+    int idGenerado = crearEnServicio(nueva);
+    if (idGenerado > 0) {
+        nueva.setIdSesion(idGenerado);
+        sesiones.add(nueva);
+        seleccionada = nueva;
+        toast("Sesión creada correctamente", MainFrame.ToastType.SUCCESS);
+        aplicarFiltro();
+        cerrarConFade(dlg);
+        // ── FACTURACIÓN AUTOMÁTICA ──
+        generarFacturaParaSesion(nueva);
+    }
+}
             });
             btns.add(bCancel);
             btns.add(bSave);
@@ -1069,6 +1076,112 @@ private void reproducir(String ruta, JButton btn) {
             animarEntradaFilas(filasFx, timersDlg);
             dlg.setVisible(true);
         }
+        
+        private void generarFacturaParaSesion(Sesion sesion) {
+    // Pedir correo del cliente
+    String correo = JOptionPane.showInputDialog(this,
+            "Correo del artista para enviar la factura:",
+            "Z-One — Facturación",
+            JOptionPane.QUESTION_MESSAGE);
+    if (correo == null || correo.isBlank() || !correo.contains("@")) {
+        toast("Factura no generada (correo inválido)", MainFrame.ToastType.INFO);
+        return;
+    }
+    final String correoFinal = correo.trim();
+
+    toast("Generando factura...", MainFrame.ToastType.INFO);
+
+    new Thread(() -> {
+        try {
+            services.FacturaService fs = new services.FacturaService();
+            model.Factura f = fs.generarYEnviar(sesion, correoFinal);
+            SwingUtilities.invokeLater(() -> {
+                if ("ENVIADA".equals(f.getEstado()))
+                    toast("✓ Factura " + f.getNumeroFactura() + " enviada",
+                            MainFrame.ToastType.SUCCESS);
+                else
+                    toast("Factura generada pero no enviada", MainFrame.ToastType.INFO);
+            });
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            SwingUtilities.invokeLater(() ->
+                    toast("Error: " + ex.getMessage(), MainFrame.ToastType.ERROR));
+        }
+    }).start();
+}
+        // ════════════════════════════════════════════════════════════════
+//  FACTURAR SESIÓN EXISTENTE (desde botón del header)
+// ════════════════════════════════════════════════════════════════
+private void facturarSesionSeleccionada() {
+    if (seleccionada == null) {
+        toast("Selecciona una sesión primero", MainFrame.ToastType.INFO);
+        return;
+    }
+
+    if (seleccionada.getProductor() == null) {
+        toast("La sesión debe tener productor asignado", MainFrame.ToastType.ERROR);
+        return;
+    }
+
+    // Mostrar confirmación con datos
+    String msg = "<html><b>Generar factura para:</b><br><br>"
+            + "<b>Sesión:</b> " + seleccionada.getNombreSesion() + "<br>"
+            + "<b>Artista:</b> " + seleccionada.getArtista().getNombreArtista() + "<br>"
+            + "<b>Productor:</b> " + seleccionada.getProductor().getNombre() + "<br>"
+            + "<b>Duración:</b> " + seleccionada.getDuracion() + " h<br>"
+            + "<b>Subtotal:</b> $" + String.format("%,.2f", seleccionada.getCostoTotal()) + "<br>"
+            + "<b>Total con IVA (19%):</b> $"
+            + String.format("%,.2f", seleccionada.getCostoTotal() * 1.19) + "<br><br>"
+            + "Ingresa el correo del artista:</html>";
+
+    String correo = JOptionPane.showInputDialog(this, msg,
+            "Z-One — Generar Factura",
+            JOptionPane.QUESTION_MESSAGE);
+
+    if (correo == null) return;
+    if (correo.isBlank() || !correo.contains("@")) {
+        toast("Correo inválido", MainFrame.ToastType.ERROR);
+        return;
+    }
+    final String correoFinal = correo.trim();
+    final model.Sesion sesionFinal = seleccionada;
+
+    toast("📧 Generando y enviando factura...", MainFrame.ToastType.INFO);
+
+    new Thread(() -> {
+        try {
+            services.FacturaService fs = new services.FacturaService();
+            model.Factura f = fs.generarYEnviar(sesionFinal, correoFinal);
+            SwingUtilities.invokeLater(() -> {
+                if ("ENVIADA".equals(f.getEstado())) {
+                    JOptionPane.showMessageDialog(this,
+                            "<html><b>✓ Factura enviada correctamente</b><br><br>"
+                            + "Número: <b>" + f.getNumeroFactura() + "</b><br>"
+                            + "Total: <b>$" + String.format("%,.2f", f.getMontoTotal()) + "</b><br>"
+                            + "Destinatario: " + correoFinal + "<br><br>"
+                            + "El PDF también fue guardado en la carpeta 'facturas/'</html>",
+                            "Z-One — Facturación",
+                            JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                            "<html><b>⚠ Factura generada pero no enviada</b><br><br>"
+                            + "Número: " + f.getNumeroFactura() + "<br>"
+                            + "El PDF está guardado en la carpeta 'facturas/'<br>"
+                            + "Revisa la configuración de email en config/email.properties</html>",
+                            "Z-One — Facturación",
+                            JOptionPane.WARNING_MESSAGE);
+                }
+            });
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            SwingUtilities.invokeLater(() ->
+                    JOptionPane.showMessageDialog(this,
+                            "Error al generar factura:\n" + ex.getMessage(),
+                            "Z-One — Error",
+                            JOptionPane.ERROR_MESSAGE));
+        }
+    }).start();
+}
 
         // ── ANIMACIONES DEL DIÁLOGO ─────────────────────────────────────
         private void abrirConFade(JDialog dlg) {

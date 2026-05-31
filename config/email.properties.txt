@@ -1,0 +1,9 @@
+email.from=jesusreyfigueroa@gmail.com
+email.password=drsg zsyg omuu efyc
+email.smtp.host=smtp.gmail.com
+email.smtp.port=587
+email.admin=jesusreyfigueroa@gmail.com
+empresa.nombre=Z-One Music Studios
+empresa.direccion=Calle 12 # 34-56, Valledupar, Colombia
+empresa.nit=900.123.456-7
+empresa.telefono=+57 300 123 4567
