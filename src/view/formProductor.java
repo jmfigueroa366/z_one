@@ -14,26 +14,26 @@ import java.util.List;
 public class formProductor extends JPanel {
 
     // ══════════════════════════════════════════════════════════════════
-    //  PALETA
+    //  PALETA — misma que formArtista (tema claro)
     // ══════════════════════════════════════════════════════════════════
-    static final Color BG_DEEP   = new Color(3,   8,  20);
-    static final Color BG_CARD   = new Color(8,  14,  32);
-    static final Color BG_FIELD  = new Color(12, 22,  52);
-    static final Color BG_ROW_A  = new Color(8,  14,  32);
-    static final Color BG_ROW_B  = new Color(11, 18,  40);
-    static final Color COL_BRD   = new Color(22, 48, 100);
-    static final Color PURPLE    = new Color(37,  99, 235);
-    static final Color PURPLE_LT = new Color(96, 165, 250);
+    static final Color BG_DEEP   = new Color(245, 246, 250);
+    static final Color BG_CARD   = new Color(255, 255, 255);
+    static final Color BG_FIELD  = new Color(240, 242, 248);
+    static final Color BG_ROW_A  = new Color(255, 255, 255);
+    static final Color BG_ROW_B  = new Color(248, 249, 253);
+    static final Color COL_BRD   = new Color(220, 225, 240);
+    static final Color PURPLE    = new Color(99,  91, 255);
+    static final Color PURPLE_LT = new Color(130, 122, 255);
     static final Color CYAN      = new Color(6,  182, 212);
-    static final Color GREEN     = new Color(56, 189, 248);
-    static final Color AMBER     = new Color(186,230, 253);
-    static final Color PINK      = new Color(244,114, 182);
-    static final Color TXT_PRI   = new Color(226,232, 255);
-    static final Color TXT_SEC   = new Color(71, 100, 160);
-    static final Color SEL_BG    = new Color(37,  99, 235, 60);
-    static final Color ORO       = new Color(224,242, 254);
-    static final Color PLATA     = new Color(203,213, 225);
-    static final Color BRONCE    = new Color(125,211, 252);
+    static final Color GREEN     = new Color(16, 185, 129);
+    static final Color AMBER     = new Color(245, 158,  11);
+    static final Color PINK      = new Color(236,  72, 153);
+    static final Color TXT_PRI   = new Color( 30,  30,  60);
+    static final Color TXT_SEC   = new Color(130, 140, 170);
+    static final Color SEL_BG    = new Color( 99,  91, 255,  50);
+    static final Color ORO       = new Color(234, 179,   8);
+    static final Color PLATA     = new Color(148, 163, 184);
+    static final Color BRONCE    = new Color(180, 120,  60);
 
     // ── Fuentes ───────────────────────────────────────────────────────
     static final Font F_TITLE  = new Font("Segoe UI", Font.BOLD,  26);
@@ -44,7 +44,7 @@ public class formProductor extends JPanel {
     static final Font F_MONO_B = new Font("Consolas", Font.BOLD,  11);
 
     // ══════════════════════════════════════════════════════════════════
-    //  COLUMNAS — se eliminó "Experiencia" (no existe en el modelo)
+    //  COLUMNAS
     // ══════════════════════════════════════════════════════════════════
     static final String[] COLS = {
         "ID", "Nombre", "Especialidad", "Nacionalidad", "Tarifa/h", "Estado"
@@ -118,23 +118,75 @@ public class formProductor extends JPanel {
 
     // ─── Encabezado ───────────────────────────────────────────────────
     private JPanel encabezado() {
-        JPanel p = new JPanel(new BorderLayout(12, 0));
-        p.setOpaque(false);
+        // Card blanca con borde redondeado — igual que Artistas
+        JPanel card = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = g2d(g);
+                g2.setColor(BG_CARD);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
+                g2.setColor(COL_BRD);
+                g2.setStroke(new BasicStroke(1f));
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 14, 14);
+                // Franja izquierda morada
+                g2.setColor(PURPLE);
+                g2.fillRoundRect(0, 0, 5, getHeight(), 4, 4);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        card.setOpaque(false);
+        card.setLayout(new BorderLayout(12, 0));
+        card.setBorder(new EmptyBorder(18, 22, 18, 22));
 
+        // — Icono + títulos —
         JPanel titulos = new JPanel();
         titulos.setOpaque(false);
         titulos.setLayout(new BoxLayout(titulos, BoxLayout.Y_AXIS));
-        JLabel ico   = mkLabel("🎚", new Font("Segoe UI Emoji", Font.PLAIN, 20), TXT_PRI);
+
+        // Icono redondeado (igual al de Artistas)
+        JPanel icoWrap = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = g2d(g);
+                g2.setColor(new Color(99, 91, 255, 25));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        icoWrap.setOpaque(false);
+        icoWrap.setPreferredSize(new Dimension(46, 46));
+        icoWrap.setMaximumSize(new Dimension(46, 46));
+        icoWrap.setLayout(new GridBagLayout());
+        JLabel ico = mkLabel("🎚", new Font("Segoe UI Emoji", Font.PLAIN, 22), PURPLE);
+        icoWrap.add(ico);
+        icoWrap.setAlignmentX(LEFT_ALIGNMENT);
+
         JLabel title = mkLabel("Productores", F_TITLE, TXT_PRI);
         JLabel sub   = mkLabel("GESTIÓN DE PRODUCTORES · EQUIPO TÉCNICO · ESPECIALIDADES",
                                 F_SUB, TXT_SEC);
-        for (JLabel l : new JLabel[]{ico, title, sub}) l.setAlignmentX(LEFT_ALIGNMENT);
-        titulos.add(ico);
-        titulos.add(Box.createVerticalStrut(3));
+        title.setAlignmentX(LEFT_ALIGNMENT);
+        sub.setAlignmentX(LEFT_ALIGNMENT);
+
+        // Chips de estado — igual que Artistas ("Conectado", "X productores", etc.)
+        JPanel chips = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        chips.setOpaque(false);
+        chips.setAlignmentX(LEFT_ALIGNMENT);
+
+        JLabel chipConectado = mkChip("● Conectado",   new Color(16,185,129,30), GREEN);
+        chips.add(chipConectado);
+        // Los chips de conteo se actualizan dinámicamente vía lblChipProd / lblChipEsp
+        chips.add(mkChip("🎚  productores", new Color(99,91,255,20), PURPLE));
+        chips.add(mkChip("🎛  especialidades", new Color(6,182,212,20), CYAN));
+
+        titulos.add(icoWrap);
+        titulos.add(Box.createVerticalStrut(8));
         titulos.add(title);
         titulos.add(Box.createVerticalStrut(2));
         titulos.add(sub);
+        titulos.add(Box.createVerticalStrut(6));
+        titulos.add(chips);
 
+        // — Acciones: buscar + nuevo —
         JPanel acc = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         acc.setOpaque(false);
         campoBusqueda = mkTextField("🔍  Buscar productor...");
@@ -150,9 +202,27 @@ public class formProductor extends JPanel {
         acc.add(campoBusqueda);
         acc.add(btnNuevo);
 
-        p.add(titulos, BorderLayout.WEST);
-        p.add(acc,     BorderLayout.EAST);
-        return p;
+        card.add(titulos, BorderLayout.WEST);
+        card.add(acc,     BorderLayout.EAST);
+        return card;
+    }
+
+    /** Chip de estado estilo Artistas */
+    private JLabel mkChip(String texto, Color bgColor, Color fgColor) {
+        JLabel chip = new JLabel(texto) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = g2d(g);
+                g2.setColor(bgColor);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        chip.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        chip.setForeground(fgColor);
+        chip.setBorder(new EmptyBorder(4, 10, 4, 10));
+        chip.setOpaque(false);
+        return chip;
     }
 
     // ─── Fila estadísticas ────────────────────────────────────────────
@@ -179,11 +249,12 @@ public class formProductor extends JPanel {
                 Graphics2D g2 = g2d(g);
                 g2.setColor(BG_CARD);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-                g2.setColor(new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 80));
+                g2.setColor(new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 60));
                 g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
+                // Línea superior de color
                 g2.setColor(acento);
-                g2.setStroke(new BasicStroke(2f));
+                g2.setStroke(new BasicStroke(2.5f));
                 g2.drawLine(14, 1, getWidth()-14, 1);
                 g2.dispose();
                 super.paintComponent(g);
@@ -192,12 +263,11 @@ public class formProductor extends JPanel {
         card.setOpaque(false);
         card.setLayout(new BorderLayout(8, 0));
         card.setBorder(new EmptyBorder(12, 14, 12, 14));
-        JLabel emo = mkLabel(emoji, new Font("Segoe UI Emoji", Font.PLAIN, 20), TXT_PRI);
+        JLabel emo = mkLabel(emoji, new Font("Segoe UI Emoji", Font.PLAIN, 20), acento);
         JPanel txt = new JPanel();
         txt.setOpaque(false);
         txt.setLayout(new BoxLayout(txt, BoxLayout.Y_AXIS));
-        JLabel lTit = mkLabel(titulo, F_SUB,
-            new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 200));
+        JLabel lTit = mkLabel(titulo, F_SUB, TXT_SEC);
         lTit.setAlignmentX(LEFT_ALIGNMENT);
         valor.setFont(new Font("Segoe UI", Font.BOLD, 26));
         valor.setForeground(acento);
@@ -243,7 +313,16 @@ public class formProductor extends JPanel {
         JPanel head = new JPanel(new BorderLayout());
         head.setOpaque(false);
         head.setBorder(new EmptyBorder(14, 18, 10, 18));
-        head.add(mkLabel("Lista de productores", F_BOLD, TXT_PRI), BorderLayout.WEST);
+
+        JPanel headLeft = new JPanel();
+        headLeft.setOpaque(false);
+        headLeft.setLayout(new BoxLayout(headLeft, BoxLayout.X_AXIS));
+        headLeft.add(mkLabel("Lista de productores", F_BOLD, TXT_PRI));
+        headLeft.add(Box.createHorizontalStrut(10));
+        JLabel subTag = mkLabel("datos en tiempo real desde Oracle",
+            new Font("Segoe UI", Font.PLAIN, 10), TXT_SEC);
+        headLeft.add(subTag);
+        head.add(headLeft, BorderLayout.WEST);
 
         JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         btnRow.setOpaque(false);
@@ -264,20 +343,20 @@ public class formProductor extends JPanel {
 
     private void estilizarTabla() {
         tabla.setOpaque(false);
-        tabla.setBackground(new Color(0,0,0,0));
+        tabla.setBackground(BG_CARD);
         tabla.setForeground(TXT_PRI);
         tabla.setFont(F_BODY);
         tabla.setRowHeight(42);
         tabla.setShowGrid(false);
         tabla.setIntercellSpacing(new Dimension(0,0));
         tabla.setSelectionBackground(SEL_BG);
-        tabla.setSelectionForeground(Color.WHITE);
+        tabla.setSelectionForeground(TXT_PRI);
         tabla.setFocusable(false);
         tabla.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         JTableHeader th = tabla.getTableHeader();
-        th.setBackground(new Color(5, 12, 30));
-        th.setForeground(PURPLE_LT);
+        th.setBackground(new Color(248, 249, 253));
+        th.setForeground(TXT_SEC);
         th.setFont(new Font("Segoe UI", Font.BOLD, 9));
         th.setBorder(BorderFactory.createMatteBorder(0,0,1,0, COL_BRD));
         th.setReorderingAllowed(false);
@@ -287,8 +366,8 @@ public class formProductor extends JPanel {
             public Component getTableCellRendererComponent(
                     JTable t, Object val, boolean sel, boolean foc, int row, int col) {
                 JLabel l = (JLabel) super.getTableCellRendererComponent(t,val,sel,foc,row,col);
-                l.setBackground(new Color(5, 12, 30));
-                l.setForeground(PURPLE_LT);
+                l.setBackground(new Color(248, 249, 253));
+                l.setForeground(TXT_SEC);
                 l.setFont(new Font("Segoe UI", Font.BOLD, 9));
                 l.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0,0,1,0, COL_BRD),
@@ -298,7 +377,6 @@ public class formProductor extends JPanel {
             }
         });
 
-        // ✔ anchos ajustados a 6 columnas (sin Experiencia)
         int[] w = {52, 155, 130, 110, 90, 90};
         for (int i = 0; i < w.length; i++)
             tabla.getColumnModel().getColumn(i).setPreferredWidth(w[i]);
@@ -313,7 +391,7 @@ public class formProductor extends JPanel {
         JPanel inner = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(7, 5, 18));
+                g2.setColor(BG_CARD);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
                 g2.setColor(COL_BRD);
                 g2.setStroke(new BasicStroke(1f));
@@ -328,7 +406,7 @@ public class formProductor extends JPanel {
         JPanel cab = new JPanel(new BorderLayout(6, 0)) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(10, 8, 24));
+                g2.setColor(new Color(253, 251, 240));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight()+12, 12, 12);
                 g2.dispose();
                 super.paintComponent(g);
@@ -340,6 +418,9 @@ public class formProductor extends JPanel {
         titulo.setFont(new Font("Segoe UI", Font.BOLD, 13));
         titulo.setForeground(ORO);
         cab.add(titulo, BorderLayout.WEST);
+
+        JLabel subRight = mkLabel("por tarifa/hora", new Font("Segoe UI", Font.PLAIN, 9), TXT_SEC);
+        cab.add(subRight, BorderLayout.EAST);
 
         JPanel sepOro = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -405,11 +486,11 @@ public class formProductor extends JPanel {
         JPanel fila = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(esPodio ? new Color(20, 16, 44) : BG_CARD);
+                g2.setColor(esPodio ? new Color(ac.getRed(), ac.getGreen(), ac.getBlue(), 12) : BG_ROW_B);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 9, 9);
                 if (esPodio) {
-                    g2.setColor(new Color(ac.getRed(), ac.getGreen(), ac.getBlue(), 110));
-                    g2.setStroke(new BasicStroke(1.4f));
+                    g2.setColor(new Color(ac.getRed(), ac.getGreen(), ac.getBlue(), 60));
+                    g2.setStroke(new BasicStroke(1.2f));
                     g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 9, 9);
                 }
                 g2.dispose();
@@ -460,7 +541,7 @@ public class formProductor extends JPanel {
         JPanel inner = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(7, 5, 18));
+                g2.setColor(BG_CARD);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
                 g2.setColor(COL_BRD);
                 g2.setStroke(new BasicStroke(1f));
@@ -475,7 +556,7 @@ public class formProductor extends JPanel {
         JPanel cab = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(10, 8, 24));
+                g2.setColor(new Color(240, 252, 255));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight()+12, 12, 12);
                 g2.dispose();
                 super.paintComponent(g);
@@ -523,9 +604,9 @@ public class formProductor extends JPanel {
     class GraficoBarras extends JPanel {
         private List<Productor> datos = new ArrayList<>();
         private final Color[] BARES = {
-            new Color(56,189,248), new Color(6,182,212), new Color(129,140,248),
-            new Color(186,230,253), new Color(244,114,182),
-            PURPLE, PURPLE_LT, GREEN, AMBER, PINK
+            new Color(99, 91, 255), new Color(6,182,212), new Color(16,185,129),
+            new Color(245,158, 11), new Color(236, 72,153),
+            PURPLE_LT, CYAN, GREEN, AMBER, PINK
         };
         void setDatos(List<Productor> lista) {
             List<Productor> orden = new ArrayList<>(lista);
@@ -547,7 +628,8 @@ public class formProductor extends JPanel {
             int barW   = Math.min(32, (W - 20) / n - 8);
             int totalW = n * (barW + 8) - 8;
             int startX = (W - totalW) / 2;
-            g2.setColor(new Color(35, 26, 80, 120));
+            // Líneas de cuadrícula claras
+            g2.setColor(new Color(220, 225, 240));
             g2.setStroke(new BasicStroke(0.8f, BasicStroke.CAP_BUTT,
                 BasicStroke.JOIN_MITER, 1, new float[]{4,4}, 0));
             for (int row = 1; row <= 3; row++) {
@@ -561,22 +643,28 @@ public class formProductor extends JPanel {
                 int bX = startX + i * (barW + 8);
                 int bY = marginTop + areaH - bH;
                 Color c = BARES[i % BARES.length];
-                g2.setColor(new Color(c.getRed(), c.getGreen(), c.getBlue(), 35));
+                // Sombra suave
+                g2.setColor(new Color(c.getRed(), c.getGreen(), c.getBlue(), 30));
                 g2.fillRoundRect(bX-2, bY-2, barW+4, bH+4, 8, 8);
                 g2.setStroke(new BasicStroke(1f));
-                g2.setColor(c);
+                // Barra con gradiente
+                g2.setPaint(new GradientPaint(bX, bY, c,
+                    bX, bY + bH, new Color(c.getRed(), c.getGreen(), c.getBlue(), 160)));
                 g2.fillRoundRect(bX, bY, barW, bH, 6, 6);
+                // Valor encima
                 String val = "$" + (int)p.getTarifaHora();
                 g2.setFont(new Font("Consolas", Font.BOLD, 9));
                 g2.setColor(c);
                 FontMetrics fm = g2.getFontMetrics();
                 g2.drawString(val, bX + (barW - fm.stringWidth(val)) / 2, bY - 5);
+                // Nombre debajo
                 String nombre = abreviar(p.getNombre(), 7);
                 g2.setFont(new Font("Segoe UI", Font.PLAIN, 9));
                 g2.setColor(TXT_SEC);
                 FontMetrics fm2 = g2.getFontMetrics();
                 g2.drawString(nombre, bX + (barW - fm2.stringWidth(nombre)) / 2,
                     marginTop + areaH + 14);
+                // Punto de color
                 g2.setColor(c);
                 g2.fillOval(bX + barW/2 - 3, marginTop + areaH + 22, 6, 6);
             }
@@ -596,7 +684,7 @@ public class formProductor extends JPanel {
         JPanel inner = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(7, 5, 18));
+                g2.setColor(BG_CARD);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
                 g2.setColor(COL_BRD);
                 g2.setStroke(new BasicStroke(1f));
@@ -611,7 +699,7 @@ public class formProductor extends JPanel {
         JPanel cab = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(10, 8, 24));
+                g2.setColor(new Color(246, 245, 255));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight()+12, 12, 12);
                 g2.dispose();
                 super.paintComponent(g);
@@ -702,7 +790,7 @@ public class formProductor extends JPanel {
             c.setBackground(sel ? SEL_BG : (row % 2 == 0 ? BG_ROW_A : BG_ROW_B));
             c.setForeground(TXT_PRI);
             c.setFont(F_BODY);
-            if (col == COL_ID)           { c.setForeground(PURPLE_LT); c.setFont(F_MONO_B); }
+            if (col == COL_ID)           { c.setForeground(PURPLE); c.setFont(F_MONO_B); }
             if (col == COL_ESPECIALIDAD && val != null) {
                 c.setForeground(CYAN); c.setFont(F_BOLD); c.setText("● " + val);
             }
@@ -742,7 +830,6 @@ public class formProductor extends JPanel {
                 p.getEspecialidad()    != null ? p.getEspecialidad()    : "",
                 p.getNacionalidad()    != null ? p.getNacionalidad()     : "",
                 String.format("$%.0f", p.getTarifaHora()),
-                // ✔ getEstado() — nombre correcto en el modelo
                 p.getEstado()          != null ? p.getEstado()           : "Disponible"
             });
         }
@@ -805,7 +892,7 @@ public class formProductor extends JPanel {
         JTextField f = new JTextField() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(BG_CARD);
+                g2.setColor(BG_FIELD);
                 g2.fillRoundRect(0,0,getWidth(),getHeight(),10,10);
                 g2.setColor(COL_BRD);
                 g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,10,10);
@@ -868,15 +955,15 @@ public class formProductor extends JPanel {
         @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = g2d(g);
             if (primary) {
-                g2.setColor(getModel().isPressed() ? new Color(29,78,216) : PURPLE);
+                g2.setColor(getModel().isPressed() ? new Color(79, 70, 229) : PURPLE);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                 if (!getModel().isPressed()) {
-                    g2.setPaint(new GradientPaint(0,0,new Color(255,255,255,28),
+                    g2.setPaint(new GradientPaint(0,0,new Color(255,255,255,40),
                         0, getHeight()/2f, new Color(0,0,0,0)));
                     g2.fillRoundRect(0, 0, getWidth(), getHeight()/2, 10, 10);
                 }
             } else {
-                g2.setColor(getModel().isRollover() ? new Color(14,34,80) : BG_CARD);
+                g2.setColor(getModel().isRollover() ? new Color(240, 242, 255) : BG_CARD);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                 g2.setColor(COL_BRD);
                 g2.setStroke(new BasicStroke(1f));
