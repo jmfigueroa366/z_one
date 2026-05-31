@@ -17,7 +17,8 @@ public class CancionDao {
         "       c.id_idioma, i.nombre AS nombre_idioma, " +
         "       c.id_version_cancion, " +
         "       c.id_estado_cancion, ec.nombre AS nombre_estado, " +
-        "       c.id_genero_musical, gm.nombre AS nombre_genero " +
+        "       c.id_genero_musical, gm.nombre AS nombre_genero, " +
+        "       c.ruta_archivo " +
         "FROM canciones c " +
         "LEFT JOIN productores       p  ON c.id_productor       = p.id_productor " +
         "LEFT JOIN formatos          f  ON c.id_formato         = f.id_formato " +
@@ -28,6 +29,13 @@ public class CancionDao {
     // ── LISTAR / BUSCAR ──
     public List<Cancion> listarTodos() throws SQLException {
         return ejecutar(SELECT_BASE + "ORDER BY c.titulo", null);
+    }
+
+    /** Solo trae canciones que tengan archivo de audio (para el reproductor). */
+    public List<Cancion> listarConArchivo() throws SQLException {
+        return ejecutar(SELECT_BASE
+            + "WHERE c.ruta_archivo IS NOT NULL "
+            + "ORDER BY c.titulo", null);
     }
 
     public Cancion buscarPorId(int id) throws SQLException {
@@ -53,8 +61,8 @@ public class CancionDao {
 
         String sql = "INSERT INTO canciones (titulo, bpm, fecha_composicion, fecha_compilacion, " +
                      "id_productor, id_formato, id_idioma, id_version_cancion, " +
-                     "id_estado_cancion, id_genero_musical) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "id_estado_cancion, id_genero_musical, ruta_archivo) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(sql, new String[]{"id_cancion"})) {
@@ -70,6 +78,7 @@ public class CancionDao {
             setIntOrNull(ps, 8,  c.getIdVersionCancion());
             setIntOrNull(ps, 9,  idEstado);
             setIntOrNull(ps, 10, idGenero);
+            ps.setString(11, c.getRutaArchivo());
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) return rs.getInt(1);
@@ -87,7 +96,8 @@ public class CancionDao {
 
         String sql = "UPDATE canciones SET titulo = ?, bpm = ?, fecha_composicion = ?, " +
                      "fecha_compilacion = ?, id_productor = ?, id_formato = ?, id_idioma = ?, " +
-                     "id_version_cancion = ?, id_estado_cancion = ?, id_genero_musical = ? " +
+                     "id_version_cancion = ?, id_estado_cancion = ?, id_genero_musical = ?, " +
+                     "ruta_archivo = ? " +
                      "WHERE id_cancion = ?";
 
         try (Connection con = ConexionDB.getConexion();
@@ -104,7 +114,8 @@ public class CancionDao {
             setIntOrNull(ps, 8,  c.getIdVersionCancion());
             setIntOrNull(ps, 9,  idEstado);
             setIntOrNull(ps, 10, idGenero);
-            ps.setInt(11, c.getIdCancion());
+            ps.setString(11, c.getRutaArchivo());
+            ps.setInt(12, c.getIdCancion());
             return ps.executeUpdate() > 0;
         }
     }
@@ -183,6 +194,7 @@ public class CancionDao {
         int idGen = rs.getInt("id_genero_musical");
         c.setIdGeneroMusical(rs.wasNull() ? null : idGen);
         c.setNombreGenero(rs.getString("nombre_genero"));
+        c.setRutaArchivo(rs.getString("ruta_archivo"));
         return c;
     }
 }
