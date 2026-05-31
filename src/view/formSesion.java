@@ -63,7 +63,6 @@ public class formSesion extends JPanel {
     private JScrollPane listaScroll;
     private JPanel listaCont;
 
-    // Timer REC global para el header
     private Timer recTimer;
     private JLabel recLabel;
 
@@ -156,19 +155,16 @@ public class formSesion extends JPanel {
         p.setAlignmentX(LEFT_ALIGNMENT);
         p.setBorder(new EmptyBorder(0, 0, 14, 0));
 
-        // — Lado izquierdo: título + subtítulo + badge REC —
         JPanel izq = new JPanel();
         izq.setOpaque(false);
         izq.setLayout(new BoxLayout(izq, BoxLayout.Y_AXIS));
 
-        // Fila del título con badge REC
         JPanel tituloRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         tituloRow.setOpaque(false);
         tituloRow.setAlignmentX(LEFT_ALIGNMENT);
 
         JLabel titulo = SesionComponents.lbl("Sesiones", FT, C_TEXT_PRI);
 
-        // Badge REC parpadeante
         recLabel = new JLabel("  ● REC");
         recLabel.setFont(new Font("Segoe UI", Font.BOLD, 11));
         recLabel.setForeground(C_REC);
@@ -190,47 +186,40 @@ public class formSesion extends JPanel {
         izq.add(Box.createVerticalStrut(4));
         izq.add(subtitulo);
 
-        // — Lado derecho: barra de búsqueda y botones —
         JPanel der = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         der.setOpaque(false);
-busqueda = new ModernUI.RoundedTextField("Buscar sesión...") {
-    @Override
-    protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // Fondo blanco siempre
-        g2.setColor(Color.WHITE);
-        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-
-        // Borde: azul si tiene foco, gris si no
-        if (hasFocus()) {
-            g2.setColor(new Color(26, 167, 224, 210));
-            g2.setStroke(new BasicStroke(2f));
-        } else {
-            g2.setColor(new Color(0xD1D5DB));
-            g2.setStroke(new BasicStroke(1f));
-        }
-        g2.drawRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 12, 12);
-
-        // Placeholder
-        if (getText().isEmpty() && !hasFocus()) {
-            g2.setColor(new Color(0x9CA3AF));
-            g2.setFont(getFont());
-            FontMetrics fm = g2.getFontMetrics();
-            g2.drawString("Buscar sesión...", 16,
-                (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
-        }
-
-        g2.dispose();
-        getUI().paint(g, this);
-    }
-};
-busqueda.setForeground(new Color(0x1F2937));
-busqueda.setCaretColor(new Color(0x1F2937));
-busqueda.setPreferredSize(new Dimension(210, 38));
-busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
-        
+        // Campo de búsqueda con fondo blanco
+        busqueda = new ModernUI.RoundedTextField("Buscar sesión...") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                if (hasFocus()) {
+                    g2.setColor(new Color(26, 167, 224, 210));
+                    g2.setStroke(new BasicStroke(2f));
+                } else {
+                    g2.setColor(new Color(0xD1D5DB));
+                    g2.setStroke(new BasicStroke(1f));
+                }
+                g2.drawRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 12, 12);
+                if (getText().isEmpty() && !hasFocus()) {
+                    g2.setColor(new Color(0x9CA3AF));
+                    g2.setFont(getFont());
+                    FontMetrics fm = g2.getFontMetrics();
+                    g2.drawString("Buscar sesión...", 16,
+                            (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
+                }
+                g2.dispose();
+                getUI().paint(g, this);
+            }
+        };
+        busqueda.setForeground(new Color(0x1F2937));
+        busqueda.setCaretColor(new Color(0x1F2937));
+        busqueda.setPreferredSize(new Dimension(210, 38));
+        busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
 
         ModernUI.RoundedButton bGrabar   = btn("🎙  Grabar",      false, 120);
         ModernUI.RoundedButton bFacturar = btn("💳  Facturar",    false, 125);
@@ -238,7 +227,6 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
         btnVista                         = btn("Ver tarjetas",    false, 130);
         ModernUI.RoundedButton bNueva    = btn("＋ Nueva sesión", true,  158);
 
-        // Colores de los botones con nueva paleta
         bGrabar.setForeground(C_ACCENT_CYAN);
         bFacturar.setForeground(C_OK);
         bRefr.setForeground(C_TEXT_MUT);
@@ -287,15 +275,14 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
         p.setAlignmentX(LEFT_ALIGNMENT);
         p.setBorder(new EmptyBorder(0, 0, 14, 0));
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 84));
-        p.add(statCard("Sesiones totales", stTotal, C_PRIMARY,      "totales"));
-        p.add(statCard("Programadas",      stProg,  C_PROG,         "en agenda"));
+        p.add(statCard("Sesiones totales", stTotal, C_PRIMARY,           "totales"));
+        p.add(statCard("Programadas",      stProg,  C_PROG,              "en agenda"));
         p.add(statCard("En curso",         stCurso, new Color(0xBA7517), "activas"));
-        p.add(statCard("Costo estimado",   stCosto, C_OK,           "acumulado"));
+        p.add(statCard("Costo estimado",   stCosto, C_OK,                "acumulado"));
         return p;
     }
 
     private JPanel statCard(String titulo, JLabel valor, Color acento, String sub) {
-        // Card con fondo blanco y borde izquierdo de color
         JPanel c = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -305,7 +292,6 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
                 g2.setColor(C_BORDER);
                 g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 13, 13);
-                // Acento izquierdo
                 g2.setColor(acento);
                 g2.fillRoundRect(0, 0, 4, getHeight(), 4, 4);
                 g2.dispose();
@@ -367,7 +353,6 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
         btnVista.setText(modoTarjetas ? "Ver tabla" : "Ver tarjetas");
     }
 
-    // Card de tabla con fondo blanco
     private JPanel tablaCard() {
         JPanel card = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -429,21 +414,17 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
 
     private JComponent filaSesion(Sesion s) {
         boolean activa = s == seleccionada;
-        // Usamos colorEstadoAccent para el avatar/borde, colorEstado para pill bg
         Color accentColor = colorEstadoAccent(s.getEstadoSesion());
 
         JPanel fila = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                // Fondo: violeta suave si seleccionada, gris muy claro si no
                 g2.setColor(activa ? C_ROW_SEL : C_ROW_BG);
                 g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
-                // Borde: violeta si activa, gris si no
                 g2.setColor(activa ? C_PRIMARY : C_BORDER);
                 g2.setStroke(new BasicStroke(activa ? 1.5f : 1f));
                 g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 10, 10);
-                // Acento lateral izquierdo
                 if (activa) {
                     g2.setColor(C_ACCENT_CYAN);
                     g2.fillRoundRect(0, 9, 4, getHeight() - 19, 4, 4);
@@ -510,15 +491,13 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
         return fila;
     }
 
-    /** Color de texto secundario oscuro para la nueva paleta */
     private static Color C_TEXT_SEC() {
         return new Color(0x374151);
     }
 
-    /** Pill de estado con fondo suave, igual que en el módulo Canciones */
     private JPanel pillEstado(String estado) {
-        Color bgColor = colorEstado(estado);
-        Color fgColor = colorEstadoFg(estado);
+        Color bgColor  = colorEstado(estado);
+        Color fgColor  = colorEstadoFg(estado);
         Color dotColor = colorEstadoAccent(estado);
 
         JPanel pill = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0)) {
@@ -634,8 +613,8 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
         costoLbl.setFont(new Font("Segoe UI", Font.BOLD, 16));
         costoLbl.setForeground(C_OK);
 
-        c.add(top,     BorderLayout.NORTH);
-        c.add(info,    BorderLayout.CENTER);
+        c.add(top,      BorderLayout.NORTH);
+        c.add(info,     BorderLayout.CENTER);
         c.add(costoLbl, BorderLayout.SOUTH);
         c.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
@@ -727,7 +706,6 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
         card.add(separador());
         card.add(Box.createVerticalStrut(10));
 
-        // VU Meters decorativos
         JLabel tVu = new JLabel("SEÑAL EN VIVO");
         tVu.setFont(new Font("Segoe UI", Font.BOLD, 11));
         tVu.setForeground(C_ACCENT_CYAN);
@@ -750,7 +728,6 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
         return card;
     }
 
-    /** Separador horizontal con color de borde */
     private JSeparator separador() {
         JSeparator sep = new JSeparator();
         sep.setForeground(C_BORDER);
@@ -829,10 +806,9 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
                     info.add(nombre);
                     info.add(meta);
 
-                    JButton btnPlay = buildIconBtn("▶", C_ACCENT_CYAN);
-                    btnPlay.addActionListener(e -> reproducir(g.getRutaArchivo(), btnPlay));
-
+                    JButton btnPlay     = buildIconBtn("▶", C_ACCENT_CYAN);
                     JButton btnEliminar = buildIconBtn("✖", C_ERR);
+                    btnPlay.addActionListener(e -> reproducir(g.getRutaArchivo(), btnPlay));
                     btnEliminar.addActionListener(e -> eliminarGrabacion(g.getIdGrabacion()));
 
                     JPanel acciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
@@ -863,7 +839,6 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
         grabacionesBox.repaint();
     }
 
-    /** Botón icónico pequeño con fondo C_ROW_BG */
     private JButton buildIconBtn(String icon, Color fg) {
         JButton b = new JButton(icon) {
             @Override protected void paintComponent(Graphics g) {
@@ -957,7 +932,6 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                // Fondo suave del color del puesto
                 g2.setColor(new Color(ac.getRed(), ac.getGreen(), ac.getBlue(), 30));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 7, 7);
                 g2.setColor(ac);
@@ -1092,7 +1066,7 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
         JPanel root = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setColor(C_BG_DARK);        // ahora es el gris claro 0xF4F6FB
+                g2.setColor(C_BG_DARK);
                 g2.fillRect(0, 0, getWidth(), getHeight());
                 g2.dispose();
             }
@@ -1105,24 +1079,33 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
         body.setBorder(new EmptyBorder(20, 26, 18, 26));
 
-        FieldFx fNombre = new FieldFx(isEdit ? se.getNombreSesion()              : "", "Nombre de la sesión", timersDlg);
-        FieldFx fFecha  = new FieldFx(isEdit ? se.getFecha().format(FMT)         : "", "dd/MM/yyyy",          timersDlg);
-        FieldFx fHIni   = new FieldFx(isEdit ? se.getHoraInicio()                : "09:00", "HH:mm",          timersDlg);
-        FieldFx fHFin   = new FieldFx(isEdit ? se.getHoraFin()                   : "12:00", "HH:mm",          timersDlg);
-        FieldFx fDur    = new FieldFx(isEdit ? String.valueOf(se.getDuracion())  : "", "Horas (ej: 3.5)",     timersDlg);
+        FieldFx fNombre = new FieldFx(isEdit ? se.getNombreSesion()             : "", "Nombre de la sesión", timersDlg);
+        FieldFx fFecha  = new FieldFx(isEdit ? se.getFecha().format(FMT)        : "", "dd/MM/yyyy",          timersDlg);
+        FieldFx fHIni   = new FieldFx(isEdit ? se.getHoraInicio()               : "09:00", "HH:mm",          timersDlg);
+        FieldFx fHFin   = new FieldFx(isEdit ? se.getHoraFin()                  : "12:00", "HH:mm",          timersDlg);
+        FieldFx fDur    = new FieldFx(isEdit ? String.valueOf(se.getDuracion()) : "", "Horas (ej: 3.5)",     timersDlg);
         FieldFx fObs    = new FieldFx(isEdit && se.getObservaciones() != null
-                                              ? se.getObservaciones() : "", "Observaciones opcionales",       timersDlg);
+                                             ? se.getObservaciones() : "", "Observaciones opcionales",       timersDlg);
 
-        ComboFx<String> cbEstado = SesionComponents.comboFx(ESTADOS, isEdit ? se.getEstadoSesion() : Sesion.ESTADO_PROGRAMADA, timersDlg);
-        ComboFx<String> cbCabina = SesionComponents.comboFx(cabinas.toArray(new String[0]), cabinas.get(0), timersDlg);
+        ComboFx<String> cbEstado = SesionComponents.comboFx(
+                ESTADOS, isEdit ? se.getEstadoSesion() : Sesion.ESTADO_PROGRAMADA, timersDlg);
+        ComboFx<String> cbCabina = SesionComponents.comboFx(
+                cabinas.toArray(new String[0]), cabinas.get(0), timersDlg);
         if (isEdit && se.getIdCabina() != null && se.getIdCabina() >= 1 && se.getIdCabina() <= cabinas.size())
             cbCabina.setSelectedIndex(se.getIdCabina() - 1);
 
-        ComboFx<Artista>   cbArt  = SesionComponents.comboFxObj(artistas.toArray(new Artista[0]),
-                v -> v instanceof Artista  a  ? a.getNombreArtista() : "", timersDlg);
-        ComboFx<Productor> cbProd = SesionComponents.comboFxObj(productores.toArray(new Productor[0]),
-                v -> v instanceof Productor pr ? pr.getNombre()       : "", timersDlg);
-        if (isEdit) { cbArt.setSelectedItem(se.getArtista()); cbProd.setSelectedItem(se.getProductor()); }
+        // ── Combos de Artista y Productor (una sola declaración cada uno) ──
+        ComboFx<Artista> cbArt = SesionComponents.comboFxObj(
+                artistas.toArray(new Artista[0]),
+                v -> (v instanceof Artista) ? ((Artista) v).getNombreArtista() : "",
+                timersDlg);
+        if (isEdit) cbArt.setSelectedItem(se.getArtista());
+
+        ComboFx<Productor> cbProd = SesionComponents.comboFxObj(
+                productores.toArray(new Productor[0]),
+                v -> (v instanceof Productor) ? ((Productor) v).getNombre() : "",
+                timersDlg);
+        if (isEdit) cbProd.setSelectedItem(se.getProductor());
 
         List<JComponent> filasFx = new ArrayList<>();
         filasFx.add(seccionTituloFx("INFORMACIÓN GENERAL", timersDlg));
@@ -1178,29 +1161,29 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
         btns.setOpaque(false);
         btns.setAlignmentX(LEFT_ALIGNMENT);
         btns.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
-        BtnFx bCancel = new BtnFx("Cancelar",                          false, timersDlg);
+        BtnFx bCancel = new BtnFx("Cancelar", false, timersDlg);
         BtnFx bSave   = new BtnFx(isEdit ? "💾  Guardar cambios" : "✦  Crear sesión", true, timersDlg);
         bCancel.setPreferredSize(new Dimension(120, 40));
         bSave.setPreferredSize(new Dimension(180, 40));
         bCancel.addActionListener(e -> cerrarConFade(dlg));
 
         bSave.addActionListener(e -> {
-            String nm    = fNombre.getText().trim();
-            String fd    = fFecha.getText().trim();
-            String dr    = fDur.getText().trim();
-            String hi    = fHIni.getText().trim();
-            String hf    = fHFin.getText().trim();
-            String obs   = fObs.getText().trim();
-            String estado = (String) cbEstado.getSelectedItem();
+            String nm     = fNombre.getText().trim();
+            String fd     = fFecha.getText().trim();
+            String dr     = fDur.getText().trim();
+            String hi     = fHIni.getText().trim();
+            String hf     = fHFin.getText().trim();
+            String obs    = fObs.getText().trim();
+            String estado = (String)    cbEstado.getSelectedItem();
             Integer idCab = cbCabina.getSelectedIndex() + 1;
             Artista   art  = (Artista)   cbArt.getSelectedItem();
             Productor prod = (Productor) cbProd.getSelectedItem();
 
-            if (nm.isEmpty())   { fNombre.shake(); toast("El nombre de sesión es obligatorio", MainFrame.ToastType.ERROR); return; }
-            if (fd.isEmpty())   { fFecha.shake();  toast("La fecha es obligatoria",            MainFrame.ToastType.ERROR); return; }
-            if (dr.isEmpty())   { fDur.shake();    toast("La duración es obligatoria",          MainFrame.ToastType.ERROR); return; }
-            if (art  == null)   { toast("Selecciona un artista",   MainFrame.ToastType.ERROR); return; }
-            if (prod == null)   { toast("Selecciona un productor", MainFrame.ToastType.ERROR); return; }
+            if (nm.isEmpty())  { fNombre.shake(); toast("El nombre de sesión es obligatorio", MainFrame.ToastType.ERROR); return; }
+            if (fd.isEmpty())  { fFecha.shake();  toast("La fecha es obligatoria",            MainFrame.ToastType.ERROR); return; }
+            if (dr.isEmpty())  { fDur.shake();    toast("La duración es obligatoria",          MainFrame.ToastType.ERROR); return; }
+            if (art  == null)  { toast("Selecciona un artista",   MainFrame.ToastType.ERROR); return; }
+            if (prod == null)  { toast("Selecciona un productor", MainFrame.ToastType.ERROR); return; }
 
             LocalDate fecha;
             try { fecha = LocalDate.parse(fd, FMT); }
@@ -1213,10 +1196,10 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
             if (dur <= 0) { fDur.shake(); toast("La duración debe ser un número positivo", MainFrame.ToastType.ERROR); return; }
 
             if (isEdit) {
-                se.setNombreSesion(nm); se.setFecha(fecha);
-                se.setHoraInicio(hi);   se.setHoraFin(hf);
-                se.setDuracion(dur);    se.setArtista(art);
-                se.setProductor(prod);  se.setIdCabina(idCab);
+                se.setNombreSesion(nm);  se.setFecha(fecha);
+                se.setHoraInicio(hi);    se.setHoraFin(hf);
+                se.setDuracion(dur);     se.setArtista(art);
+                se.setProductor(prod);   se.setIdCabina(idCab);
                 se.setEstadoSesion(estado); se.setObservaciones(obs);
                 if (actualizarEnServicio(se)) {
                     toast("Sesión actualizada correctamente", MainFrame.ToastType.SUCCESS);
@@ -1299,10 +1282,10 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
         if (seleccionada.getProductor() == null) { toast("La sesión debe tener productor asignado", MainFrame.ToastType.ERROR); return; }
 
         String msg = "<html><b>Generar factura para:</b><br><br>"
-                + "<b>Sesión:</b> "   + seleccionada.getNombreSesion() + "<br>"
-                + "<b>Artista:</b> "  + seleccionada.getArtista().getNombreArtista() + "<br>"
+                + "<b>Sesión:</b> "    + seleccionada.getNombreSesion() + "<br>"
+                + "<b>Artista:</b> "   + seleccionada.getArtista().getNombreArtista() + "<br>"
                 + "<b>Productor:</b> " + seleccionada.getProductor().getNombre() + "<br>"
-                + "<b>Duración:</b> " + seleccionada.getDuracion() + " h<br>"
+                + "<b>Duración:</b> "  + seleccionada.getDuracion() + " h<br>"
                 + "<b>Subtotal:</b> $" + String.format("%,.2f", seleccionada.getCostoTotal()) + "<br>"
                 + "<b>Total con IVA (19%):</b> $"
                 + String.format("%,.2f", seleccionada.getCostoTotal() * 1.19) + "<br><br>"
@@ -1312,7 +1295,7 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
         if (correo == null) return;
         if (correo.isBlank() || !correo.contains("@")) { toast("Correo inválido", MainFrame.ToastType.ERROR); return; }
 
-        final String correoFinal = correo.trim();
+        final String correoFinal  = correo.trim();
         final model.Sesion sesionFinal = seleccionada;
         toast("📧 Generando y enviando factura...", MainFrame.ToastType.INFO);
 
@@ -1408,7 +1391,7 @@ busqueda.getDocument().addDocumentListener(docListener(this::aplicarFiltro));
         l.setForeground(C_PRIMARY);
         if (campo instanceof JTextField) campo.setPreferredSize(new Dimension(0, 40));
         if (campo instanceof JComboBox)  campo.setPreferredSize(new Dimension(0, 40));
-        p.add(l, BorderLayout.NORTH);
+        p.add(l,     BorderLayout.NORTH);
         p.add(campo, BorderLayout.CENTER);
         return p;
     }
