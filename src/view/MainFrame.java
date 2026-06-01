@@ -23,6 +23,7 @@ public class MainFrame extends JFrame {
     private JPanel        contentPanel;
     private CardLayout    cardLayout;
     private SidebarItem   activeItem;
+    
 
     private static MainFrame instance;
 
@@ -660,7 +661,33 @@ public class MainFrame extends JFrame {
         if (instance == null) return;
         instance.mostrarToastInterno(mensaje, tipo);
     }
+    /** Cambia la vista mostrada en el contenido principal. */
+public static void navegarA(String vista) {
+    if (instance == null) return;
+    instance.cambiarVista(vista);
+}
 
+private void cambiarVista(String vista) {
+    // Cambia al panel
+    cardLayout.show(contentPanel, vista);
+    
+    // Actualiza el ítem activo del sidebar
+    Component[] componentes = ((JPanel)getContentPane().getComponent(0)).getComponents();
+    for (Component c : componentes) {
+        if (c instanceof JPanel) {
+            for (Component item : ((JPanel)c).getComponents()) {
+                if (item instanceof SidebarItem) {
+                    SidebarItem si = (SidebarItem) item;
+                    String label = si.getLabelLower();
+                    boolean match = label.equals(vista) 
+                                  || (vista.equals("configuracion") && label.equals("configuración"));
+                    si.setActive(match);
+                    if (match) activeItem = si;
+                }
+            }
+        }
+    }
+}
     private void mostrarToastInterno(String mensaje, ToastType tipo) {
         Color color; String icono;
         switch (tipo) {
@@ -736,6 +763,12 @@ public class MainFrame extends JFrame {
 
         public void setActive(boolean a) { this.active = a; repaint(); }
 
+        public String getLabelLower() {
+    // Normaliza el label a la clave de cardLayout
+    String l = label.toLowerCase();
+    if (l.equals("configuración")) return "configuracion";
+    return l;
+}
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();

@@ -1,13 +1,16 @@
 package view;
 
+import dao.CancionDao;
 import model.Cancion;
 import services.CancionService;
 
+import javax.sound.sampled.*;
 import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -18,15 +21,16 @@ import java.util.List;
 public class formCancion extends JPanel {
 
     // ══════════════════════════════════════════════════════════════════
-    //  PALETA — tema claro (idéntica a formProductor / formArtista)
+    //  PALETA — tema claro
     // ══════════════════════════════════════════════════════════════════
     static final Color BG_CARD   = new Color(255, 255, 255);
     static final Color BG_FIELD  = new Color(240, 242, 248);
     static final Color BG_ROW_A  = new Color(255, 255, 255);
     static final Color BG_ROW_B  = new Color(248, 249, 253);
+    static final Color BG_SOFT   = new Color(241, 243, 247);
     static final Color COL_BRD   = new Color(220, 225, 240);
-    static final Color PURPLE    = new Color(99,  91, 255);
-    static final Color PURPLE_LT = new Color(130, 122, 255);
+    static final Color PURPLE    = new Color(139,  92, 246);
+    static final Color PURPLE_LT = new Color(167, 139, 250);
     static final Color CYAN      = new Color(6,  182, 212);
     static final Color GREEN     = new Color(16, 185, 129);
     static final Color AMBER     = new Color(245, 158,  11);
@@ -45,7 +49,6 @@ public class formCancion extends JPanel {
     static final Font F_MONO   = new Font("Consolas", Font.PLAIN, 11);
     static final Font F_MONO_B = new Font("Consolas", Font.BOLD,  11);
 
-    // ── Columnas tabla ────────────────────────────────────────────────
     static final String[] COLS = { "ID", "Título", "Género", "BPM", "Estado", "Fecha" };
     static final int COL_ID=0, COL_TITULO=1, COL_GENERO=2,
                      COL_BPM=3, COL_ESTADO=4, COL_FECHA=5;
@@ -60,22 +63,27 @@ public class formCancion extends JPanel {
     JTable                        tabla;
     private JTextField            campoBusqueda;
 
-    // Stat cards
     private JLabel lblTotal, lblGeneros, lblBpmProm, lblPublicadas;
-    // Ranking lateral
     private JPanel rankingContainer;
-    // Gráfico
     GraficoGenero graficoGenero;
-    // Resumen
     private JLabel lblResTotal, lblResGen, lblResTop;
 
-    // Animación tabla
     private float tableAlpha = 0f;
     private javax.swing.Timer fadeTimer;
 
-    // ══════════════════════════════════════════════════════════════════
-    //  CONSTRUCTOR
-    // ══════════════════════════════════════════════════════════════════
+    // ── REPRODUCTOR ──
+    private List<Cancion> playlist = new ArrayList<>();
+    private int indiceActual = 0;
+    private Clip clipActual = null;
+    private boolean reproduciendo = false;
+    private JLabel lblTituloRep, lblArtistaRep, lblTiempo;
+    private JButton btnPlayPause;
+    private JProgressBar barraProgreso;
+    private Timer timerProgreso;
+    private JPanel coverRep;
+    private float coverRot = 0f;
+    private Timer coverSpinTimer;
+
     public formCancion() {
         setOpaque(false);
         setLayout(new BorderLayout(0, 0));
@@ -84,9 +92,6 @@ public class formCancion extends JPanel {
         cargarCanciones();
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  LAYOUT PRINCIPAL
-    // ══════════════════════════════════════════════════════════════════
     private void construirUI() {
         JPanel izq = new JPanel(new BorderLayout(0, 0));
         izq.setOpaque(false);
@@ -95,9 +100,11 @@ public class formCancion extends JPanel {
         JPanel cuerpo = new JPanel();
         cuerpo.setOpaque(false);
         cuerpo.setLayout(new BoxLayout(cuerpo, BoxLayout.Y_AXIS));
-        cuerpo.add(Box.createVerticalStrut(18));
+        cuerpo.add(Box.createVerticalStrut(14));
         cuerpo.add(filaStats());
-        cuerpo.add(Box.createVerticalStrut(18));
+        cuerpo.add(Box.createVerticalStrut(14));
+        cuerpo.add(reproductorSpotify());      // ⬅ REPRODUCTOR AQUÍ
+        cuerpo.add(Box.createVerticalStrut(14));
         cuerpo.add(panelTabla());
         izq.add(cuerpo, BorderLayout.CENTER);
 
@@ -118,7 +125,388 @@ public class formCancion extends JPanel {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  ENCABEZADO compacto
+    //  🎵 MINI REPRODUCTOR ESTILO SPOTIFY
+    // ══════════════════════════════════════════════════════════════════
+    private JPanel reproductorSpotify() {
+        JPanel card = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = g2d(g);
+                g2.setColor(new Color(0, 0, 0, 10));
+                g2.fillRoundRect(0, 3, getWidth(), getHeight()-3, 16, 16);
+                GradientPaint gp = new GradientPaint(0, 0,
+                    new Color(0xFFFFFF), getWidth(), 0,
+                    new Color(0xF5F0FF));
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight()-3, 16, 16);
+                g2.setColor(COL_BRD);
+                g2.setStroke(new BasicStroke(1f));
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-4, 16, 16);
+                g2.setColor(PURPLE);
+                g2.fillRoundRect(0, 0, 4, getHeight()-3, 4, 4);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        card.setOpaque(false);
+        card.setLayout(new BorderLayout(14, 0));
+        card.setBorder(new EmptyBorder(12, 18, 12, 18));
+        card.setAlignmentX(LEFT_ALIGNMENT);
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        card.setPreferredSize(new Dimension(0, 80));
+
+        // ─── IZQUIERDA: Cover giratorio + Info ───
+        JPanel info = new JPanel(new BorderLayout(12, 0));
+        info.setOpaque(false);
+
+        coverRep = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = g2d(g);
+                int cx = getWidth()/2, cy = getHeight()/2;
+                int r = Math.min(cx, cy) - 2;
+                // Sombra
+                g2.setColor(new Color(0, 0, 0, 30));
+                g2.fillOval(cx-r+1, cy-r+2, r*2, r*2);
+                // Disco con gradiente girando
+                g2.rotate(Math.toRadians(coverRot), cx, cy);
+                GradientPaint gp = new GradientPaint(cx-r, cy-r, PURPLE, cx+r, cy+r, CYAN);
+                g2.setPaint(gp);
+                g2.fillOval(cx-r, cy-r, r*2, r*2);
+                // Surcos
+                g2.setStroke(new BasicStroke(0.8f));
+                g2.setColor(new Color(255, 255, 255, 40));
+                for (int rr = r-3; rr > 6; rr -= 3) {
+                    g2.drawOval(cx-rr, cy-rr, rr*2, rr*2);
+                }
+                g2.rotate(-Math.toRadians(coverRot), cx, cy);
+                // Centro
+                g2.setColor(Color.WHITE);
+                g2.fillOval(cx-7, cy-7, 14, 14);
+                g2.setColor(PURPLE);
+                g2.fillOval(cx-3, cy-3, 6, 6);
+                // Brillo
+                g2.setColor(new Color(255, 255, 255, 100));
+                g2.fillArc(cx-r+3, cy-r+3, (r-3)*2, (r-3)*2, 40, 60);
+                g2.dispose();
+            }
+        };
+        coverRep.setOpaque(false);
+        coverRep.setPreferredSize(new Dimension(52, 52));
+
+        // Timer rotación del disco
+        coverSpinTimer = new Timer(40, e -> {
+            if (reproduciendo) {
+                coverRot = (coverRot + 2f) % 360f;
+                coverRep.repaint();
+            }
+        });
+        coverSpinTimer.start();
+
+        JPanel txt = new JPanel();
+        txt.setOpaque(false);
+        txt.setLayout(new BoxLayout(txt, BoxLayout.Y_AXIS));
+
+        lblTituloRep = mkLabel("Selecciona una canción", new Font("Segoe UI", Font.BOLD, 14), TXT_PRI);
+        lblArtistaRep = mkLabel("Doble click en la tabla para reproducir",
+                new Font("Segoe UI", Font.PLAIN, 11), TXT_SEC);
+        lblTituloRep.setAlignmentX(LEFT_ALIGNMENT);
+        lblArtistaRep.setAlignmentX(LEFT_ALIGNMENT);
+        txt.add(Box.createVerticalGlue());
+        txt.add(lblTituloRep);
+        txt.add(Box.createVerticalStrut(2));
+        txt.add(lblArtistaRep);
+        txt.add(Box.createVerticalGlue());
+
+        info.add(coverRep, BorderLayout.WEST);
+        info.add(txt, BorderLayout.CENTER);
+        info.setPreferredSize(new Dimension(260, 0));
+
+        // ─── CENTRO: Controles + Barra ───
+        JPanel center = new JPanel();
+        center.setOpaque(false);
+        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
+
+        JPanel controles = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
+        controles.setOpaque(false);
+
+        JButton btnPrev = btnRedondo("⏮", 32, false);
+        btnPrev.addActionListener(e -> anterior());
+
+        btnPlayPause = btnRedondo("▶", 40, true);
+        btnPlayPause.addActionListener(e -> togglePlay());
+
+        JButton btnNext = btnRedondo("⏭", 32, false);
+        btnNext.addActionListener(e -> siguiente());
+
+        controles.add(btnPrev);
+        controles.add(btnPlayPause);
+        controles.add(btnNext);
+
+        // Barra de progreso
+        JPanel barraBox = new JPanel(new BorderLayout(8, 0));
+        barraBox.setOpaque(false);
+        barraBox.setBorder(new EmptyBorder(2, 0, 0, 0));
+
+        lblTiempo = mkLabel("0:00 / 0:00", new Font("Consolas", Font.PLAIN, 10), TXT_SEC);
+
+        barraProgreso = new JProgressBar(0, 100);
+        barraProgreso.setValue(0);
+        barraProgreso.setOpaque(false);
+        barraProgreso.setBorderPainted(false);
+        barraProgreso.setUI(new javax.swing.plaf.basic.BasicProgressBarUI() {
+            @Override protected void paintDeterminate(Graphics g, JComponent c) {
+                Graphics2D g2 = g2d(g);
+                int w = barraProgreso.getWidth(), h = 5;
+                int y = (barraProgreso.getHeight() - h) / 2;
+                g2.setColor(BG_SOFT);
+                g2.fillRoundRect(0, y, w, h, h, h);
+                int progW = (int)(w * (barraProgreso.getValue() / 100.0));
+                GradientPaint gp = new GradientPaint(0, y, PURPLE, progW, y, CYAN);
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, y, progW, h, h, h);
+                if (progW > 0) {
+                    g2.setColor(Color.WHITE);
+                    g2.fillOval(progW-6, y-3, 12, 12);
+                    g2.setColor(PURPLE);
+                    g2.setStroke(new BasicStroke(1.5f));
+                    g2.drawOval(progW-6, y-3, 12, 12);
+                }
+                g2.dispose();
+            }
+        });
+        barraProgreso.setPreferredSize(new Dimension(0, 16));
+
+        // Click en barra para saltar
+        barraProgreso.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                if (clipActual == null) return;
+                double ratio = (double) e.getX() / barraProgreso.getWidth();
+                long totalMicros = clipActual.getMicrosecondLength();
+                long nuevaPos = (long)(totalMicros * ratio);
+                clipActual.setMicrosecondPosition(nuevaPos);
+            }
+        });
+        barraProgreso.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        barraBox.add(lblTiempo, BorderLayout.EAST);
+        barraBox.add(barraProgreso, BorderLayout.CENTER);
+
+        controles.setAlignmentX(CENTER_ALIGNMENT);
+        barraBox.setAlignmentX(CENTER_ALIGNMENT);
+        center.add(controles);
+        center.add(barraBox);
+
+        // ─── DERECHA: Contador ───
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        right.setOpaque(false);
+        JLabel rep = mkLabel("🎵 REPRODUCTOR", new Font("Segoe UI", Font.BOLD, 10), PURPLE);
+        right.add(rep);
+        right.setPreferredSize(new Dimension(120, 0));
+
+        card.add(info, BorderLayout.WEST);
+        card.add(center, BorderLayout.CENTER);
+        card.add(right, BorderLayout.EAST);
+
+        return card;
+    }
+
+    private JButton btnRedondo(String text, int size, boolean primary) {
+        JButton b = new JButton(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = g2d(g);
+                if (primary) {
+                    GradientPaint gp = new GradientPaint(0, 0, PURPLE, getWidth(), getHeight(), CYAN);
+                    g2.setPaint(gp);
+                    g2.fillOval(0, 0, getWidth(), getHeight());
+                    g2.setColor(new Color(255, 255, 255, 60));
+                    g2.fillArc(0, 0, getWidth(), getHeight()/2, 0, 180);
+                } else {
+                    g2.setColor(getModel().isRollover() ? BG_SOFT : Color.WHITE);
+                    g2.fillOval(0, 0, getWidth()-1, getHeight()-1);
+                    g2.setColor(COL_BRD);
+                    g2.drawOval(0, 0, getWidth()-1, getHeight()-1);
+                }
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        b.setFont(new Font("Segoe UI", Font.BOLD, primary ? 14 : 11));
+        b.setForeground(primary ? Color.WHITE : TXT_PRI);
+        b.setOpaque(false);
+        b.setContentAreaFilled(false);
+        b.setBorderPainted(false);
+        b.setFocusPainted(false);
+        b.setPreferredSize(new Dimension(size, size));
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  🎵 LÓGICA DEL REPRODUCTOR
+    // ══════════════════════════════════════════════════════════════════
+    private void cargarPlaylist() {
+        try {
+            playlist = new CancionDao().listarConArchivo();
+        } catch (Exception ex) {
+            playlist = new ArrayList<>();
+        }
+    }
+
+    private void togglePlay() {
+        if (playlist.isEmpty()) cargarPlaylist();
+        if (playlist.isEmpty()) {
+            MainFrame.showToast("No hay canciones con audio disponibles",
+                    MainFrame.ToastType.INFO);
+            return;
+        }
+        if (reproduciendo) {
+            pausar();
+        } else {
+            if (clipActual != null) {
+                // Reanudar pausa
+                clipActual.start();
+                reproduciendo = true;
+                btnPlayPause.setText("⏸");
+                if (timerProgreso != null) timerProgreso.start();
+            } else {
+                reproducir();
+            }
+        }
+    }
+
+    private void reproducir() {
+        if (playlist.isEmpty()) return;
+        Cancion c = playlist.get(indiceActual);
+        String ruta = c.getRutaArchivo();
+        if (ruta == null || ruta.isBlank()) {
+            MainFrame.showToast("Esta canción no tiene archivo de audio",
+                    MainFrame.ToastType.ERROR);
+            return;
+        }
+
+        File archivo = new File(ruta);
+        if (!archivo.exists()) {
+            MainFrame.showToast("Archivo no encontrado: " + archivo.getName(),
+                    MainFrame.ToastType.ERROR);
+            return;
+        }
+
+        try {
+            if (clipActual != null) {
+                clipActual.stop();
+                clipActual.close();
+            }
+
+            AudioInputStream stream = AudioSystem.getAudioInputStream(archivo);
+            clipActual = AudioSystem.getClip();
+            clipActual.open(stream);
+            clipActual.start();
+            reproduciendo = true;
+            btnPlayPause.setText("⏸");
+
+            iniciarTimerProgreso();
+
+            clipActual.addLineListener(event -> {
+                if (event.getType() == LineEvent.Type.STOP) {
+                    long pos = clipActual.getMicrosecondPosition();
+                    long len = clipActual.getMicrosecondLength();
+                    if (pos >= len - 100000 && reproduciendo) {
+                        SwingUtilities.invokeLater(this::siguiente);
+                    }
+                }
+            });
+
+            actualizarInfoCancion();
+        } catch (UnsupportedAudioFileException ex) {
+            MainFrame.showToast("Formato no soportado. Usa archivos .wav",
+                    MainFrame.ToastType.ERROR);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            MainFrame.showToast("Error al reproducir: " + ex.getMessage(),
+                    MainFrame.ToastType.ERROR);
+        }
+    }
+
+    private void pausar() {
+        if (clipActual != null && clipActual.isRunning()) {
+            clipActual.stop();
+        }
+        reproduciendo = false;
+        btnPlayPause.setText("▶");
+        if (timerProgreso != null) timerProgreso.stop();
+    }
+
+    private void siguiente() {
+        if (playlist.isEmpty()) return;
+        if (clipActual != null) {
+            clipActual.stop();
+            clipActual.close();
+            clipActual = null;
+        }
+        indiceActual = (indiceActual + 1) % playlist.size();
+        reproducir();
+    }
+
+    private void anterior() {
+        if (playlist.isEmpty()) return;
+        if (clipActual != null) {
+            clipActual.stop();
+            clipActual.close();
+            clipActual = null;
+        }
+        indiceActual = (indiceActual - 1 + playlist.size()) % playlist.size();
+        reproducir();
+    }
+
+    private void reproducirPorId(int idCancion) {
+        if (playlist.isEmpty()) cargarPlaylist();
+        for (int i = 0; i < playlist.size(); i++) {
+            if (playlist.get(i).getIdCancion() == idCancion) {
+                indiceActual = i;
+                if (clipActual != null) {
+                    clipActual.stop();
+                    clipActual.close();
+                    clipActual = null;
+                }
+                reproducir();
+                return;
+            }
+        }
+        MainFrame.showToast("Esta canción no tiene archivo de audio",
+                MainFrame.ToastType.INFO);
+    }
+
+    private void actualizarInfoCancion() {
+        if (playlist.isEmpty()) return;
+        Cancion c = playlist.get(indiceActual);
+        lblTituloRep.setText(recortar(c.getTitulo(), 28));
+        String prod = c.getNombreProductor() != null ? c.getNombreProductor() : "Sin productor";
+        String gen = c.getNombreGenero() != null ? " · " + c.getNombreGenero() : "";
+        lblArtistaRep.setText(prod + gen);
+    }
+
+    private void iniciarTimerProgreso() {
+        if (timerProgreso != null) timerProgreso.stop();
+        if (clipActual == null) return;
+        long totalMicros = clipActual.getMicrosecondLength();
+        long totalSegs = totalMicros / 1_000_000;
+        timerProgreso = new Timer(300, e -> {
+            if (clipActual != null && clipActual.isRunning()) {
+                long actMicros = clipActual.getMicrosecondPosition();
+                long actSegs = actMicros / 1_000_000;
+                int progreso = (int)((actMicros * 100) / totalMicros);
+                barraProgreso.setValue(Math.min(100, progreso));
+                lblTiempo.setText(formatTiempo(actSegs) + " / " + formatTiempo(totalSegs));
+            }
+        });
+        timerProgreso.start();
+    }
+
+    private String formatTiempo(long segs) {
+        return String.format("%d:%02d", segs / 60, segs % 60);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  ENCABEZADO
     // ══════════════════════════════════════════════════════════════════
     private JPanel encabezado() {
         JPanel card = new JPanel() {
@@ -129,7 +517,7 @@ public class formCancion extends JPanel {
                 g2.setColor(COL_BRD);
                 g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 14, 14);
-                g2.setColor(CYAN);   // acento cyan para canciones
+                g2.setColor(CYAN);
                 g2.fillRect(0, 12, 4, getHeight()-24);
                 g2.dispose();
                 super.paintComponent(g);
@@ -139,7 +527,6 @@ public class formCancion extends JPanel {
         card.setLayout(new BorderLayout(12, 0));
         card.setBorder(new EmptyBorder(14, 20, 14, 20));
 
-        // — Icono + textos —
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         left.setOpaque(false);
 
@@ -181,7 +568,6 @@ public class formCancion extends JPanel {
         left.add(icoBox);
         left.add(txtCol);
 
-        // — Acciones —
         JPanel acc = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         acc.setOpaque(false);
         campoBusqueda = mkTextField("🔍  Buscar canción...");
@@ -220,7 +606,7 @@ public class formCancion extends JPanel {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  STAT CARDS con hover animado
+    //  STAT CARDS
     // ══════════════════════════════════════════════════════════════════
     private JPanel filaStats() {
         lblTotal      = new JLabel("0");
@@ -300,7 +686,18 @@ public class formCancion extends JPanel {
         tabla = new JTable(modeloTabla);
         estilizarTabla();
 
-        // Wrapper con fade-in
+        // ⬇ DOBLE CLICK PARA REPRODUCIR
+        tabla.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    int row = tabla.getSelectedRow();
+                    if (row < 0) return;
+                    int id = (int) modeloTabla.getValueAt(row, COL_ID);
+                    reproducirPorId(id);
+                }
+            }
+        });
+
         JPanel fadeWrap = new JPanel(new BorderLayout()){
             @Override protected void paintChildren(Graphics g){
                 Graphics2D g2=(Graphics2D)g.create();
@@ -320,23 +717,37 @@ public class formCancion extends JPanel {
         head.setBorder(new EmptyBorder(14,18,10,18));
         JPanel hl = new JPanel(new FlowLayout(FlowLayout.LEFT,8,0)); hl.setOpaque(false);
         hl.add(mkLabel("Lista de canciones", F_BOLD, TXT_PRI));
-        hl.add(mkLabel("datos en tiempo real desde Oracle",
-            new Font("Segoe UI",Font.PLAIN,10), TXT_SEC));
+        hl.add(mkLabel("doble click para reproducir 🎵",
+            new Font("Segoe UI",Font.PLAIN,10), PURPLE));
         head.add(hl, BorderLayout.WEST);
 
         JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.LEFT,10,0));
         btnRow.setOpaque(false); btnRow.setBorder(new EmptyBorder(10,14,14,14));
+        ZBtn btnReproducir = new ZBtn("▶ Reproducir", true);
         ZBtn btnEditar   = new ZBtn("✏  Editar",   false);
         ZBtn btnEliminar = new ZBtn("🗑  Eliminar", false);
         btnEliminar.setForeground(PINK);
+        btnReproducir.addActionListener(e -> accionReproducir());
         btnEditar.addActionListener(  e -> accionEditar());
         btnEliminar.addActionListener(e -> accionEliminar());
-        btnRow.add(btnEditar); btnRow.add(btnEliminar);
+        btnRow.add(btnReproducir);
+        btnRow.add(btnEditar);
+        btnRow.add(btnEliminar);
 
         card.add(head,    BorderLayout.NORTH);
         card.add(fadeWrap,BorderLayout.CENTER);
         card.add(btnRow,  BorderLayout.SOUTH);
         return card;
+    }
+
+    private void accionReproducir() {
+        int row = tabla.getSelectedRow();
+        if (row < 0) {
+            MainFrame.showToast("Selecciona una canción primero", MainFrame.ToastType.INFO);
+            return;
+        }
+        int id = (int) modeloTabla.getValueAt(row, COL_ID);
+        reproducirPorId(id);
     }
 
     private void estilizarTabla() {
@@ -370,7 +781,7 @@ public class formCancion extends JPanel {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  RANKING LATERAL — Top BPM
+    //  RANKING LATERAL (sin cambios)
     // ══════════════════════════════════════════════════════════════════
     private JPanel panelRanking() {
         JPanel inner = new JPanel(){
@@ -504,7 +915,7 @@ public class formCancion extends JPanel {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  GRÁFICO — barras por género
+    //  GRÁFICO (sin cambios)
     // ══════════════════════════════════════════════════════════════════
     private JPanel panelGrafico() {
         JPanel inner=new JPanel(){
@@ -555,7 +966,6 @@ public class formCancion extends JPanel {
         return inner;
     }
 
-    // Gráfico de barras por género con animación de crecimiento
     class GraficoGenero extends JPanel {
         private String[] labels = {};
         private int[]    valores= {};
@@ -565,13 +975,11 @@ public class formCancion extends JPanel {
             new Color(99,91,255),new Color(6,182,212)};
 
         void setDatos(List<Cancion> lista){
-            // contar por género
             java.util.Map<String,Integer> map=new java.util.LinkedHashMap<>();
             for(Cancion c:lista){
                 String g=c.getNombreGenero()!=null?c.getNombreGenero():"Sin género";
                 map.merge(g,1,Integer::sum);
             }
-            // ordenar desc
             List<java.util.Map.Entry<String,Integer>> entries=
                 new ArrayList<>(map.entrySet());
             entries.sort((a,b)->b.getValue()-a.getValue());
@@ -642,7 +1050,7 @@ public class formCancion extends JPanel {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  PANEL RESUMEN
+    //  PANEL RESUMEN (sin cambios)
     // ══════════════════════════════════════════════════════════════════
     private JPanel panelResumen(){
         JPanel inner=new JPanel(){
@@ -742,7 +1150,10 @@ public class formCancion extends JPanel {
     //  CARGA / BÚSQUEDA / ACCIONES
     // ══════════════════════════════════════════════════════════════════
     private void cargarCanciones(){
-        worker(()->svc.listar(), this::poblar, "Error al cargar");
+        worker(()->svc.listar(), lista -> {
+            poblar(lista);
+            cargarPlaylist();   // ⬅ Recargar playlist también
+        }, "Error al cargar");
     }
 
     private void buscar(){
@@ -771,7 +1182,6 @@ public class formCancion extends JPanel {
                 c.getFechaCompilacion()!=null?c.getFechaCompilacion().format(FMT):""
             });
         }
-        // Fade-in
         tableAlpha=0f;
         if(fadeTimer!=null) fadeTimer.stop();
         fadeTimer=new javax.swing.Timer(16,e->{
@@ -837,7 +1247,7 @@ public class formCancion extends JPanel {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  FORMULARIO ALTA / EDICIÓN — dialog estilo claro
+    //  FORMULARIO ALTA / EDICIÓN (sin cambios)
     // ══════════════════════════════════════════════════════════════════
     private void abrirFormulario(Cancion orig){
         boolean esEd=orig!=null;
@@ -848,7 +1258,6 @@ public class formCancion extends JPanel {
         JPanel root=new JPanel(new BorderLayout());
         root.setBackground(BG_CARD);
 
-        // Header del diálogo
         JPanel dHead=new JPanel(new BorderLayout()){
             @Override protected void paintComponent(Graphics g){
                 Graphics2D g2=g2d(g); g2.setColor(new Color(240,252,255));
@@ -865,7 +1274,6 @@ public class formCancion extends JPanel {
         dTit.setFont(new Font("Segoe UI",Font.BOLD,16)); dTit.setForeground(TXT_PRI);
         dHead.add(dTit,BorderLayout.WEST);
 
-        // Campos
         JTextField fTitulo=dlgField(esEd?orig.getTitulo():"");
         JTextField fBpm   =dlgField(esEd&&orig.getBpm()!=null?String.valueOf(orig.getBpm()):"");
         JTextField fProd  =dlgField(esEd&&orig.getIdProductor()!=null?String.valueOf(orig.getIdProductor()):"");
@@ -884,7 +1292,6 @@ public class formCancion extends JPanel {
             if(orig.getNombreEstado()!=null) cbEst.setSelectedItem(orig.getNombreEstado());
         }
 
-        // Grid del formulario
         JPanel form=new JPanel(new GridLayout(0,2,10,10));
         form.setBackground(BG_CARD); form.setBorder(new EmptyBorder(20,20,10,20));
         form.add(dlgLabel("Título *"));          form.add(fTitulo);
@@ -895,7 +1302,6 @@ public class formCancion extends JPanel {
         form.add(dlgLabel("Idioma"));            form.add(cbIdi);
         form.add(dlgLabel("Estado"));            form.add(cbEst);
 
-        // Botones
         JPanel bRow=new JPanel(new FlowLayout(FlowLayout.RIGHT,10,0));
         bRow.setBackground(BG_CARD); bRow.setBorder(new EmptyBorder(0,20,18,20));
         ZBtn bCan=new ZBtn("Cancelar",false); bCan.addActionListener(e->dlg.dispose());
@@ -1017,7 +1423,7 @@ public class formCancion extends JPanel {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  ZBtn — misma clase que formProductor
+    //  ZBtn
     // ══════════════════════════════════════════════════════════════════
     static class ZBtn extends JButton {
         private final boolean primary;
@@ -1033,7 +1439,6 @@ public class formCancion extends JPanel {
         @Override protected void paintComponent(Graphics g){
             Graphics2D g2=g2d(g);
             if(primary){
-                // Botón primario usa CYAN para canciones
                 Color base=new Color(6,182,212);
                 g2.setColor(getModel().isPressed()?base.darker():base);
                 g2.fillRoundRect(0,0,getWidth(),getHeight(),10,10);

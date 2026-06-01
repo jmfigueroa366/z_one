@@ -835,18 +835,19 @@ public class DashboardPanel extends JPanel {
         acciones.setOpaque(false);
         acciones.setLayout(new BoxLayout(acciones, BoxLayout.Y_AXIS));
         acciones.setBorder(new EmptyBorder(10, 12, 10, 12));
-
         Object[][] items = {
-            {"🎤", "Nuevo artista",    "Registrar artista",   BLUE},
-            {"🎵", "Nueva canción",    "Agregar al catálogo", PINK},
-            {"📅", "Programar sesión", "Reservar cabina",     AMBER},
-            {"📊", "Ver estadísticas", "Top canciones",       PURPLE},
-        };
-        for (Object[] it : items) {
-            acciones.add(filaAccion(
-                (String)it[0], (String)it[1], (String)it[2], (Color)it[3]));
-            acciones.add(Box.createVerticalStrut(6));
-        }
+    {"🎤", "Nuevo artista",    "Registrar artista",   BLUE,   "artistas"},
+    {"🎵", "Nueva canción",    "Agregar al catálogo", PINK,   "canciones"},
+    {"📅", "Programar sesión", "Reservar cabina",     AMBER,  "sesiones"},
+    {"📊", "Ver estadísticas", "Top canciones",       PURPLE, "canciones"},
+};
+for (Object[] it : items) {
+    acciones.add(filaAccion(
+        (String)it[0], (String)it[1], (String)it[2],
+        (Color)it[3], (String)it[4]));
+    acciones.add(Box.createVerticalStrut(6));
+}
+
 
         JScrollPane scroll = new JScrollPane(acciones);
         scroll.setOpaque(false);
@@ -857,60 +858,61 @@ public class DashboardPanel extends JPanel {
         return inner;
     }
 
-    private JPanel filaAccion(String emoji, String titulo, String desc, Color acento) {
-        final boolean[] hover = {false};
-        JPanel fila = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = g2d(g);
-                g2.setColor(hover[0]
-                    ? new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 18)
-                    : BG_SOFT);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                if (hover[0]) {
-                    g2.setColor(new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 100));
-                    g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
-                }
-                g2.setColor(acento);
-                g2.fillRoundRect(0, 6, 3, getHeight()-12, 3, 3);
-                g2.setColor(hover[0] ? acento : TXT_MUT);
-                g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                int ax = getWidth()-14, ay = getHeight()/2;
-                g2.drawLine(ax, ay-4, ax+5, ay);
-                g2.drawLine(ax, ay+4, ax+5, ay);
-                g2.dispose();
-                super.paintComponent(g);
+private JPanel filaAccion(String emoji, String titulo, String desc, Color acento, String vistaDestino) {
+    final boolean[] hover = {false};
+    JPanel fila = new JPanel() {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = g2d(g);
+            g2.setColor(hover[0]
+                ? new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 18)
+                : BG_SOFT);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+            if (hover[0]) {
+                g2.setColor(new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 100));
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
             }
-        };
-        fila.setOpaque(false);
-        fila.setLayout(new BorderLayout(10, 0));
-        fila.setBorder(new EmptyBorder(10, 14, 10, 24));
-        fila.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
-        fila.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        fila.addMouseListener(new MouseAdapter() {
-            @Override public void mouseEntered(MouseEvent e) { hover[0]=true;  fila.repaint(); }
-            @Override public void mouseExited(MouseEvent e)  { hover[0]=false; fila.repaint(); }
-            @Override public void mouseClicked(MouseEvent e) {
-                MainFrame.showToast("Acción: " + titulo, MainFrame.ToastType.SUCCESS);
-            }
-        });
+            g2.setColor(acento);
+            g2.fillRoundRect(0, 6, 3, getHeight()-12, 3, 3);
+            g2.setColor(hover[0] ? acento : TXT_MUT);
+            g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            int ax = getWidth()-14, ay = getHeight()/2;
+            g2.drawLine(ax, ay-4, ax+5, ay);
+            g2.drawLine(ax, ay+4, ax+5, ay);
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    };
+    fila.setOpaque(false);
+    fila.setLayout(new BorderLayout(10, 0));
+    fila.setBorder(new EmptyBorder(10, 14, 10, 24));
+    fila.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
+    fila.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    fila.addMouseListener(new MouseAdapter() {
+        @Override public void mouseEntered(MouseEvent e) { hover[0]=true;  fila.repaint(); }
+        @Override public void mouseExited(MouseEvent e)  { hover[0]=false; fila.repaint(); }
+        @Override public void mouseClicked(MouseEvent e) {
+            // ⬅ NAVEGAR A LA VISTA CORRESPONDIENTE
+            MainFrame.navegarA(vistaDestino);
+            MainFrame.showToast("→ " + titulo, MainFrame.ToastType.INFO);
+        }
+    });
 
-        JLabel emo = mk(emoji, new Font("Segoe UI Emoji", Font.PLAIN, 18), TXT_PRI);
-        emo.setPreferredSize(new Dimension(28, 0));
+    JLabel emo = mk(emoji, new Font("Segoe UI Emoji", Font.PLAIN, 18), TXT_PRI);
+    emo.setPreferredSize(new Dimension(28, 0));
 
-        JPanel txt = new JPanel();
-        txt.setOpaque(false);
-        txt.setLayout(new BoxLayout(txt, BoxLayout.Y_AXIS));
-        JLabel t = mk(titulo, new Font("Segoe UI", Font.BOLD, 12), TXT_PRI);
-        JLabel d = mk(desc,   new Font("Segoe UI", Font.PLAIN, 10),  TXT_SEC);
-        t.setAlignmentX(LEFT_ALIGNMENT);
-        d.setAlignmentX(LEFT_ALIGNMENT);
-        txt.add(t); txt.add(d);
+    JPanel txt = new JPanel();
+    txt.setOpaque(false);
+    txt.setLayout(new BoxLayout(txt, BoxLayout.Y_AXIS));
+    JLabel t = mk(titulo, new Font("Segoe UI", Font.BOLD, 12), TXT_PRI);
+    JLabel d = mk(desc,   new Font("Segoe UI", Font.PLAIN, 10),  TXT_SEC);
+    t.setAlignmentX(LEFT_ALIGNMENT);
+    d.setAlignmentX(LEFT_ALIGNMENT);
+    txt.add(t); txt.add(d);
 
-        fila.add(emo, BorderLayout.WEST);
-        fila.add(txt, BorderLayout.CENTER);
-        return fila;
-    }
-
+    fila.add(emo, BorderLayout.WEST);
+    fila.add(txt, BorderLayout.CENTER);
+    return fila;
+}
     private JPanel panelActividad() {
         JPanel inner = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
