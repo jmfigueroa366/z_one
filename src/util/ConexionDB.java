@@ -20,7 +20,7 @@ public static Connection getConexion() throws SQLException {
         return DriverManager.getConnection(URL, DB_USER, DB_PASS);
     }
 
-    // Solo para verificar conectividad, abre y cierra rápido
+   
     public static boolean probarConexion() {
         try (Connection c = getConexion()) {
             return c != null && !c.isClosed();

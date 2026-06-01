@@ -384,105 +384,247 @@ public class formCabina extends JPanel {
     // ═════════════════════════════════════════════════════════
     //  DIÁLOGO CREAR / EDITAR
     // ═════════════════════════════════════════════════════════
-    private void openForm(Cabina c) {
-        boolean isEdit = (c != null);
-        JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
-                isEdit ? "Editar cabina" : "Nueva cabina", true);
+  // ═════════════════════════════════════════════════════════
+//  DIÁLOGO CREAR / EDITAR  —  versión rediseñada
+// ═════════════════════════════════════════════════════════
+private void openForm(Cabina c) {
+    boolean isEdit = (c != null);
 
-        // Fondo azul muy claro
-        JPanel root = new JPanel(new BorderLayout()) {
-            @Override protected void paintComponent(Graphics g) {
-                g.setColor(CabinaStyles.BG_MAIN);
-                g.fillRect(0, 0, getWidth(), getHeight());
-            }
-        };
+    JDialog dlg = new JDialog(
+            (Frame) SwingUtilities.getWindowAncestor(this),
+            isEdit ? "Editar cabina" : "Nueva cabina", true);
 
-        // Banda superior
-        JPanel banda = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                // Fondo blanco con franja índigo top
-                g2.setColor(CabinaStyles.BG_CARD);
-                g2.fillRect(0, 0, getWidth(), getHeight());
-                g2.setColor(CabinaStyles.INDIGO);
-                g2.fillRect(0, 0, getWidth(), 3);
-                // Borde inferior suave
-                g2.setColor(CabinaStyles.BORDER);
-                g2.drawLine(0, getHeight() - 1, getWidth(), getHeight() - 1);
-                g2.dispose();
-            }
-        };
-        banda.setPreferredSize(new Dimension(0, 54));
-        banda.setLayout(new BorderLayout());
-        banda.setBorder(new EmptyBorder(14, 22, 0, 22));
+    // ── Root ─────────────────────────────────────────────
+    JPanel root = new JPanel(new BorderLayout()) {
+        @Override protected void paintComponent(Graphics g) {
+            g.setColor(CabinaStyles.BG_MAIN);
+            g.fillRect(0, 0, getWidth(), getHeight());
+        }
+    };
 
-        JLabel tit = CabinaStyles.lbl(isEdit ? "Editar cabina" : "Nueva cabina",
-                                       15, true, CabinaStyles.TEXT_PRI);
-        JLabel sub = CabinaStyles.lbl(isEdit ? "Modifica los datos del estudio"
-                                             : "Agrega un nuevo estudio al sistema",
-                                       10, false, CabinaStyles.TEXT_MUT);
-        JPanel titCol = new JPanel();
-        titCol.setOpaque(false);
-        titCol.setLayout(new BoxLayout(titCol, BoxLayout.Y_AXIS));
-        titCol.add(tit); titCol.add(sub);
-        banda.add(titCol, BorderLayout.WEST);
-        root.add(banda, BorderLayout.NORTH);
+    // ══════════════════════════════════════════════════════
+    //  HEADER: ícono + título + subtítulo
+    // ══════════════════════════════════════════════════════
+    JPanel header = new JPanel(new BorderLayout(14, 0)) {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                                RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(CabinaStyles.BG_CARD);
+            g2.fillRect(0, 0, getWidth(), getHeight());
+            // franja índigo arriba
+            g2.setColor(CabinaStyles.INDIGO);
+            g2.fillRect(0, 0, getWidth(), 3);
+            // borde inferior
+            g2.setColor(CabinaStyles.BORDER);
+            g2.drawLine(0, getHeight() - 1, getWidth(), getHeight() - 1);
+            g2.dispose();
+        }
+    };
+    header.setOpaque(false);
+    header.setBorder(new EmptyBorder(16, 22, 16, 22));
 
-        // Cuerpo del formulario
-        JPanel body = new JPanel();
-        body.setOpaque(false);
-        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
-        body.setBorder(new EmptyBorder(20, 24, 18, 24));
+    // Círculo con ícono
+    JPanel iconCircle = new JPanel() {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                                RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(CabinaStyles.INDIGO.getRed(),
+                                  CabinaStyles.INDIGO.getGreen(),
+                                  CabinaStyles.INDIGO.getBlue(), 28));
+            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+            g2.dispose();
+        }
+    };
+    iconCircle.setOpaque(false);
+    iconCircle.setPreferredSize(new Dimension(42, 42));
+    iconCircle.setLayout(new GridBagLayout());
+    JLabel iconLbl = new JLabel("🎙");
+    iconLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
+    iconCircle.add(iconLbl);
 
-        CampoElegante fNombre = new CampoElegante("Ej: Cabina Norte A", CabinaStyles.INDIGO);
-        if (isEdit) fNombre.setText(c.getNombreCabina());
-        body.add(buildFieldRow("NOMBRE DE CABINA *", fNombre));
-        body.add(Box.createVerticalStrut(14));
+    // Textos del header
+    JPanel titleCol = new JPanel();
+    titleCol.setOpaque(false);
+    titleCol.setLayout(new BoxLayout(titleCol, BoxLayout.Y_AXIS));
 
-        String[] estados = {"Disponible", "Ocupada", "Mantenimiento", "Reservada"};
-        JComboBox<String> cbEstado = new JComboBox<>(estados);
-        cbEstado.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        cbEstado.setForeground(CabinaStyles.TEXT_PRI);
-        cbEstado.setBackground(CabinaStyles.BG_FIELD);
-        if (isEdit && c.getNombreEstado() != null) cbEstado.setSelectedItem(c.getNombreEstado());
-        cbEstado.setPreferredSize(new Dimension(0, 40));
-        body.add(buildFieldRow("ESTADO", cbEstado));
-        body.add(Box.createVerticalStrut(22));
+    JLabel titLbl = CabinaStyles.lbl(
+            isEdit ? "Editar cabina" : "Nueva cabina",
+            15, true, CabinaStyles.TEXT_PRI);
+    JLabel subLbl = CabinaStyles.lbl(
+            isEdit ? "Modifica los datos del estudio"
+                   : "Agrega un nuevo estudio al sistema",
+            11, false, CabinaStyles.TEXT_SEC);
+    titLbl.setAlignmentX(LEFT_ALIGNMENT);
+    subLbl.setAlignmentX(LEFT_ALIGNMENT);
+    titleCol.add(titLbl);
+    titleCol.add(Box.createVerticalStrut(2));
+    titleCol.add(subLbl);
 
-        // Botones
-        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        btns.setOpaque(false);
-        btns.setAlignmentX(LEFT_ALIGNMENT);
-        btns.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
+    header.add(iconCircle, BorderLayout.WEST);
+    header.add(titleCol,   BorderLayout.CENTER);
+    root.add(header, BorderLayout.NORTH);
 
-        BtnCabina bCancel = CabinaStyles.btnAccion("Cancelar",                              false, 120, CabinaStyles.BORDER_STRONG);
-        BtnCabina bSave   = CabinaStyles.btnAccion(isEdit ? "💾  Guardar" : "✦  Crear cabina", true, 160);
+    // ══════════════════════════════════════════════════════
+    //  BODY
+    // ══════════════════════════════════════════════════════
+    JPanel body = new JPanel();
+    body.setOpaque(false);
+    body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+    body.setBorder(new EmptyBorder(20, 24, 16, 24));
 
-        bCancel.addActionListener(e -> dlg.dispose());
-        bSave.addActionListener(e -> {
-            try {
-                if (fNombre.getText().isBlank()) throw new IllegalArgumentException("El nombre es obligatorio");
-                Cabina n = isEdit ? c : new Cabina();
-                n.setNombreCabina(fNombre.getText().trim());
-                n.setNombreEstado((String) cbEstado.getSelectedItem());
-                if (isEdit) servicio.actualizar(n);
-                else        servicio.crear(n);
-                toast(isEdit ? "Cabina actualizada" : "Cabina creada", MainFrame.ToastType.SUCCESS);
-                recargar();
-                dlg.dispose();
-            } catch (Exception ex) { toast(ex.getMessage(), MainFrame.ToastType.ERROR); }
-        });
+    // ── Campo Nombre ──────────────────────────────────────
+    JLabel lblNombre = CabinaStyles.lbl("NOMBRE DE CABINA  *", 9, true, CabinaStyles.INDIGO);
+    lblNombre.setAlignmentX(LEFT_ALIGNMENT);
+    body.add(lblNombre);
+    body.add(Box.createVerticalStrut(6));
 
-        btns.add(bCancel); btns.add(bSave);
-        body.add(btns);
-        root.add(body, BorderLayout.CENTER);
+    CampoElegante fNombre = new CampoElegante("Ej: Cabina Norte A", CabinaStyles.INDIGO);
+    fNombre.setAlignmentX(LEFT_ALIGNMENT);
+    fNombre.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+    if (isEdit) fNombre.setText(c.getNombreCabina());
+    body.add(fNombre);
+    body.add(Box.createVerticalStrut(16));
 
-        dlg.setContentPane(root);
-        dlg.setSize(460, 320);
-        dlg.setLocationRelativeTo(this);
-        dlg.setVisible(true);
+    // ── Campo Estado ──────────────────────────────────────
+    JLabel lblEstado = CabinaStyles.lbl("ESTADO", 9, true, CabinaStyles.INDIGO);
+    lblEstado.setAlignmentX(LEFT_ALIGNMENT);
+    body.add(lblEstado);
+    body.add(Box.createVerticalStrut(6));
+
+    String[] estados = {"Disponible", "Ocupada", "Mantenimiento", "Reservada"};
+    JComboBox<String> cbEstado = new JComboBox<>(estados);
+    cbEstado.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    cbEstado.setForeground(CabinaStyles.TEXT_PRI);
+    cbEstado.setBackground(CabinaStyles.BG_FIELD);
+    cbEstado.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+    cbEstado.setAlignmentX(LEFT_ALIGNMENT);
+    if (isEdit && c.getNombreEstado() != null)
+        cbEstado.setSelectedItem(c.getNombreEstado());
+    body.add(cbEstado);
+    body.add(Box.createVerticalStrut(8));
+
+    // ── Badge de estado (dinámico) ─────────────────────────
+    JPanel badgePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+    badgePanel.setOpaque(false);
+    badgePanel.setAlignmentX(LEFT_ALIGNMENT);
+    badgePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+
+    JLabel badgeLbl = new JLabel();
+    badgeLbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+    badgeLbl.setBorder(BorderFactory.createCompoundBorder(
+            new RoundBorder(20, CabinaStyles.colorEstado(
+                    (String) cbEstado.getSelectedItem())),
+            new EmptyBorder(3, 10, 3, 10)));
+    badgeLbl.setOpaque(false);
+
+    // Actualiza el badge según estado seleccionado
+    Runnable refreshBadge = () -> {
+        String est = (String) cbEstado.getSelectedItem();
+        Color col = CabinaStyles.colorEstado(est);
+        String desc = CabinaStyles.descEstado(est);
+        badgeLbl.setText("● " + est + "  —  " + desc);
+        badgeLbl.setForeground(col);
+        badgeLbl.setBorder(BorderFactory.createCompoundBorder(
+                new RoundBorder(20, new Color(col.getRed(),
+                                             col.getGreen(),
+                                             col.getBlue(), 60)),
+                new EmptyBorder(3, 10, 3, 10)));
+    };
+    refreshBadge.run();
+    cbEstado.addActionListener(e -> refreshBadge.run());
+
+    badgePanel.add(badgeLbl);
+    body.add(badgePanel);
+
+    root.add(body, BorderLayout.CENTER);
+
+    // ══════════════════════════════════════════════════════
+    //  FOOTER: botones
+    // ══════════════════════════════════════════════════════
+    JPanel footer = new JPanel(new BorderLayout()) {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setColor(CabinaStyles.BG_CARD);
+            g2.fillRect(0, 0, getWidth(), getHeight());
+            g2.setColor(CabinaStyles.BORDER);
+            g2.drawLine(0, 0, getWidth(), 0);
+            g2.dispose();
+        }
+    };
+    footer.setOpaque(false);
+    footer.setBorder(new EmptyBorder(14, 24, 16, 24));
+
+    JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+    btnRow.setOpaque(false);
+
+    BtnCabina bCancel = CabinaStyles.btnAccion("Cancelar",
+            false, 120, CabinaStyles.BORDER_STRONG);
+    BtnCabina bSave   = CabinaStyles.btnAccion(
+            isEdit ? "💾  Guardar" : "＋  Crear cabina", true, 160);
+
+    bCancel.addActionListener(e -> dlg.dispose());
+    bSave.addActionListener(e -> {
+        try {
+            if (fNombre.getText().isBlank())
+                throw new IllegalArgumentException("El nombre es obligatorio");
+            Cabina n = isEdit ? c : new Cabina();
+            n.setNombreCabina(fNombre.getText().trim());
+            n.setNombreEstado((String) cbEstado.getSelectedItem());
+            if (isEdit) servicio.actualizar(n);
+            else        servicio.crear(n);
+            toast(isEdit ? "Cabina actualizada" : "Cabina creada",
+                  MainFrame.ToastType.SUCCESS);
+            recargar();
+            dlg.dispose();
+        } catch (Exception ex) {
+            toast(ex.getMessage(), MainFrame.ToastType.ERROR);
+        }
+    });
+
+    btnRow.add(bCancel);
+    btnRow.add(bSave);
+    footer.add(btnRow, BorderLayout.EAST);
+    root.add(footer, BorderLayout.SOUTH);
+
+    // ── Mostrar ───────────────────────────────────────────
+    dlg.setContentPane(root);
+    dlg.setSize(460, 340);
+    dlg.setLocationRelativeTo(this);
+    dlg.setResizable(false);
+    dlg.setVisible(true);
+}
+
+
+// ─────────────────────────────────────────────────────────
+//  Clase auxiliar RoundBorder  (agrégala al final del archivo
+//  o como clase interna estática)
+// ─────────────────────────────────────────────────────────
+private static class RoundBorder implements javax.swing.border.Border {
+    private final int   radius;
+    private final Color color;
+
+    RoundBorder(int radius, Color color) {
+        this.radius = radius;
+        this.color  = color;
     }
+
+    @Override
+    public void paintBorder(Component c, Graphics g,
+                            int x, int y, int w, int h) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                            RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setColor(color);
+        g2.setStroke(new BasicStroke(1f));
+        g2.drawRoundRect(x, y, w - 1, h - 1, radius, radius);
+        g2.dispose();
+    }
+
+    @Override public Insets getBorderInsets(Component c) { return new Insets(2,2,2,2); }
+    @Override public boolean isBorderOpaque()            { return false; }
+}
 
     // ═════════════════════════════════════════════════════════
     //  HELPERS
