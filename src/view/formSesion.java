@@ -1277,58 +1277,243 @@ public class formSesion extends JPanel {
         }).start();
     }
 
-    private void facturarSesionSeleccionada() {
-        if (seleccionada == null) { toast("Selecciona una sesión primero", MainFrame.ToastType.INFO); return; }
-        if (seleccionada.getProductor() == null) { toast("La sesión debe tener productor asignado", MainFrame.ToastType.ERROR); return; }
+// Reemplaza el bloque de facturarSesionSeleccionada() con esto:
 
-        String msg = "<html><b>Generar factura para:</b><br><br>"
-                + "<b>Sesión:</b> "    + seleccionada.getNombreSesion() + "<br>"
-                + "<b>Artista:</b> "   + seleccionada.getArtista().getNombreArtista() + "<br>"
-                + "<b>Productor:</b> " + seleccionada.getProductor().getNombre() + "<br>"
-                + "<b>Duración:</b> "  + seleccionada.getDuracion() + " h<br>"
-                + "<b>Subtotal:</b> $" + String.format("%,.2f", seleccionada.getCostoTotal()) + "<br>"
-                + "<b>Total con IVA (19%):</b> $"
-                + String.format("%,.2f", seleccionada.getCostoTotal() * 1.19) + "<br><br>"
-                + "Ingresa el correo del artista:</html>";
+private void facturarSesionSeleccionada() {
+    if (seleccionada == null) { toast("Selecciona una sesión primero", MainFrame.ToastType.INFO); return; }
+    if (seleccionada.getProductor() == null) { toast("La sesión debe tener productor asignado", MainFrame.ToastType.ERROR); return; }
 
-        String correo = JOptionPane.showInputDialog(this, msg, "Z-One — Generar Factura", JOptionPane.QUESTION_MESSAGE);
-        if (correo == null) return;
-        if (correo.isBlank() || !correo.contains("@")) { toast("Correo inválido", MainFrame.ToastType.ERROR); return; }
+    abrirDialogoFactura(seleccionada);
+}
 
-        final String correoFinal  = correo.trim();
-        final model.Sesion sesionFinal = seleccionada;
+private void abrirDialogoFactura(Sesion sesion) {
+    JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
+            "Generar Factura", true);
+    dlg.setResizable(false);
+    List<Timer> timers = new ArrayList<>();
+
+    // ── ROOT ──
+    JPanel root = new JPanel(new BorderLayout()) {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setColor(C_BG_DARK);
+            g2.fillRect(0, 0, getWidth(), getHeight());
+            g2.dispose();
+        }
+    };
+
+    // ── BANDA SUPERIOR ──
+    JPanel banda = new JPanel(new BorderLayout(12, 0)) {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setPaint(new GradientPaint(0, 0, new Color(0xFFFFFF),
+                    getWidth(), getHeight(), new Color(0xF0EFFE)));
+            g2.fillRect(0, 0, getWidth(), getHeight());
+            g2.setColor(C_PRIMARY);
+            g2.fillRect(0, getHeight() - 2, getWidth(), 2);
+            g2.dispose();
+        }
+    };
+    banda.setOpaque(false);
+    banda.setBorder(new EmptyBorder(18, 22, 18, 22));
+    banda.setPreferredSize(new Dimension(0, 78));
+
+    JLabel ico = new JLabel("💳", SwingConstants.CENTER) {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(0xEEEDFE));
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+            g2.setColor(C_PRIMARY);
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    };
+    ico.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 24));
+    ico.setPreferredSize(new Dimension(48, 48));
+
+    JPanel bandaTxt = new JPanel();
+    bandaTxt.setOpaque(false);
+    bandaTxt.setLayout(new BoxLayout(bandaTxt, BoxLayout.Y_AXIS));
+    JLabel bTit = SesionComponents.lbl("Generar factura", new Font("Segoe UI", Font.BOLD, 18), C_TEXT_PRI);
+    JLabel bSub = SesionComponents.lbl("RESUMEN Y ENVÍO AL ARTISTA",
+            new Font("Segoe UI", Font.BOLD, 9), C_TEXT_MUT);
+    bTit.setAlignmentX(LEFT_ALIGNMENT);
+    bSub.setAlignmentX(LEFT_ALIGNMENT);
+    bandaTxt.add(Box.createVerticalGlue());
+    bandaTxt.add(bTit);
+    bandaTxt.add(Box.createVerticalStrut(3));
+    bandaTxt.add(bSub);
+    bandaTxt.add(Box.createVerticalGlue());
+    banda.add(ico, BorderLayout.WEST);
+    banda.add(bandaTxt, BorderLayout.CENTER);
+    root.add(banda, BorderLayout.NORTH);
+
+    // ── BODY ──
+    JPanel body = new JPanel();
+    body.setOpaque(false);
+    body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+    body.setBorder(new EmptyBorder(20, 22, 6, 22));
+
+    // Card resumen
+    JPanel card = new JPanel() {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(Color.WHITE);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+            g2.setColor(C_BORDER);
+            g2.setStroke(new BasicStroke(1f));
+            g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
+            // acento lateral violeta
+            g2.setColor(C_PRIMARY);
+            g2.fillRoundRect(0, 8, 4, getHeight()-16, 4, 4);
+            g2.dispose();
+        }
+    };
+    card.setOpaque(false);
+    card.setLayout(new GridLayout(0, 2, 0, 0));
+    card.setBorder(new EmptyBorder(14, 18, 14, 18));
+    card.setAlignmentX(LEFT_ALIGNMENT);
+    card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
+
+    double subtotal = sesion.getCostoTotal();
+    double iva      = subtotal * 0.19;
+    double total    = subtotal + iva;
+
+    String[][] filas = {
+        {"Sesión",    sesion.getNombreSesion()},
+        {"Artista",   sesion.getArtista().getNombreArtista()},
+        {"Productor", sesion.getProductor().getNombre()},
+        {"Duración",  sesion.getDuracion() + " h"},
+        {"Subtotal",  String.format("$%,.2f", subtotal)},
+        {"IVA (19%)", String.format("$%,.2f", iva)},
+    };
+    for (String[] fila : filas) {
+        JLabel k = new JLabel(fila[0]);
+        k.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        k.setForeground(C_TEXT_MUT);
+        k.setBorder(new EmptyBorder(5, 0, 5, 0));
+
+        JLabel v = new JLabel(fila[1], SwingConstants.RIGHT);
+        v.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        v.setForeground(C_TEXT_PRI);
+        v.setBorder(new EmptyBorder(5, 0, 5, 0));
+        card.add(k); card.add(v);
+    }
+    body.add(card);
+    body.add(Box.createVerticalStrut(10));
+
+    // Total destacado
+    JPanel totalRow = new JPanel(new BorderLayout()) {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(0xEEEDFE));
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+            g2.setColor(C_PRIMARY);
+            g2.setStroke(new BasicStroke(1f));
+            g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
+            g2.dispose();
+        }
+    };
+    totalRow.setOpaque(false);
+    totalRow.setBorder(new EmptyBorder(10, 16, 10, 16));
+    totalRow.setAlignmentX(LEFT_ALIGNMENT);
+    totalRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
+
+    JLabel kTotal = new JLabel("Total con IVA");
+    kTotal.setFont(new Font("Segoe UI", Font.BOLD, 13));
+    kTotal.setForeground(C_PRIMARY);
+
+    JLabel vTotal = new JLabel(String.format("$%,.2f", total), SwingConstants.RIGHT);
+    vTotal.setFont(new Font("Segoe UI", Font.BOLD, 20));
+    vTotal.setForeground(C_OK);
+
+    totalRow.add(kTotal, BorderLayout.WEST);
+    totalRow.add(vTotal, BorderLayout.EAST);
+    body.add(totalRow);
+    body.add(Box.createVerticalStrut(20));
+
+    // Separador sección correo
+    JLabel secCorreo = SesionComponents.lbl("ENVIAR A",
+            new Font("Segoe UI", Font.BOLD, 10), C_ACCENT_CYAN);
+    secCorreo.setAlignmentX(LEFT_ALIGNMENT);
+    body.add(secCorreo);
+    body.add(Box.createVerticalStrut(8));
+
+    JLabel lblCorreo = new JLabel("Correo del artista");
+    lblCorreo.setFont(new Font("Segoe UI", Font.BOLD, 10));
+    lblCorreo.setForeground(C_PRIMARY);
+    lblCorreo.setAlignmentX(LEFT_ALIGNMENT);
+    body.add(lblCorreo);
+    body.add(Box.createVerticalStrut(5));
+
+    FieldFx fCorreo = new FieldFx("", "artista@ejemplo.com", timers);
+    fCorreo.setAlignmentX(LEFT_ALIGNMENT);
+    fCorreo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+    body.add(fCorreo);
+    body.add(Box.createVerticalStrut(22));
+
+    // Botones
+    JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+    btns.setOpaque(false);
+    btns.setAlignmentX(LEFT_ALIGNMENT);
+    btns.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
+
+    BtnFx bCancelar = new BtnFx("Cancelar", false, timers);
+    BtnFx bEnviar   = new BtnFx("💳  Generar y enviar", true, timers);
+    bCancelar.setPreferredSize(new Dimension(110, 40));
+    bEnviar.setPreferredSize(new Dimension(180, 40));
+
+    bCancelar.addActionListener(e -> cerrarConFade(dlg));
+    bEnviar.addActionListener(e -> {
+        String correo = fCorreo.getText().trim();
+        if (correo.isBlank() || !correo.contains("@")) {
+            fCorreo.shake();
+            toast("Correo inválido", MainFrame.ToastType.ERROR);
+            return;
+        }
+        cerrarConFade(dlg);
         toast("📧 Generando y enviando factura...", MainFrame.ToastType.INFO);
-
         new Thread(() -> {
             try {
                 services.FacturaService fs = new services.FacturaService();
-                model.Factura f = fs.generarYEnviar(sesionFinal, correoFinal);
+                model.Factura f = fs.generarYEnviar(sesion, correo);
                 SwingUtilities.invokeLater(() -> {
-                    if ("ENVIADA".equals(f.getEstado())) {
-                        JOptionPane.showMessageDialog(this,
-                                "<html><b>✓ Factura enviada correctamente</b><br><br>"
-                                + "Número: <b>" + f.getNumeroFactura() + "</b><br>"
-                                + "Total: <b>$" + String.format("%,.2f", f.getMontoTotal()) + "</b><br>"
-                                + "Destinatario: " + correoFinal + "<br><br>"
-                                + "El PDF también fue guardado en la carpeta 'facturas/'</html>",
-                                "Z-One — Facturación", JOptionPane.INFORMATION_MESSAGE);
-                    } else {
-                        JOptionPane.showMessageDialog(this,
-                                "<html><b>⚠ Factura generada pero no enviada</b><br><br>"
-                                + "Número: " + f.getNumeroFactura() + "<br>"
-                                + "El PDF está guardado en la carpeta 'facturas/'<br>"
-                                + "Revisa la configuración de email en config/email.properties</html>",
-                                "Z-One — Facturación", JOptionPane.WARNING_MESSAGE);
-                    }
+                    if ("ENVIADA".equals(f.getEstado()))
+                        toast("✓ Factura " + f.getNumeroFactura() + " enviada a " + correo, MainFrame.ToastType.SUCCESS);
+                    else
+                        toast("Factura generada pero no enviada — revisa config/email.properties", MainFrame.ToastType.INFO);
                 });
             } catch (Exception ex) {
-                SwingUtilities.invokeLater(() ->
-                    JOptionPane.showMessageDialog(this,
-                            "Error al generar factura:\n" + ex.getMessage(),
-                            "Z-One — Error", JOptionPane.ERROR_MESSAGE));
+                SwingUtilities.invokeLater(() -> toast("Error: " + ex.getMessage(), MainFrame.ToastType.ERROR));
             }
         }).start();
-    }
+    });
+
+    btns.add(bCancelar);
+    btns.add(bEnviar);
+    body.add(btns);
+    body.add(Box.createVerticalStrut(10));
+
+    root.add(body, BorderLayout.CENTER);
+
+    dlg.setContentPane(root);
+    dlg.getRootPane().setDefaultButton(bEnviar);
+    dlg.setSize(420, 560);
+    dlg.setLocationRelativeTo(this);
+    dlg.addWindowListener(new java.awt.event.WindowAdapter() {
+        @Override public void windowClosed(java.awt.event.WindowEvent e) {
+            timers.forEach(Timer::stop);
+        }
+    });
+    abrirConFade(dlg);
+    dlg.setVisible(true);
+}
 
     // ── ANIMACIONES DEL DIÁLOGO ─────────────────────────────────────
     private void abrirConFade(JDialog dlg) {
