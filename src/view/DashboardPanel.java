@@ -653,7 +653,7 @@ public class DashboardPanel extends JPanel {
         cab.setOpaque(false);
         cab.setBorder(new EmptyBorder(16, 20, 12, 20));
 
-        JLabel titulo = mk("📊  Actividad semanal", new Font("Segoe UI", Font.BOLD, 14), TXT_PRI);
+       JLabel titulo = mk("📈  Actividad semanal", new Font("Segoe UI", Font.BOLD, 14), TXT_PRI);
         JLabel sub    = mk("Sesiones · Canciones · Artistas (últimos 7 días)",
                 new Font("Segoe UI", Font.PLAIN, 10), TXT_SEC);
 

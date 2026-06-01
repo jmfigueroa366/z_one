@@ -335,18 +335,18 @@ public class MainFrame extends JFrame {
         sidebar.add(construirSeparador());
         sidebar.add(Box.createVerticalStrut(14));
 
-        Map<String, String[]> items = new LinkedHashMap<>();
-        items.put("Dashboard",      new String[]{"dashboard",      "⊞"});
-        items.put("Artistas",       new String[]{"artistas",       "♪"});
-        items.put("Productores",    new String[]{"productores",    "🎛"});
-        items.put("Canciones",      new String[]{"canciones",      "♫"});
-        items.put("Sesiones",       new String[]{"sesiones",       "◎"});
-        items.put("Cabinas",        new String[]{"cabinas",        "▣"});
-        items.put("Eventos",        new String[]{"eventos",        "◈"});
-        items.put("Colaboraciones", new String[]{"colaboraciones", "⇆"});
-        items.put("Calendario",     new String[]{"calendario",     "▦"});
-        items.put("Asistente",      new String[]{"asistente",      "◉"});
-        items.put("Configuración",  new String[]{"configuracion",  "⚙"});
+ Map<String, String[]> items = new LinkedHashMap<>();
+items.put("Dashboard",      new String[]{"dashboard",      "▦"});
+items.put("Artistas",       new String[]{"artistas",       "♪"});
+items.put("Productores",    new String[]{"productores",    "♬"});
+items.put("Canciones",      new String[]{"canciones",      "♫"});
+items.put("Sesiones",       new String[]{"sesiones",       "◉"});
+items.put("Cabinas",        new String[]{"cabinas",        "▣"});
+items.put("Eventos",        new String[]{"eventos",        "★"});
+items.put("Colaboraciones", new String[]{"colaboraciones", "⇄"});
+items.put("Calendario",     new String[]{"calendario",     "▤"});
+items.put("Asistente",      new String[]{"asistente",      "✦"});
+items.put("Configuración",  new String[]{"configuracion",  "⚙"});
 
         for (Map.Entry<String, String[]> e : items.entrySet()) {
             SidebarItem item = new SidebarItem(e.getKey(), e.getValue()[1]);
@@ -798,9 +798,9 @@ private void cambiarVista(String vista) {
 
             Color icoColor = activeAlpha > 0.5f ? SB_ACTIVE_FG
                            : blend(SB_MUTED, SB_TEXT, hoverAlpha);
-            g2.setColor(icoColor);
-            g2.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
-            g2.drawString(icono, 22, (getHeight() + 10) / 2);
+g2.setColor(icoColor);
+g2.setFont(new Font("Segoe UI Symbol", Font.BOLD, 16));
+g2.drawString(icono, 22, (getHeight() + 10) / 2);
 
             Color txtColor = activeAlpha > 0.5f ? SB_ACTIVE_FG
                            : blend(SB_MUTED, SB_TEXT, Math.max(hoverAlpha, activeAlpha));
