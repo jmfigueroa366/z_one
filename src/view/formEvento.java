@@ -495,149 +495,327 @@ private JPanel construirStatsRow() {
     // ══════════════════════════════════════════════════════════════════
     //  DIÁLOGO CREAR / EDITAR
     // ══════════════════════════════════════════════════════════════════
-    private void abrirFormulario(Evento ev) {
-        boolean isEdit = ev != null;
-        List<Timer> dlgTimers = new ArrayList<>();
+   // ══════════════════════════════════════════════════════════════════
+//  DIÁLOGO CREAR / EDITAR  — reemplaza abrirFormulario() en formEvento.java
+// ══════════════════════════════════════════════════════════════════
+private void abrirFormulario(Evento ev) {
+    boolean isEdit = ev != null;
+    List<Timer> dlgTimers = new ArrayList<>();
 
-        JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
+    JDialog dlg = new JDialog(
+            (Frame) SwingUtilities.getWindowAncestor(this),
             isEdit ? "Editar evento" : "Nuevo evento", true);
-        dlg.setResizable(false);
+    dlg.setResizable(false);
 
-        JPanel root = new JPanel(new BorderLayout()) {
-            @Override protected void paintComponent(Graphics g) {
-                g.setColor(EventoStyles.BG_MAIN);
-                g.fillRect(0, 0, getWidth(), getHeight());
-                super.paintComponent(g);
-            }
-        };
+    // ── Fondo principal ───────────────────────────────────────────
+    JPanel root = new JPanel(new BorderLayout()) {
+        @Override protected void paintComponent(Graphics g) {
+            g.setColor(EventoStyles.BG_MAIN);
+            g.fillRect(0, 0, getWidth(), getHeight());
+            super.paintComponent(g);
+        }
+    };
+    root.setOpaque(false);
 
-        // Banda superior animada
-        BandaEvento banda = new BandaEvento(isEdit, dlgTimers);
-        root.add(banda, BorderLayout.NORTH);
+    // ── Banda superior animada ────────────────────────────────────
+    BandaEvento banda = new BandaEvento(isEdit, dlgTimers);
+    root.add(banda, BorderLayout.NORTH);
 
-        // Shimmer
-        LineaShimmer shimmer = new LineaShimmer(dlgTimers);
-        shimmer.setPreferredSize(new Dimension(0, 3));
+    // ── Línea shimmer bajo la banda ───────────────────────────────
+    LineaShimmer shimmer = new LineaShimmer(dlgTimers);
+    shimmer.setPreferredSize(new Dimension(0, 3));
 
-        // Formulario
-        JPanel form = new JPanel();
-        form.setOpaque(false);
-        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-        form.setBorder(new EmptyBorder(22, 28, 22, 28));
+    // ── FORMULARIO ────────────────────────────────────────────────
+    JPanel form = new JPanel();
+    form.setOpaque(false);
+    form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+    form.setBorder(new EmptyBorder(20, 28, 8, 28));
 
-        // Campos con animación
-        FieldFx fDesc  = new FieldFx(isEdit && ev.getDescripcion()  != null ? ev.getDescripcion()  : "",
-            "Descripción o nombre del evento", dlgTimers);
-        FieldFx fFecha = new FieldFx(isEdit && ev.getFecha()        != null ? ev.getFecha().format(FMT) : LocalDate.now().format(FMT),
-            "dd/MM/yyyy", dlgTimers);
-        FieldFx fHIni  = new FieldFx(isEdit && ev.getHoraInicio()   != null ? ev.getHoraInicio().format(FHOR) : "19:00",
-            "HH:mm", dlgTimers);
-        FieldFx fHFin  = new FieldFx(isEdit && ev.getHoraFin()      != null ? ev.getHoraFin().format(FHOR) : "21:00",
-            "HH:mm", dlgTimers);
-        FieldFx fArt   = new FieldFx(isEdit && ev.getIdArtista()    != null ? String.valueOf(ev.getIdArtista())   : "", "ID del artista (opcional)", dlgTimers);
-        FieldFx fProd  = new FieldFx(isEdit && ev.getIdProductor()  != null ? String.valueOf(ev.getIdProductor()) : "", "ID del productor (opcional)", dlgTimers);
+    // ── Sección: Información ──────────────────────────────────────
+    SeccionHeader secInfo = new SeccionHeader("INFORMACIÓN DEL EVENTO", EventoStyles.INDIGO, dlgTimers);
+    secInfo.setAlignmentX(LEFT_ALIGNMENT);
+    form.add(secInfo);
+    form.add(Box.createVerticalStrut(14));
 
-        ComboFx<String> cbTipo = EventoComponents.comboFx(TIPOS,
+    // Descripción + Tipo
+    FieldFx  fDesc  = new FieldFx(
+            isEdit && ev.getDescripcion() != null ? ev.getDescripcion() : "",
+            "Nombre o descripción del evento", dlgTimers);
+    ComboFx<String> cbTipo = EventoComponents.comboFx(TIPOS,
             isEdit && ev.getNombreTipoEvento() != null ? ev.getNombreTipoEvento() : TIPOS[0],
             dlgTimers);
+    ErrorLabel errDesc = new ErrorLabel();
 
-        // Filas del formulario
-        form.add(filaDlg("DESCRIPCIÓN *",         fDesc,  "TIPO DE EVENTO",        cbTipo));
-        form.add(Box.createVerticalStrut(14));
-        form.add(filaDlg("FECHA * (dd/MM/yyyy)",   fFecha, "HORA INICIO (HH:mm)",   fHIni));
-        form.add(Box.createVerticalStrut(14));
-        form.add(filaDlg("HORA FIN (HH:mm)",       fHFin,  "ID ARTISTA (opcional)", fArt));
-        form.add(Box.createVerticalStrut(14));
-        form.add(envolver("ID PRODUCTOR (opcional)", fProd));
-        form.add(Box.createVerticalStrut(24));
+    JPanel rowDesc = filaDlg(
+            "DESCRIPCIÓN  *", fDesc,
+            "TIPO DE EVENTO", cbTipo);
+    rowDesc.setAlignmentX(LEFT_ALIGNMENT);
+    form.add(rowDesc);
+    form.add(errDesc);
+    form.add(Box.createVerticalStrut(12));
 
-        // Botones
-        JPanel bRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        bRow.setOpaque(false);
-        bRow.setAlignmentX(LEFT_ALIGNMENT);
+    // ── Sección: Fecha y hora ─────────────────────────────────────
+    SeccionHeader secFecha = new SeccionHeader("FECHA Y HORARIO", EventoStyles.SKY, dlgTimers);
+    secFecha.setAlignmentX(LEFT_ALIGNMENT);
+    form.add(secFecha);
+    form.add(Box.createVerticalStrut(14));
 
-        BtnFx bCancel = new BtnFx("Cancelar", false, dlgTimers);
-        BtnFx bSave   = new BtnFx(isEdit ? "💾  Guardar cambios" : "🎟  Crear evento", true, dlgTimers);
-        bCancel.setPreferredSize(new Dimension(130, 40));
-        bSave  .setPreferredSize(new Dimension(185, 40));
+    FieldFx fFecha = new FieldFx(
+            isEdit && ev.getFecha() != null
+                    ? ev.getFecha().format(FMT)
+                    : LocalDate.now().format(FMT),
+            "dd/MM/yyyy", dlgTimers);
+    FieldFx fHIni  = new FieldFx(
+            isEdit && ev.getHoraInicio() != null ? ev.getHoraInicio().format(FHOR) : "19:00",
+            "HH:mm", dlgTimers);
+    FieldFx fHFin  = new FieldFx(
+            isEdit && ev.getHoraFin() != null ? ev.getHoraFin().format(FHOR) : "21:00",
+            "HH:mm", dlgTimers);
+    ErrorLabel errFecha = new ErrorLabel();
+    ErrorLabel errHIni  = new ErrorLabel();
+    ErrorLabel errHFin  = new ErrorLabel();
 
-        bCancel.addActionListener(e -> {
-            dlgTimers.forEach(Timer::stop);
-            dlg.dispose();
-        });
+    form.add(filaDlg("FECHA  * (dd/MM/yyyy)", fFecha, "HORA INICIO (HH:mm)", fHIni));
+    // Errores de fecha y hora inicio en fila
+    JPanel rowErrFechaHora = new JPanel(new GridLayout(1, 2, 14, 0));
+    rowErrFechaHora.setOpaque(false);
+    rowErrFechaHora.setAlignmentX(LEFT_ALIGNMENT);
+    rowErrFechaHora.add(errFecha);
+    rowErrFechaHora.add(errHIni);
+    form.add(rowErrFechaHora);
+    form.add(Box.createVerticalStrut(10));
 
-        bSave.addActionListener(e -> {
-            String desc  = fDesc .getText().trim();
-            String fecha = fFecha.getText().trim();
-            String hIni  = fHIni .getText().trim();
-            String hFin  = fHFin .getText().trim();
-            String art   = fArt  .getText().trim();
-            String prod  = fProd .getText().trim();
-            String tipo  = (String) cbTipo.getSelectedItem();
+    FieldFx fHFin2 = fHFin; // alias para claridad
+    form.add(envolver("HORA FIN (HH:mm)", fHFin2));
+    form.add(errHFin);
+    form.add(Box.createVerticalStrut(12));
 
-            if (desc.isEmpty()) {
-                fDesc.shake();
-                toast("La descripción es obligatoria", MainFrame.ToastType.ERROR);
-                return;
-            }
-            LocalDate fechaP;
+    // ── Sección: Participantes ────────────────────────────────────
+    SeccionHeader secPart = new SeccionHeader("PARTICIPANTES (OPCIONAL)", EventoStyles.INDIGO_LIGHT, dlgTimers);
+    secPart.setAlignmentX(LEFT_ALIGNMENT);
+    form.add(secPart);
+    form.add(Box.createVerticalStrut(14));
+
+    FieldFx fArt  = new FieldFx(
+            isEdit && ev.getIdArtista() != null ? String.valueOf(ev.getIdArtista()) : "",
+            "ID del artista", dlgTimers);
+    FieldFx fProd = new FieldFx(
+            isEdit && ev.getIdProductor() != null ? String.valueOf(ev.getIdProductor()) : "",
+            "ID del productor", dlgTimers);
+
+    form.add(filaDlg("ID ARTISTA", fArt, "ID PRODUCTOR", fProd));
+    form.add(Box.createVerticalStrut(24));
+
+    // ── Botones ───────────────────────────────────────────────────
+    JPanel bRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+    bRow.setOpaque(false);
+    bRow.setAlignmentX(LEFT_ALIGNMENT);
+
+    BtnFx bCancel = new BtnFx("Cancelar",                           false, dlgTimers);
+    BtnFx bSave   = new BtnFx(isEdit ? "💾  Guardar cambios"
+                                      : "🎟  Crear evento",         true,  dlgTimers);
+    bCancel.setPreferredSize(new Dimension(130, 40));
+    bSave  .setPreferredSize(new Dimension(190, 40));
+
+    // Cancelar — fade out
+    bCancel.addActionListener(e -> cerrarConFade(dlg, dlgTimers));
+
+    // Guardar — con loading + success + validaciones visuales
+    bSave.addActionListener(e -> {
+        // ── Limpiar errores previos ──────────────────────────────
+        errDesc .ocultar();
+        errFecha.ocultar();
+        errHIni .ocultar();
+        errHFin .ocultar();
+        fDesc .limpiarError();
+        fFecha.limpiarError();
+        fHIni .limpiarError();
+        fHFin2.limpiarError();
+
+        String desc  = fDesc .getText().trim();
+        String fecha = fFecha.getText().trim();
+        String hIni  = fHIni .getText().trim();
+        String hFin  = fHFin2.getText().trim();
+        String art   = fArt  .getText().trim();
+        String prod  = fProd .getText().trim();
+        String tipo  = (String) cbTipo.getSelectedItem();
+
+        boolean ok = true;
+
+        // Validación: descripción
+        if (desc.isEmpty()) {
+            fDesc.shake();
+            errDesc.mostrar("La descripción es obligatoria", dlgTimers);
+            ok = false;
+        }
+
+        // Validación: fecha
+        LocalDate fechaP = null;
+        if (fecha.isEmpty()) {
+            fFecha.shake();
+            errFecha.mostrar("La fecha es obligatoria", dlgTimers);
+            ok = false;
+        } else {
             try { fechaP = LocalDate.parse(fecha, FMT); }
             catch (DateTimeParseException ex) {
                 fFecha.shake();
-                toast("Fecha inválida (dd/MM/yyyy)", MainFrame.ToastType.ERROR);
-                return;
+                errFecha.mostrar("Formato inválido (dd/MM/yyyy)", dlgTimers);
+                ok = false;
             }
-            LocalTime hiP = null, hfP = null;
-            try { if (!hIni.isEmpty()) hiP = LocalTime.parse(hIni, FHOR); }
-            catch (DateTimeParseException ex) { fHIni.shake(); toast("Hora inicio inválida", MainFrame.ToastType.ERROR); return; }
-            try { if (!hFin.isEmpty()) hfP = LocalTime.parse(hFin, FHOR); }
-            catch (DateTimeParseException ex) { fHFin.shake(); toast("Hora fin inválida",    MainFrame.ToastType.ERROR); return; }
+        }
 
-            Evento n = isEdit ? ev : new Evento();
-            n.setDescripcion(desc);
-            n.setFecha(fechaP);
-            n.setHoraInicio(hiP);
-            n.setHoraFin(hfP);
-            n.setIdArtista(art.isEmpty()  ? null : Integer.parseInt(art));
-            n.setIdProductor(prod.isEmpty() ? null : Integer.parseInt(prod));
-            n.setNombreTipoEvento(tipo);
-            n.setTipoEvento(tipo);
+        // Validación: hora inicio
+        LocalTime hiP = null;
+        if (!hIni.isEmpty()) {
+            try { hiP = LocalTime.parse(hIni, FHOR); }
+            catch (DateTimeParseException ex) {
+                fHIni.shake();
+                errHIni.mostrar("Formato inválido (HH:mm)", dlgTimers);
+                ok = false;
+            }
+        }
 
+        // Validación: hora fin
+        LocalTime hfP = null;
+        if (!hFin.isEmpty()) {
+            try { hfP = LocalTime.parse(hFin, FHOR); }
+            catch (DateTimeParseException ex) {
+                fHFin2.shake();
+                errHFin.mostrar("Formato inválido (HH:mm)", dlgTimers);
+                ok = false;
+            }
+        }
+
+        if (!ok) return;
+
+        // ── Estado loading ───────────────────────────────────────
+        bSave.setEnabled(false);
+        bCancel.setEnabled(false);
+        bSave.setLoading("Guardando...");
+
+        Evento n = isEdit ? ev : new Evento();
+        n.setDescripcion(desc);
+        n.setFecha(fechaP);
+        n.setHoraInicio(hiP);
+        n.setHoraFin(hfP);
+        n.setNombreTipoEvento(tipo);
+        n.setTipoEvento(tipo);
+        try { n.setIdArtista(art.isEmpty()  ? null : Integer.parseInt(art)); }
+        catch (NumberFormatException ex) { n.setIdArtista(null); }
+        try { n.setIdProductor(prod.isEmpty() ? null : Integer.parseInt(prod)); }
+        catch (NumberFormatException ex) { n.setIdProductor(null); }
+
+        // Simula pequeño delay visual (luego ejecuta la operación)
+        Timer tGuardar = new Timer(800, done -> {
             try {
                 if (isEdit) servicio.actualizar(n);
                 else        servicio.crear(n);
+
+                // ── Estado success ───────────────────────────────
+                bSave.setSuccess(isEdit ? "¡Actualizado!" : "¡Creado!");
                 toast(isEdit ? "Evento actualizado" : "Evento creado: " + desc,
-                    MainFrame.ToastType.SUCCESS);
-                dlgTimers.forEach(Timer::stop);
-                recargar();
-                dlg.dispose();
+                        MainFrame.ToastType.SUCCESS);
+
+                Timer tCerrar = new Timer(900, close -> {
+                    dlgTimers.forEach(Timer::stop);
+                    recargar();
+                    dlg.dispose();
+                });
+                tCerrar.setRepeats(false);
+                dlgTimers.add(tCerrar);
+                tCerrar.start();
+
             } catch (Exception ex) {
+                bSave.resetEstado(isEdit ? "💾  Guardar cambios" : "🎟  Crear evento");
+                bSave.setEnabled(true);
+                bCancel.setEnabled(true);
                 toast("Error: " + ex.getMessage(), MainFrame.ToastType.ERROR);
             }
         });
+        tGuardar.setRepeats(false);
+        dlgTimers.add(tGuardar);
+        tGuardar.start();
+    });
 
-        bRow.add(bCancel);
-        bRow.add(bSave);
-        form.add(bRow);
+    bRow.add(bCancel);
+    bRow.add(bSave);
+    form.add(bRow);
+    form.add(Box.createVerticalStrut(8));
 
-        JPanel wrap = new JPanel(new BorderLayout());
-        wrap.setOpaque(false);
-        wrap.add(shimmer, BorderLayout.NORTH);
-        wrap.add(form,    BorderLayout.CENTER);
-        root.add(wrap, BorderLayout.CENTER);
+    // ── Footer con shimmer ────────────────────────────────────────
+    JPanel footer = new JPanel(new BorderLayout()) {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setColor(EventoStyles.BG_CARD);
+            g2.fillRect(0, 0, getWidth(), getHeight());
+            g2.setColor(EventoStyles.BORDER);
+            g2.drawLine(0, 0, getWidth(), 0);
+            g2.dispose();
+        }
+    };
+    footer.setOpaque(false);
+    footer.setBorder(new EmptyBorder(12, 24, 16, 24));
+    footer.add(bRow, BorderLayout.EAST);
 
-        dlg.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override public void windowClosed(java.awt.event.WindowEvent e) {
-                dlgTimers.forEach(Timer::stop);
-            }
-        });
+    // ── Ensamblar ─────────────────────────────────────────────────
+    JPanel wrap = new JPanel(new BorderLayout());
+    wrap.setOpaque(false);
+    wrap.add(shimmer, BorderLayout.NORTH);
+    wrap.add(form,    BorderLayout.CENTER);
+    root.add(wrap,   BorderLayout.CENTER);
+    root.add(footer, BorderLayout.SOUTH);
 
-        dlg.setContentPane(root);
-        dlg.pack();
-        dlg.setMinimumSize(new Dimension(600, dlg.getPreferredSize().height));
-        dlg.setLocationRelativeTo(this);
-        dlg.setVisible(true);
-    }
+    // ── Cerrar ventana detiene timers ─────────────────────────────
+    dlg.addWindowListener(new java.awt.event.WindowAdapter() {
+        @Override public void windowClosed(java.awt.event.WindowEvent e) {
+            dlgTimers.forEach(Timer::stop);
+            dlgTimers.clear();
+        }
+    });
+
+    dlg.setContentPane(root);
+    dlg.pack();
+    dlg.setMinimumSize(new Dimension(620, dlg.getPreferredSize().height));
+    dlg.setLocationRelativeTo(this);
+
+    // Fade in al abrir
+    abrirConFade(dlg);
+    dlg.setVisible(true);
+}
+
+// ── Helpers fade ──────────────────────────────────────────────────────
+
+private void abrirConFade(JDialog dlg) {
+    try { dlg.setOpacity(0f); } catch (Exception ignore) { return; }
+    Timer t = new Timer(14, null);
+    final long ini = System.currentTimeMillis();
+    final int  dur = 220;
+    t.addActionListener(ev -> {
+        float p = Math.min(1f, (System.currentTimeMillis() - ini) / (float) dur);
+        float e = 1f - (float) Math.pow(1 - p, 3);
+        try { dlg.setOpacity(e); } catch (Exception ignore) {}
+        if (p >= 1f) t.stop();
+    });
+    SwingUtilities.invokeLater(t::start);
+}
+
+private void cerrarConFade(JDialog dlg, List<Timer> dlgTimers) {
+    try { dlg.setOpacity(1f); } catch (Exception ignore) { dlg.dispose(); return; }
+    Timer t = new Timer(14, null);
+    final long ini = System.currentTimeMillis();
+    final int  dur = 170;
+    t.addActionListener(ev -> {
+        float p = Math.min(1f, (System.currentTimeMillis() - ini) / (float) dur);
+        try { dlg.setOpacity(1f - p); } catch (Exception ignore) {}
+        if (p >= 1f) {
+            t.stop();
+            dlgTimers.forEach(Timer::stop);
+            dlgTimers.clear();
+            dlg.dispose();
+        }
+    });
+    t.start();
+}
 
     // ══════════════════════════════════════════════════════════════════
     //  HELPERS UI

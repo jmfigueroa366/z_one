@@ -552,135 +552,990 @@ public class formColaboracion extends JPanel {
     }
 
     // ── Formulario de creación / edición ──────────────────────────────────────
-    private void openForm(Colaboracion c) {
-        boolean isEdit = c != null;
-        JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
+// ══════════════════════════════════════════════════════════════════════════════
+//  openForm — reemplaza el método openForm() en formColaboracion.java
+//  Requiere los métodos auxiliares al final: abrirConFade, cerrarConFade,
+//  buildFieldAnimado, buildSeccionHeader, buildErrorLabel, buildBtnAnimado
+// ══════════════════════════════════════════════════════════════════════════════
+
+private void openForm(Colaboracion c) {
+    boolean isEdit = c != null;
+    java.util.List<Timer> dlgTimers = new java.util.ArrayList<>();
+
+    JDialog dlg = new JDialog(
+            (Frame) SwingUtilities.getWindowAncestor(this),
             isEdit ? "Editar colaboración" : "Nueva colaboración", true);
-        dlg.setUndecorated(false);
+    dlg.setResizable(false);
+    dlg.setUndecorated(false);
 
-        // ── Contenedor principal del diálogo
-        JPanel root = new JPanel(new BorderLayout());
-        root.setBackground(BG_CARD);
+    // ── ROOT ──────────────────────────────────────────────────────────────────
+    JPanel root = new JPanel(new BorderLayout()) {
+        @Override protected void paintComponent(Graphics g) {
+            g.setColor(BG_PAGE);
+            g.fillRect(0, 0, getWidth(), getHeight());
+            super.paintComponent(g);
+        }
+    };
+    root.setOpaque(false);
 
-        // ── Header con degradado
-        JPanel header = new JPanel(new BorderLayout()) {
+    // ══════════════════════════════════════════════════════════════════════════
+    //  BANDA SUPERIOR ANIMADA
+    // ══════════════════════════════════════════════════════════════════════════
+    final float[] px  = new float[18]; final float[] py  = new float[18];
+    final float[] pv  = new float[18]; final int[]   pSym = new int[18];
+    final float[] wH  = new float[20]; final float[] wHt = new float[20];
+    final float[] bounce  = {0f};
+    final boolean[] recVis = {true};
+    final boolean[] inited = {false};
+    final String[]  syms   = {"🤝","🎤","🎸","🎧","🚀","♪","✦"};
+
+    JPanel banda = new JPanel(new BorderLayout(16, 0)) {
+        @Override protected void paintComponent(Graphics g) {
+            if (!inited[0]) {
+                inited[0] = true;
+                java.util.Random r = new java.util.Random();
+                for (int i = 0; i < px.length; i++) {
+                    px[i]  = r.nextFloat(); py[i]  = r.nextFloat();
+                    pv[i]  = 0.0006f + r.nextFloat() * 0.001f;
+                    pSym[i] = r.nextInt(syms.length);
+                }
+                for (int i = 0; i < wH.length; i++) {
+                    wH[i]  = 0.15f + r.nextFloat() * 0.7f;
+                    wHt[i] = 0.1f  + r.nextFloat() * 0.85f;
+                }
+            }
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int w = getWidth(), h = getHeight();
+
+            // Fondo degradado azul→violeta
+            g2.setPaint(new GradientPaint(0, 0, new Color(0x1A1060),
+                    w, h, new Color(0x3B1A8E)));
+            g2.fillRect(0, 0, w, h);
+
+            // Brillo superior
+            g2.setPaint(new GradientPaint(0, 0, new Color(255,255,255,24),
+                    0, h/2f, new Color(255,255,255,0)));
+            g2.fillRect(0, 0, w, h/2);
+
+            // Waveform de fondo
+            int bW = 3, gap = 5, totalW2 = wH.length * (bW + gap);
+            int sx2 = w/2 - totalW2/2, midY = h/2;
+            for (int i = 0; i < wH.length; i++) {
+                int bH   = (int)(wH[i] * h * 0.52f);
+                int alpha = (int)(16 + wH[i] * 30);
+                g2.setColor(new Color(C_PURPLE.getRed(), C_PURPLE.getGreen(),
+                        C_PURPLE.getBlue(), Math.min(65, alpha)));
+                g2.fillRoundRect(sx2 + i*(bW+gap), midY - bH/2, bW, bH, bW, bW);
+            }
+
+            // Partículas flotantes
+            g2.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 12));
+            for (int i = 0; i < px.length; i++) {
+                int alpha = (int)(10 + Math.sin(py[i] * Math.PI) * 28);
+                g2.setColor(new Color(C_BLUE.getRed(), C_BLUE.getGreen(),
+                        C_BLUE.getBlue(), Math.max(0, Math.min(55, alpha))));
+                g2.drawString(syms[pSym[i]], (int)(px[i]*w), (int)(py[i]*h));
+            }
+
+            // Línea inferior
+            g2.setColor(new Color(C_BLUE.getRed(), C_BLUE.getGreen(), C_BLUE.getBlue(), 180));
+            g2.fillRect(0, h-2, w, 2);
+            g2.dispose();
+        }
+    };
+    banda.setOpaque(false);
+    banda.setPreferredSize(new Dimension(0, 105));
+    banda.setBorder(new EmptyBorder(22, 26, 22, 26));
+
+    // Timer: partículas + waveform
+    Timer tAnim = new Timer(38, ev -> {
+        java.util.Random r = new java.util.Random();
+        for (int i = 0; i < px.length; i++) {
+            py[i] -= pv[i]; px[i] += pv[i] * 0.22f;
+            if (py[i] < -0.12f) { py[i] = 1.12f; px[i] = r.nextFloat(); pSym[i] = r.nextInt(syms.length); }
+            if (px[i] >  1.12f)   px[i] = -0.12f;
+        }
+        for (int i = 0; i < wH.length; i++) {
+            wH[i] += (wHt[i] - wH[i]) * 0.09f;
+            if (Math.abs(wH[i] - wHt[i]) < 0.015f)
+                wHt[i] = 0.08f + r.nextFloat() * 0.88f;
+        }
+        bounce[0] = (float)(Math.sin(System.currentTimeMillis() / 640.0) * 0.5 + 0.5);
+        banda.repaint();
+    });
+    dlgTimers.add(tAnim); tAnim.start();
+
+    // Timer REC
+    Timer tRec = new Timer(550, ev -> { recVis[0] = !recVis[0]; banda.repaint(); });
+    dlgTimers.add(tRec); tRec.start();
+
+    // ── Ícono pulsante ────────────────────────────────────────────────────────
+    JPanel iconBox = new JPanel(new GridBagLayout()) {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int pulse = (int)(bounce[0] * 20);
+            g2.setColor(new Color(255,255,255, 10 + pulse));
+            g2.fillRoundRect(-4,-4, getWidth()+8, getHeight()+8, 18, 18);
+            g2.setColor(new Color(255,255,255, 25 + pulse));
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
+            g2.setColor(new Color(255,255,255, 85 + pulse));
+            g2.setStroke(new BasicStroke(1.4f));
+            g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 14, 14);
+            g2.dispose();
+        }
+    };
+    iconBox.setOpaque(false);
+    iconBox.setPreferredSize(new Dimension(56, 56));
+    JLabel icoLbl = new JLabel(isEdit ? "✎" : "🤝");
+    icoLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 26));
+    icoLbl.setForeground(Color.WHITE);
+    iconBox.add(icoLbl);
+
+    // ── Textos + REC ──────────────────────────────────────────────────────────
+    JPanel txtCol = new JPanel();
+    txtCol.setOpaque(false);
+    txtCol.setLayout(new BoxLayout(txtCol, BoxLayout.Y_AXIS));
+
+    JPanel titRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+    titRow.setOpaque(false); titRow.setAlignmentX(LEFT_ALIGNMENT);
+
+    JLabel titLbl = new JLabel(isEdit ? "Editar colaboración" : "Nueva colaboración");
+    titLbl.setFont(new Font("Segoe UI", Font.BOLD, 21));
+    titLbl.setForeground(Color.WHITE);
+
+    JLabel recLbl = new JLabel("● REC") {
+        @Override protected void paintComponent(Graphics g) {
+            if (!recVis[0]) return;
+            super.paintComponent(g);
+        }
+    };
+    recLbl.setFont(new Font("Segoe UI", Font.BOLD, 10));
+    recLbl.setForeground(new Color(0xFF4455));
+    titRow.add(titLbl); titRow.add(recLbl);
+
+    JLabel subLbl = new JLabel(isEdit
+            ? "MODIFICA LOS DATOS DE LA COLABORACIÓN"
+            : "REGISTRA UNA NUEVA COLABORACIÓN ARTÍSTICA");
+    subLbl.setFont(new Font("Segoe UI", Font.BOLD, 9));
+    subLbl.setForeground(new Color(255,255,255,168));
+    subLbl.setAlignmentX(LEFT_ALIGNMENT);
+
+    txtCol.add(Box.createVerticalGlue());
+    txtCol.add(titRow);
+    txtCol.add(Box.createVerticalStrut(4));
+    txtCol.add(subLbl);
+    txtCol.add(Box.createVerticalGlue());
+
+    banda.add(iconBox, BorderLayout.WEST);
+    banda.add(txtCol,  BorderLayout.CENTER);
+    root.add(banda,    BorderLayout.NORTH);
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  LÍNEA SHIMMER
+    // ══════════════════════════════════════════════════════════════════════════
+    final float[] shimPhase = {0f};
+    JPanel shimmer = new JPanel() {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            int w = getWidth(), h2 = getHeight();
+            g2.setColor(new Color(C_BLUE.getRed(), C_BLUE.getGreen(), C_BLUE.getBlue(), 40));
+            g2.fillRect(0, 0, w, h2);
+            float cx2 = shimPhase[0] * w;
+            g2.setPaint(new java.awt.RadialGradientPaint(
+                    new java.awt.geom.Point2D.Float(cx2, h2/2f),
+                    Math.max(1f, w * 0.20f),
+                    new float[]{0f, 0.5f, 1f},
+                    new Color[]{
+                        new Color(255,255,255,200),
+                        new Color(C_PURPLE.getRed(), C_PURPLE.getGreen(), C_PURPLE.getBlue(), 100),
+                        new Color(C_BLUE.getRed(), C_BLUE.getGreen(), C_BLUE.getBlue(), 0)
+                    }));
+            g2.fillRect(0, 0, w, h2);
+            g2.dispose();
+        }
+    };
+    shimmer.setOpaque(false);
+    shimmer.setPreferredSize(new Dimension(0, 3));
+    Timer tShim = new Timer(38, ev -> {
+        shimPhase[0] += 0.014f;
+        if (shimPhase[0] > 1.5f) shimPhase[0] = -0.5f;
+        shimmer.repaint();
+    });
+    dlgTimers.add(tShim); tShim.start();
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  BODY — formulario
+    // ══════════════════════════════════════════════════════════════════════════
+    JPanel body = new JPanel();
+    body.setOpaque(false);
+    body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+    body.setBorder(new EmptyBorder(20, 26, 8, 26));
+
+    // ── Sección: Artista ──────────────────────────────────────────────────────
+    body.add(buildSeccionHeader("INFORMACIÓN DE LA COLABORACIÓN", C_BLUE, dlgTimers));
+    body.add(Box.createVerticalStrut(14));
+
+    // Artista + ID Canción en fila
+    JTextField fArt = buildFieldAnimado(
+            isEdit && c.getColaboracionArtista() != null ? c.getColaboracionArtista() : "",
+            "Ej. J Balvin", dlgTimers);
+    JTextField fCan = buildFieldAnimado(
+            isEdit && c.getIdCancion() != null ? String.valueOf(c.getIdCancion()) : "",
+            "Ej. 3", dlgTimers);
+
+    JLabel errArt = buildErrorLabel();
+    JLabel errCan = buildErrorLabel();
+
+    JPanel rowArtCan = new JPanel(new GridLayout(1, 2, 14, 0));
+    rowArtCan.setOpaque(false);
+    rowArtCan.setAlignmentX(LEFT_ALIGNMENT);
+    rowArtCan.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
+    rowArtCan.add(envolverCampo("ARTISTA COLABORADOR  *", fArt));
+    rowArtCan.add(envolverCampo("ID CANCIÓN  *", fCan));
+    body.add(rowArtCan);
+
+    JPanel rowErrArtCan = new JPanel(new GridLayout(1, 2, 14, 0));
+    rowErrArtCan.setOpaque(false);
+    rowErrArtCan.setAlignmentX(LEFT_ALIGNMENT);
+    rowErrArtCan.add(errArt);
+    rowErrArtCan.add(errCan);
+    body.add(rowErrArtCan);
+    body.add(Box.createVerticalStrut(14));
+
+    // ── Sección: Tipo ─────────────────────────────────────────────────────────
+    body.add(buildSeccionHeader("TIPO DE COLABORACIÓN", C_PURPLE, dlgTimers));
+    body.add(Box.createVerticalStrut(12));
+
+    // Pills de tipo animadas
+    final int[] tipoSel = {0};
+    JPanel tipoGrid = new JPanel(new GridLayout(2, 2, 8, 8));
+    tipoGrid.setOpaque(false);
+    tipoGrid.setAlignmentX(LEFT_ALIGNMENT);
+    tipoGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
+
+    JPanel[] pillPanels = new JPanel[4];
+    JLabel[] pillLabels = new JLabel[4];
+
+    Runnable refreshPills = () -> {
+        for (int i = 0; i < 4; i++) {
+            final boolean sel = (i == tipoSel[0]);
+            Color fg = sel ? TIPO_FG[i] : TXT_MUTED;
+            pillLabels[i].setText(TIPO_ICONOS[i] + "  " + (sel ? "● " : "") + TIPO_NOMBRES[i]);
+            pillLabels[i].setForeground(fg);
+            pillPanels[i].repaint();
+        }
+    };
+
+    for (int i = 0; i < 4; i++) {
+        final int idx = i;
+        Color accent = TIPO_ACCENT[i];
+        Color bg2    = TIPO_BG[i];
+
+        JLabel pill = new JLabel("", SwingConstants.CENTER);
+        pill.setFont(new Font("Segoe UI Emoji", Font.BOLD, 12));
+        pillLabels[i] = pill;
+
+        // hover animation
+        final float[] hoverT = {0f};
+        final Timer[] hTimer = {null};
+
+        JPanel pillPanel = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(0, 0, C_BLUE, getWidth(), 0, C_PURPLE);
-                g2.setPaint(gp);
-                g2.fillRect(0, 0, getWidth(), getHeight());
+                boolean sel = (idx == tipoSel[0]);
+                if (sel) {
+                    g2.setColor(bg2);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                    g2.setColor(accent);
+                    g2.setStroke(new BasicStroke(2f));
+                    g2.drawRoundRect(1, 1, getWidth()-2, getHeight()-2, 10, 10);
+                } else {
+                    Color base = new Color(
+                        (int)(BG_CARD.getRed()   + (bg2.getRed()   - BG_CARD.getRed())   * hoverT[0] * 0.5f),
+                        (int)(BG_CARD.getGreen() + (bg2.getGreen() - BG_CARD.getGreen()) * hoverT[0] * 0.5f),
+                        (int)(BG_CARD.getBlue()  + (bg2.getBlue()  - BG_CARD.getBlue())  * hoverT[0] * 0.5f));
+                    g2.setColor(base);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                    g2.setColor(new Color(
+                        BORDER_INPUT.getRed(), BORDER_INPUT.getGreen(), BORDER_INPUT.getBlue(),
+                        (int)(180 + hoverT[0] * 75)));
+                    g2.setStroke(new BasicStroke(1f + hoverT[0] * 0.6f));
+                    g2.drawRoundRect(1, 1, getWidth()-2, getHeight()-2, 10, 10);
+                }
                 g2.dispose();
+                super.paintComponent(g);
             }
         };
-        header.setPreferredSize(new Dimension(0, 60));
-        header.setBorder(new EmptyBorder(0, 20, 0, 16));
+        pillPanel.setOpaque(false);
+        pillPanel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        pillPanel.add(pill, BorderLayout.CENTER);
+        pillPanel.setBorder(new EmptyBorder(8, 10, 8, 10));
 
-        JLabel hTitle = new JLabel((isEdit ? "✎  Editar" : "＋  Nueva") + " colaboración");
-        hTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        hTitle.setForeground(Color.WHITE);
+        pillPanel.addMouseListener(new MouseAdapter() {
+            @Override public void mouseEntered(MouseEvent e) {
+                if (hTimer[0] != null) hTimer[0].stop();
+                hTimer[0] = new Timer(12, null);
+                hTimer[0].addActionListener(ev -> {
+                    hoverT[0] = Math.min(1f, hoverT[0] + 0.1f);
+                    pillPanel.repaint();
+                    if (hoverT[0] >= 1f) ((Timer)ev.getSource()).stop();
+                });
+                hTimer[0].start();
+            }
+            @Override public void mouseExited(MouseEvent e) {
+                if (hTimer[0] != null) hTimer[0].stop();
+                hTimer[0] = new Timer(12, null);
+                hTimer[0].addActionListener(ev -> {
+                    hoverT[0] = Math.max(0f, hoverT[0] - 0.1f);
+                    pillPanel.repaint();
+                    if (hoverT[0] <= 0f) ((Timer)ev.getSource()).stop();
+                });
+                hTimer[0].start();
+            }
+            @Override public void mouseClicked(MouseEvent e) {
+                tipoSel[0] = idx;
+                // Pequeño pop de escala
+                Timer tPop = new Timer(12, null);
+                final float[] scale = {1f};
+                final boolean[] goingUp = {true};
+                tPop.addActionListener(ev -> {
+                    if (goingUp[0]) { scale[0] += 0.04f; if (scale[0] >= 1.08f) goingUp[0] = false; }
+                    else            { scale[0] -= 0.04f; if (scale[0] <= 1f)    { scale[0] = 1f; tPop.stop(); } }
+                    pillPanel.repaint();
+                });
+                dlgTimers.add(tPop); tPop.start();
+                refreshPills.run();
+            }
+        });
 
-        JButton closeBtn = new JButton("✕");
-        closeBtn.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        closeBtn.setForeground(Color.WHITE);
-        closeBtn.setBackground(new Color(255, 255, 255, 40));
-        closeBtn.setBorderPainted(false);
-        closeBtn.setFocusPainted(false);
-        closeBtn.setPreferredSize(new Dimension(30, 30));
-        closeBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        closeBtn.addActionListener(e -> dlg.dispose());
+        pillPanels[i] = pillPanel;
+        tipoGrid.add(pillPanel);
+    }
+    refreshPills.run();
+    body.add(tipoGrid);
+    body.add(Box.createVerticalStrut(14));
 
-        header.add(hTitle,   BorderLayout.WEST);
-        header.add(closeBtn, BorderLayout.EAST);
+    // ── Sección: Fecha ────────────────────────────────────────────────────────
+    body.add(buildSeccionHeader("FECHA DE COLABORACIÓN", C_GREEN, dlgTimers));
+    body.add(Box.createVerticalStrut(12));
 
-        // ── Body del formulario
-        JPanel body = new JPanel(new GridBagLayout());
-        body.setBackground(BG_CARD);
-        body.setBorder(new EmptyBorder(22, 24, 10, 24));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(0, 0, 14, 0);
+    JTextField fFecha = buildFieldAnimado(
+            isEdit && c.getFechaColaboracion() != null
+                    ? c.getFechaColaboracion().format(FMT)
+                    : LocalDate.now().format(FMT),
+            "dd/MM/yyyy", dlgTimers);
+    JLabel errFecha = buildErrorLabel();
 
-        JTextField fArt   = buildInput(isEdit && c.getColaboracionArtista() != null ? c.getColaboracionArtista() : "", "Ej. J Balvin");
-        JTextField fCan   = buildInput(isEdit && c.getIdCancion() != null ? String.valueOf(c.getIdCancion()) : "", "Ej. 3");
-        JTextField fFecha = buildInput(isEdit && c.getFechaColaboracion() != null
-            ? c.getFechaColaboracion().format(FMT) : LocalDate.now().format(FMT), "dd/mm/aaaa");
+    body.add(envolverCampo("FECHA  * (dd/MM/yyyy)", fFecha));
+    body.add(errFecha);
+    body.add(Box.createVerticalStrut(22));
 
-        int row = 0;
-        addFormRow(body, gbc, row++, "ARTISTA COLABORADOR  *", fArt);
-        addFormRow(body, gbc, row++, "ID CANCIÓN  *",          fCan);
-        addFormRow(body, gbc, row++, "FECHA DE COLABORACIÓN  *", fFecha);
-
-        // Selector de tipo
-        gbc.gridy = row++;
-        gbc.gridx = 0; gbc.gridwidth = 2;
-        JLabel tipoLbl = new JLabel("TIPO DE COLABORACIÓN");
-        tipoLbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        tipoLbl.setForeground(new Color(0x6B7280));
-        body.add(tipoLbl, gbc);
-
-        gbc.gridy = row++;
-        gbc.insets = new Insets(0, 0, 18, 0);
-        JPanel tipoGrid = new JPanel(new GridLayout(2, 2, 8, 8));
-        tipoGrid.setOpaque(false);
-        ButtonGroup bg = new ButtonGroup();
-        JToggleButton[] tipoBtns = new JToggleButton[4];
-        for (int i = 0; i < 4; i++) {
-            final int idx = i;
-            tipoBtns[i] = buildTipoBtn(TIPO_NOMBRES[i], TIPO_ACCENT[i], TIPO_BG[i]);
-            bg.add(tipoBtns[i]);
-            tipoGrid.add(tipoBtns[i]);
+    // ══════════════════════════════════════════════════════════════════════════
+    //  FOOTER — botones
+    // ══════════════════════════════════════════════════════════════════════════
+    JPanel footer = new JPanel(new BorderLayout()) {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setColor(BG_CARD);
+            g2.fillRect(0, 0, getWidth(), getHeight());
+            g2.setColor(BORDER);
+            g2.drawLine(0, 0, getWidth(), 0);
+            g2.dispose();
         }
-        tipoBtns[0].setSelected(true);
-        body.add(tipoGrid, gbc);
+    };
+    footer.setOpaque(false);
+    footer.setBorder(new EmptyBorder(12, 26, 16, 26));
 
-        // ── Footer con botones
-        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 12));
-        footer.setBackground(BG_CARD);
-        footer.setBorder(new MatteBorder(1, 0, 0, 0, BORDER));
+    JPanel bRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+    bRow.setOpaque(false);
 
-        JButton bCancel = buildBtn("Cancelar", false, false, e -> dlg.dispose());
-        JButton bSave   = buildBtn(isEdit ? "💾  Guardar cambios" : "✦  Crear colaboración", true, false, e -> {
+    // Botón Cancelar
+    JButton bCancel = buildBtnAnimado("Cancelar", false, false, dlgTimers);
+    bCancel.setPreferredSize(new Dimension(125, 40));
+
+    // Botón Guardar con estados
+    final String labelGuardar = isEdit ? "💾  Guardar cambios" : "🤝  Crear colaboración";
+    JButton bSave = buildBtnAnimado(labelGuardar, true, false, dlgTimers);
+    bSave.setPreferredSize(new Dimension(200, 40));
+
+    bCancel.addActionListener(e -> cerrarConFade(dlg, dlgTimers));
+
+    bSave.addActionListener(e -> {
+        // ── Limpiar errores ───────────────────────────────────────────────────
+        ocultarError(errArt);  limpiarErrorCampo(fArt);
+        ocultarError(errCan);  limpiarErrorCampo(fCan);
+        ocultarError(errFecha); limpiarErrorCampo(fFecha);
+
+        String artTxt   = fArt  .getText().trim();
+        String canTxt   = fCan  .getText().trim();
+        String fechaTxt = fFecha.getText().trim();
+        boolean ok = true;
+
+        if (artTxt.isBlank()) {
+            shakeCampo(fArt, dlgTimers);
+            mostrarError(errArt, "El artista es obligatorio", dlgTimers);
+            ok = false;
+        }
+        if (canTxt.isBlank()) {
+            shakeCampo(fCan, dlgTimers);
+            mostrarError(errCan, "El ID de canción es obligatorio", dlgTimers);
+            ok = false;
+        } else {
+            try { Integer.parseInt(canTxt); }
+            catch (NumberFormatException ex) {
+                shakeCampo(fCan, dlgTimers);
+                mostrarError(errCan, "Debe ser un número", dlgTimers);
+                ok = false;
+            }
+        }
+        LocalDate fechaP = null;
+        if (fechaTxt.isBlank()) {
+            shakeCampo(fFecha, dlgTimers);
+            mostrarError(errFecha, "La fecha es obligatoria", dlgTimers);
+            ok = false;
+        } else {
+            try { fechaP = LocalDate.parse(fechaTxt, FMT); }
+            catch (Exception ex) {
+                shakeCampo(fFecha, dlgTimers);
+                mostrarError(errFecha, "Formato inválido (dd/MM/yyyy)", dlgTimers);
+                ok = false;
+            }
+        }
+        if (!ok) return;
+
+        // ── Estado loading ────────────────────────────────────────────────────
+        bSave.setEnabled(false);
+        bCancel.setEnabled(false);
+        setLoadingBtn(bSave, "Guardando...", dlgTimers);
+
+        final LocalDate fechaFinal = fechaP;
+        Timer tGuardar = new Timer(750, done -> {
             try {
-                if (fArt.getText().isBlank()) throw new IllegalArgumentException("El artista es obligatorio");
-                if (fCan.getText().isBlank()) throw new IllegalArgumentException("El ID de canción es obligatorio");
-
                 Colaboracion n = isEdit ? c : new Colaboracion();
-                n.setColaboracionArtista(fArt.getText().trim());
-                n.setIdCancion(Integer.parseInt(fCan.getText().trim()));
-                n.setFechaColaboracion(LocalDate.parse(fFecha.getText().trim(), FMT));
-
-                // Tipo seleccionado
-                for (int i = 0; i < tipoBtns.length; i++) {
-                    if (tipoBtns[i].isSelected()) {
-                        // n.setTipo(TIPO_NOMBRES[i]); // descomenta si tu modelo tiene campo tipo
-                        break;
-                    }
-                }
+                n.setColaboracionArtista(artTxt);
+                n.setIdCancion(Integer.parseInt(canTxt));
+                n.setFechaColaboracion(fechaFinal);
+                // n.setTipo(TIPO_NOMBRES[tipoSel[0]]); // descomenta si tu modelo lo tiene
 
                 if (isEdit) servicio.actualizar(n);
                 else        servicio.crear(n);
 
-                MainFrame.showToast(isEdit ? "Colaboración actualizada" : "Colaboración creada", MainFrame.ToastType.SUCCESS);
-                recargar();
-                dlg.dispose();
+                // ── Estado success ────────────────────────────────────────────
+                setSuccessBtn(bSave, isEdit ? "¡Actualizado!" : "¡Creado!", dlgTimers);
+                MainFrame.showToast(
+                    isEdit ? "Colaboración actualizada" : "Colaboración creada: " + artTxt,
+                    MainFrame.ToastType.SUCCESS);
+
+                Timer tCerrar = new Timer(850, close -> {
+                    dlgTimers.forEach(Timer::stop);
+                    recargar();
+                    dlg.dispose();
+                });
+                tCerrar.setRepeats(false);
+                dlgTimers.add(tCerrar);
+                tCerrar.start();
+
             } catch (Exception ex) {
-                MainFrame.showToast(ex.getMessage(), MainFrame.ToastType.ERROR);
+                resetBtn(bSave, labelGuardar);
+                bSave.setEnabled(true);
+                bCancel.setEnabled(true);
+                MainFrame.showToast("Error: " + ex.getMessage(), MainFrame.ToastType.ERROR);
             }
         });
+        tGuardar.setRepeats(false);
+        dlgTimers.add(tGuardar);
+        tGuardar.start();
+    });
 
-        footer.add(bCancel);
-        footer.add(bSave);
+    bRow.add(bCancel);
+    bRow.add(bSave);
+    footer.add(bRow, BorderLayout.EAST);
 
-        root.add(header, BorderLayout.NORTH);
-        root.add(body,   BorderLayout.CENTER);
-        root.add(footer, BorderLayout.SOUTH);
+    // ── Ensamblar ─────────────────────────────────────────────────────────────
+    JPanel wrap = new JPanel(new BorderLayout());
+    wrap.setOpaque(false);
+    wrap.add(shimmer, BorderLayout.NORTH);
+    wrap.add(body,    BorderLayout.CENTER);
+    root.add(wrap,   BorderLayout.CENTER);
+    root.add(footer, BorderLayout.SOUTH);
 
-        dlg.setContentPane(root);
-        dlg.setSize(480, 490);
-        dlg.setLocationRelativeTo(this);
-        dlg.setVisible(true);
+    dlg.addWindowListener(new java.awt.event.WindowAdapter() {
+        @Override public void windowClosed(java.awt.event.WindowEvent e) {
+            dlgTimers.forEach(Timer::stop);
+            dlgTimers.clear();
+        }
+    });
+
+    dlg.setContentPane(root);
+    dlg.pack();
+    dlg.setMinimumSize(new Dimension(560, dlg.getPreferredSize().height));
+    dlg.setLocationRelativeTo(this);
+    abrirConFade(dlg);
+    dlg.setVisible(true);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  MÉTODOS AUXILIARES — agrégalos al final de formColaboracion.java
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Fade abrir / cerrar ───────────────────────────────────────────────────────
+private void abrirConFade(JDialog dlg) {
+    try { dlg.setOpacity(0f); } catch (Exception ignore) { return; }
+    Timer t = new Timer(14, null);
+    final long ini = System.currentTimeMillis();
+    t.addActionListener(ev -> {
+        float p = Math.min(1f, (System.currentTimeMillis() - ini) / 220f);
+        float e = 1f - (float) Math.pow(1 - p, 3);
+        try { dlg.setOpacity(e); } catch (Exception ignore) {}
+        if (p >= 1f) t.stop();
+    });
+    SwingUtilities.invokeLater(t::start);
+}
+
+private void cerrarConFade(JDialog dlg, java.util.List<Timer> timers) {
+    try { dlg.setOpacity(1f); } catch (Exception ignore) { dlg.dispose(); return; }
+    Timer t = new Timer(14, null);
+    final long ini = System.currentTimeMillis();
+    t.addActionListener(ev -> {
+        float p = Math.min(1f, (System.currentTimeMillis() - ini) / 170f);
+        try { dlg.setOpacity(1f - p); } catch (Exception ignore) {}
+        if (p >= 1f) {
+            t.stop();
+            timers.forEach(Timer::stop);
+            timers.clear();
+            dlg.dispose();
+        }
+    });
+    t.start();
+}
+
+// ── Campo con animación de foco y shake ───────────────────────────────────────
+private JTextField buildFieldAnimado(String valor, String placeholder, java.util.List<Timer> timers) {
+    final float[] focusT = {0f};
+    final boolean[] focused = {false};
+    final float[] shakeX   = {0f};
+    final boolean[] isError = {false};
+
+    JTextField f = new JTextField(valor) {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int sh = (int) shakeX[0];
+            int w  = getWidth(), h = getHeight();
+
+            // Halo
+            if (isError[0]) {
+                g2.setColor(new Color(220, 38, 38, 50));
+                g2.fillRoundRect(sh-2, -2, w+4, h+4, 14, 14);
+            } else if (focusT[0] > 0.01f) {
+                Color hc = C_BLUE;
+                g2.setColor(new Color(hc.getRed(), hc.getGreen(), hc.getBlue(), (int)(focusT[0]*60)));
+                g2.fillRoundRect(sh-2, -2, w+4, h+4, 14, 14);
+            }
+            // Fondo
+            g2.setColor(isError[0] ? new Color(0xFFF0F0) :
+                    blend(BG_INPUT, new Color(0xEFF6FF), focusT[0] * 0.3f));
+            g2.fillRoundRect(sh+2, 2, w-5, h-5, 10, 10);
+            // Borde
+            g2.setColor(isError[0] ? C_RED :
+                    blend(BORDER_INPUT, C_BLUE, focusT[0]));
+            g2.setStroke(new BasicStroke(isError[0] ? 1.7f : 1f + focusT[0]*0.5f));
+            g2.drawRoundRect(sh+2, 2, w-6, h-6, 10, 10);
+            g2.dispose();
+
+            // Placeholder
+            if (getText().isEmpty() && !focused[0]) {
+                Graphics2D g3 = (Graphics2D) g.create();
+                g3.setFont(getFont().deriveFont(Font.ITALIC));
+                g3.setColor(TXT_MUTED);
+                FontMetrics fm = g3.getFontMetrics();
+                g3.drawString(placeholder, sh+16, (h + fm.getAscent())/2 - 2);
+                g3.dispose();
+            }
+            super.paintComponent(g);
+        }
+    };
+    f.setOpaque(false);
+    f.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    f.setForeground(TXT_DARK);
+    f.setCaretColor(C_BLUE);
+    f.setBorder(new EmptyBorder(8, 14, 8, 14));
+    f.setPreferredSize(new Dimension(0, 40));
+
+    f.addFocusListener(new FocusAdapter() {
+        @Override public void focusGained(FocusEvent e) {
+            focused[0] = true; isError[0] = false;
+            animField(f, focusT, true, timers);
+        }
+        @Override public void focusLost(FocusEvent e) {
+            focused[0] = false;
+            animField(f, focusT, false, timers);
+        }
+    });
+
+    // Guardamos estado de error en el campo para acceso externo
+    f.putClientProperty("isError", isError);
+    f.putClientProperty("shakeX",  shakeX);
+    return f;
+}
+
+private void animField(JTextField f, float[] focusT, boolean in, java.util.List<Timer> timers) {
+    Timer t = new Timer(16, null);
+    final long ini = System.currentTimeMillis();
+    final float desde = focusT[0], hasta = in ? 1f : 0f;
+    t.addActionListener(ev -> {
+        float p = Math.min(1f, (System.currentTimeMillis() - ini) / 200f);
+        focusT[0] = desde + (hasta - desde) * (1f - (float)Math.pow(1 - p, 3));
+        f.repaint();
+        if (p >= 1f) t.stop();
+    });
+    timers.add(t); t.start();
+}
+
+@SuppressWarnings("unchecked")
+private void shakeCampo(JTextField f, java.util.List<Timer> timers) {
+    boolean[] isErr = (boolean[]) f.getClientProperty("isError");
+    float[]   shX   = (float[])  f.getClientProperty("shakeX");
+    if (isErr != null) isErr[0] = true;
+    if (shX == null) return;
+    Timer t = new Timer(16, null);
+    final long ini = System.currentTimeMillis();
+    t.addActionListener(ev -> {
+        float p = Math.min(1f, (System.currentTimeMillis() - ini) / 380f);
+        shX[0]  = (float)(Math.sin(p * Math.PI * 5) * (1 - p) * 7);
+        f.repaint();
+        if (p >= 1f) { shX[0] = 0f; t.stop(); }
+    });
+    timers.add(t); t.start();
+}
+
+@SuppressWarnings("unchecked")
+private void limpiarErrorCampo(JTextField f) {
+    boolean[] isErr = (boolean[]) f.getClientProperty("isError");
+    if (isErr != null) { isErr[0] = false; f.repaint(); }
+}
+
+// ── Error label deslizante ────────────────────────────────────────────────────
+private JLabel buildErrorLabel() {
+    JLabel l = new JLabel(" ") {
+        float alpha = 0f; float offY = -5f;
+        @Override protected void paintComponent(Graphics g) {
+            if (alpha <= 0f) return;
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                    RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+            g2.translate(0, (int)offY);
+            super.paintComponent(g2);
+            g2.dispose();
+        }
+        // Permite acceder a alpha/offY desde fuera vía putClientProperty
+    };
+    l.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+    l.setForeground(C_RED);
+    l.setBorder(new EmptyBorder(2, 2, 0, 0));
+    l.setPreferredSize(new Dimension(0, 0));
+    l.putClientProperty("alpha", new float[]{0f});
+    l.putClientProperty("offY",  new float[]{-5f});
+    return l;
+}
+
+@SuppressWarnings("unchecked")
+private void mostrarError(JLabel lbl, String msg, java.util.List<Timer> timers) {
+    lbl.setText(msg);
+    lbl.setPreferredSize(new Dimension(0, 18));
+    if (lbl.getParent() != null) lbl.getParent().revalidate();
+    float[] alpha = (float[]) lbl.getClientProperty("alpha");
+    float[] offY  = (float[]) lbl.getClientProperty("offY");
+    Timer t = new Timer(16, null);
+    final long ini = System.currentTimeMillis();
+    t.addActionListener(ev -> {
+        float p = Math.min(1f, (System.currentTimeMillis() - ini) / 200f);
+        float ease = 1f - (float)Math.pow(1 - p, 3);
+        if (alpha != null) alpha[0] = ease;
+        if (offY  != null) offY[0]  = -5f * (1 - ease);
+        lbl.repaint();
+        if (p >= 1f) t.stop();
+    });
+    timers.add(t); t.start();
+}
+
+private void ocultarError(JLabel lbl) {
+    lbl.setText(" ");
+    lbl.setPreferredSize(new Dimension(0, 0));
+    float[] alpha = (float[]) lbl.getClientProperty("alpha");
+    float[] offY  = (float[]) lbl.getClientProperty("offY");
+    if (alpha != null) alpha[0] = 0f;
+    if (offY  != null) offY[0]  = -5f;
+    lbl.repaint();
+    if (lbl.getParent() != null) lbl.getParent().revalidate();
+}
+
+// ── Sección header con línea shimmer ─────────────────────────────────────────
+private JPanel buildSeccionHeader(String texto, Color color, java.util.List<Timer> timers) {
+    JPanel p = new JPanel(new BorderLayout(10, 0));
+    p.setOpaque(false);
+    p.setAlignmentX(LEFT_ALIGNMENT);
+    p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
+
+    JLabel lbl = new JLabel(texto);
+    lbl.setFont(new Font("Segoe UI", Font.BOLD, 9));
+    lbl.setForeground(color);
+    p.add(lbl, BorderLayout.WEST);
+
+    final float[] phase = {0f};
+    JPanel linea = new JPanel() {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            int w = getWidth(), h = getHeight();
+            g2.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 38));
+            g2.fillRect(0, h/2, w, 1);
+            float cx2 = phase[0] * w;
+            g2.setPaint(new java.awt.RadialGradientPaint(
+                    new java.awt.geom.Point2D.Float(cx2, h/2f),
+                    Math.max(1f, w*0.22f),
+                    new float[]{0f, 1f},
+                    new Color[]{
+                        new Color(color.getRed(), color.getGreen(), color.getBlue(), 190),
+                        new Color(color.getRed(), color.getGreen(), color.getBlue(), 0)
+                    }));
+            g2.fillRect(0, h/2, w, 1);
+            g2.dispose();
+        }
+    };
+    linea.setOpaque(false);
+
+    Timer t = new Timer(38, ev -> {
+        phase[0] += 0.014f;
+        if (phase[0] > 1.4f) phase[0] = -0.4f;
+        linea.repaint();
+    });
+    timers.add(t); t.start();
+    p.add(linea, BorderLayout.CENTER);
+    return p;
+}
+
+// ── Envolver campo con etiqueta ───────────────────────────────────────────────
+private JPanel envolverCampo(String etiqueta, JComponent campo) {
+    JPanel p = new JPanel(new BorderLayout(0, 5));
+    p.setOpaque(false);
+    JLabel l = new JLabel(etiqueta);
+    l.setFont(new Font("Segoe UI", Font.BOLD, 9));
+    l.setForeground(C_BLUE);
+    p.add(l,     BorderLayout.NORTH);
+    p.add(campo, BorderLayout.CENTER);
+    return p;
+}
+
+// ── Botón animado con hover + ripple ──────────────────────────────────────────
+private JButton buildBtnAnimado(String texto, boolean primary, boolean danger,
+                                java.util.List<Timer> timers) {
+    final float[] hoverT  = {0f};
+    final float[] shimX   = {-0.3f};
+    final float[] spinA   = {0f};
+    final float[] checkP  = {0f};
+    final int[]   estado  = {0}; // 0=normal 1=loading 2=success
+    final float[] ripA    = {0f};
+    final float[] ripR    = {0f};
+    final int[]   ripXY   = {0, 0};
+
+    JButton b = new JButton(texto) {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int w = getWidth(), h = getHeight();
+
+            if (primary || estado[0] == 2) {
+                Color base = estado[0] == 2 ? new Color(0x059669)
+                           : blend(C_BLUE, new Color(0x1E40AF), hoverT[0]*0.5f);
+                if (primary && estado[0] == 0) {
+                    g2.setPaint(new GradientPaint(0, 0, base, w, 0,
+                            blend(C_PURPLE, new Color(0x5B21B6), hoverT[0]*0.4f)));
+                } else {
+                    g2.setColor(base);
+                }
+                g2.fillRoundRect(0, 0, w, h, 10, 10);
+                g2.setPaint(new GradientPaint(0, 0, new Color(255,255,255,28),
+                        0, h/2f, new Color(0,0,0,0)));
+                g2.fillRoundRect(0, 0, w, h/2, 10, 10);
+                if (primary && estado[0] == 0) {
+                    float cx2 = shimX[0] * w;
+                    g2.setPaint(new java.awt.RadialGradientPaint(
+                            new java.awt.geom.Point2D.Float(cx2, h/2f),
+                            Math.max(1f, w*0.22f),
+                            new float[]{0f, 1f},
+                            new Color[]{new Color(255,255,255,50), new Color(255,255,255,0)}));
+                    g2.fillRoundRect(0, 0, w, h, 10, 10);
+                }
+            } else if (danger) {
+                g2.setColor(new Color(C_RED.getRed(), C_RED.getGreen(), C_RED.getBlue(),
+                        (int)(hoverT[0]*30)));
+                g2.fillRoundRect(0, 0, w, h, 10, 10);
+                g2.setColor(new Color(C_RED.getRed(), C_RED.getGreen(), C_RED.getBlue(),
+                        (int)(80 + hoverT[0]*120)));
+                g2.setStroke(new BasicStroke(1f));
+                g2.drawRoundRect(0, 0, w-1, h-1, 10, 10);
+            } else {
+                g2.setColor(blend(BG_CARD, new Color(0xEFF6FF), hoverT[0]*0.6f));
+                g2.fillRoundRect(0, 0, w, h, 10, 10);
+                g2.setColor(blend(BORDER, C_BLUE, hoverT[0]*0.7f));
+                g2.setStroke(new BasicStroke(1f));
+                g2.drawRoundRect(0, 0, w-1, h-1, 10, 10);
+            }
+
+            // Ripple
+            if (ripA[0] > 0f) {
+                g2.setColor(new Color(255,255,255,(int)(ripA[0]*100)));
+                g2.fillOval(ripXY[0]-(int)ripR[0], ripXY[1]-(int)ripR[0],
+                        (int)ripR[0]*2, (int)ripR[0]*2);
+            }
+            g2.dispose();
+
+            // Texto / spinner / check
+            if (estado[0] == 1) {
+                // Spinner
+                Graphics2D gs = (Graphics2D) g.create();
+                gs.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                int sz = 15, sx2 = 14, sy2 = (h-sz)/2;
+                gs.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                gs.setColor(new Color(255,255,255,40));
+                gs.drawOval(sx2, sy2, sz, sz);
+                gs.setColor(Color.WHITE);
+                gs.rotate(Math.toRadians(spinA[0]), sx2+sz/2.0, sy2+sz/2.0);
+                gs.drawArc(sx2, sy2, sz, sz, 0, 255);
+                gs.rotate(-Math.toRadians(spinA[0]), sx2+sz/2.0, sy2+sz/2.0);
+                gs.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                gs.setColor(new Color(255,255,255,210));
+                FontMetrics fm = gs.getFontMetrics();
+                String t2 = getText();
+                gs.drawString(t2, sx2+sz+10, (h+fm.getAscent()-fm.getDescent())/2);
+                gs.dispose();
+            } else if (estado[0] == 2) {
+                // Check
+                Graphics2D gc = (Graphics2D) g.create();
+                gc.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                int r2 = 8, cx2 = 18, cy2 = h/2;
+                gc.setStroke(new BasicStroke(2.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                gc.setColor(new Color(255,255,255,160)); gc.drawOval(cx2-r2, cy2-r2, r2*2, r2*2);
+                if (checkP[0] > 0) {
+                    gc.setColor(Color.WHITE);
+                    int x1=cx2-5,y1=cy2,x2=cx2-1,y2=cy2+4,x3=cx2+6,y3=cy2-4;
+                    if (checkP[0] < 0.5f) {
+                        float pp=(float)checkP[0]/0.5f;
+                        gc.drawLine(x1,y1,(int)(x1+(x2-x1)*pp),(int)(y1+(y2-y1)*pp));
+                    } else {
+                        gc.drawLine(x1,y1,x2,y2);
+                        float pp=(checkP[0]-0.5f)/0.5f;
+                        gc.drawLine(x2,y2,(int)(x2+(x3-x2)*pp),(int)(y2+(y3-y2)*pp));
+                    }
+                }
+                gc.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                gc.setColor(Color.WHITE);
+                FontMetrics fm = gc.getFontMetrics();
+                gc.drawString(getText(), cx2+r2+10, (h+fm.getAscent()-fm.getDescent())/2);
+                gc.dispose();
+            } else {
+                super.paintComponent(g);
+            }
+        }
+    };
+    b.setFont(new Font("Segoe UI", Font.BOLD, 12));
+    b.setForeground(primary ? Color.WHITE : danger ? C_RED : TXT_MID);
+    b.setOpaque(false); b.setContentAreaFilled(false);
+    b.setBorderPainted(false); b.setFocusPainted(false);
+    b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    b.setBorder(new EmptyBorder(8, 18, 8, 18));
+
+    b.addMouseListener(new MouseAdapter() {
+        @Override public void mouseEntered(MouseEvent e) { animHoverBtn(hoverT, true, b, timers); }
+        @Override public void mouseExited (MouseEvent e) { animHoverBtn(hoverT, false, b, timers); }
+        @Override public void mousePressed(MouseEvent e) {
+            ripXY[0]=e.getX(); ripXY[1]=e.getY(); ripR[0]=0f; ripA[0]=0.4f;
+            Timer tr = new Timer(12, null);
+            tr.addActionListener(ev -> { ripR[0]+=10f; ripA[0]-=0.03f; b.repaint(); if (ripA[0]<=0) tr.stop(); });
+            timers.add(tr); tr.start();
+        }
+    });
+
+    // Shimmer continuo (solo primario)
+    if (primary) {
+        Timer ts = new Timer(38, e -> { shimX[0]+=0.016f; if(shimX[0]>1.3f) shimX[0]=-0.3f; b.repaint(); });
+        timers.add(ts); ts.start();
     }
+
+    // Guardar arrays en el botón para acceso externo
+    b.putClientProperty("estado", estado);
+    b.putClientProperty("spinA",  spinA);
+    b.putClientProperty("checkP", checkP);
+    b.putClientProperty("timers", timers);
+    return b;
+}
+
+private void animHoverBtn(float[] hoverT, boolean in, JButton b, java.util.List<Timer> timers) {
+    Timer t = new Timer(16, null);
+    final long ini = System.currentTimeMillis();
+    final float desde = hoverT[0], hasta = in ? 1f : 0f;
+    t.addActionListener(ev -> {
+        float p = Math.min(1f, (System.currentTimeMillis() - ini) / 160f);
+        hoverT[0] = desde + (hasta - desde) * (1f - (float)Math.pow(1-p,3));
+        b.repaint();
+        if (p >= 1f) t.stop();
+    });
+    timers.add(t); t.start();
+}
+
+@SuppressWarnings("unchecked")
+private void setLoadingBtn(JButton b, String msg, java.util.List<Timer> timers) {
+    int[]   estado = (int[])   b.getClientProperty("estado");
+    float[] spinA  = (float[]) b.getClientProperty("spinA");
+    if (estado != null) estado[0] = 1;
+    b.setText(msg);
+    b.setCursor(Cursor.getDefaultCursor());
+    Timer ts = new Timer(20, e -> { if(spinA!=null){spinA[0]+=12f;} b.repaint(); });
+    timers.add(ts); ts.start();
+    b.putClientProperty("spinTimer", ts);
+}
+
+@SuppressWarnings("unchecked")
+private void setSuccessBtn(JButton b, String msg, java.util.List<Timer> timers) {
+    int[]   estado = (int[])   b.getClientProperty("estado");
+    float[] checkP = (float[]) b.getClientProperty("checkP");
+    Timer   st     = (Timer)   b.getClientProperty("spinTimer");
+    if (st != null) st.stop();
+    if (estado != null) estado[0] = 2;
+    if (checkP != null) checkP[0] = 0f;
+    b.setText(msg);
+    Timer tc = new Timer(16, null);
+    final long ini = System.currentTimeMillis();
+    tc.addActionListener(ev -> {
+        float p = Math.min(1f, (System.currentTimeMillis() - ini) / 420f);
+        if (checkP != null) checkP[0] = p;
+        b.repaint();
+        if (p >= 1f) tc.stop();
+    });
+    timers.add(tc); tc.start();
+}
+
+@SuppressWarnings("unchecked")
+private void resetBtn(JButton b, String msg) {
+    int[] estado = (int[]) b.getClientProperty("estado");
+    if (estado != null) estado[0] = 0;
+    b.setText(msg);
+    b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    b.repaint();
+}
+
+// ── Color blend helper ────────────────────────────────────────────────────────
+private Color blend(Color a, Color b, float t) {
+    t = Math.max(0f, Math.min(1f, t));
+    return new Color(
+        (int)(a.getRed()   + (b.getRed()   - a.getRed())   * t),
+        (int)(a.getGreen() + (b.getGreen() - a.getGreen()) * t),
+        (int)(a.getBlue()  + (b.getBlue()  - a.getBlue())  * t));
+}
 
     // ── Helpers de construcción ───────────────────────────────────────────────
     private JPanel buildCard() {
