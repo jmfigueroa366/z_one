@@ -1,80 +1,84 @@
 package model;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
-/** Entidad Sesion (alineada con SESION_GRABACIONES). */
 public class Sesion {
 
-    public static final String ESTADO_PROGRAMADA = "Programada";
-    public static final String ESTADO_EN_CURSO   = "En curso";
-    public static final String ESTADO_FINALIZADA = "Finalizada";
-    public static final String ESTADO_CANCELADA  = "Cancelada";
-    public static final String[] ESTADOS_VALIDOS = {
-        ESTADO_PROGRAMADA, ESTADO_EN_CURSO, ESTADO_FINALIZADA, ESTADO_CANCELADA
-    };
-
-    private Integer   idSesion;
-    private Artista   artista;
-    private Productor productor;
-    private Integer   idCabina;
-    private String    nombreSesion;
-    private LocalDate fecha;
-    private String    horaInicio;
-    private String    horaFin;
-    private double    duracion;
-    private String    estadoSesion;
-    private String    observaciones;
-    private Integer   idCancion;
+    // ── Campos de SESION_GRABACION ──
+    private Integer       idGrabacion;
+    private Integer       idCancion;
+    private Integer       idFase;
+    private Integer       idArtista;
+    private String        nombreArtista;
+    private Integer       idProductor;
+    private String        nombreProductor;
+    private Integer       idCabina;
+    private Integer       idEstadoGrabacion;
+    private String        nombreSesion;
+    private Integer       numeroSesion;
+    private LocalDate     fechaGrabacion;
+    private LocalDateTime horaInicio;
+    private LocalDateTime horaFin;
+    private String        notas;
 
     public Sesion() {}
 
-    public Sesion(Integer idSesion, Artista artista, Productor productor,
-                  Integer idCabina, String nombreSesion, LocalDate fecha,
-                  String horaInicio, String horaFin, double duracion,
-                  String estadoSesion, String observaciones) {
-        this.idSesion      = idSesion;
-        this.artista       = artista;
-        this.productor     = productor;
-        this.idCabina      = idCabina;
-        this.nombreSesion  = nombreSesion;
-        this.fecha         = fecha;
-        this.horaInicio    = horaInicio;
-        this.horaFin       = horaFin;
-        this.duracion      = duracion;
-        this.estadoSesion  = estadoSesion;
-        this.observaciones = observaciones;
+    public Sesion(Integer idGrabacion, Integer idCancion, Integer idFase,
+                  Integer idArtista, String nombreArtista,
+                  Integer idProductor, String nombreProductor,
+                  Integer idCabina, Integer idEstadoGrabacion,
+                  String nombreSesion, Integer numeroSesion,
+                  LocalDate fechaGrabacion, LocalDateTime horaInicio,
+                  LocalDateTime horaFin, String notas) {
+        this.idGrabacion       = idGrabacion;
+        this.idCancion         = idCancion;
+        this.idFase            = idFase;
+        this.idArtista         = idArtista;
+        this.nombreArtista     = nombreArtista;
+        this.idProductor       = idProductor;
+        this.nombreProductor   = nombreProductor;
+        this.idCabina          = idCabina;
+        this.idEstadoGrabacion = idEstadoGrabacion;
+        this.nombreSesion      = nombreSesion;
+        this.numeroSesion      = numeroSesion;
+        this.fechaGrabacion    = fechaGrabacion;
+        this.horaInicio        = horaInicio;
+        this.horaFin           = horaFin;
+        this.notas             = notas;
     }
 
-    /** Costo total = duracion * tarifa del productor. */
-    public double getCostoTotal() {
-        if (productor == null) return 0;
-        return duracion * productor.getTarifaHora();
-    }
+    // ── Getters ──
+    public Integer       getIdGrabacion()       { return idGrabacion; }
+    public Integer       getIdCancion()         { return idCancion; }
+    public Integer       getIdFase()            { return idFase; }
+    public Integer       getIdArtista()         { return idArtista; }
+    public String        getNombreArtista()     { return nombreArtista; }
+    public Integer       getIdProductor()       { return idProductor; }
+    public String        getNombreProductor()   { return nombreProductor; }
+    public Integer       getIdCabina()          { return idCabina; }
+    public Integer       getIdEstadoGrabacion() { return idEstadoGrabacion; }
+    public String        getNombreSesion()      { return nombreSesion; }
+    public Integer       getNumeroSesion()      { return numeroSesion; }
+    public LocalDate     getFechaGrabacion()    { return fechaGrabacion; }
+    public LocalDateTime getHoraInicio()        { return horaInicio; }
+    public LocalDateTime getHoraFin()           { return horaFin; }
+    public String        getNotas()             { return notas; }
 
-    // ── Getters / Setters ──
-    public Integer   getIdSesion()      { return idSesion != null ? idSesion : 0; }
-    public Artista   getArtista()       { return artista; }
-    public Productor getProductor()     { return productor; }
-    public Integer   getIdCabina()      { return idCabina; }
-    public String    getNombreSesion()  { return nombreSesion; }
-    public LocalDate getFecha()         { return fecha; }
-    public String    getHoraInicio()    { return horaInicio; }
-    public String    getHoraFin()       { return horaFin; }
-    public double    getDuracion()      { return duracion; }
-    public String    getEstadoSesion()  { return estadoSesion; }
-    public String    getObservaciones() { return observaciones; }
-    public Integer   getIdCancion()     { return idCancion; }
-
-    public void setIdSesion(Integer id)         { this.idSesion = id; }
-    public void setArtista(Artista a)            { this.artista = a; }
-    public void setProductor(Productor p)        { this.productor = p; }
-    public void setIdCabina(Integer id)          { this.idCabina = id; }
-    public void setNombreSesion(String s)        { this.nombreSesion = s; }
-    public void setFecha(LocalDate f)            { this.fecha = f; }
-    public void setHoraInicio(String s)          { this.horaInicio = s; }
-    public void setHoraFin(String s)             { this.horaFin = s; }
-    public void setDuracion(double v)            { this.duracion = v; }
-    public void setEstadoSesion(String s)        { this.estadoSesion = s; }
-    public void setObservaciones(String s)       { this.observaciones = s; }
-    public void setIdCancion(Integer id)         { this.idCancion = id; }
+    // ── Setters ──
+    public void setIdGrabacion(Integer id)          { this.idGrabacion = id; }
+    public void setIdCancion(Integer id)            { this.idCancion = id; }
+    public void setIdFase(Integer id)               { this.idFase = id; }
+    public void setIdArtista(Integer id)            { this.idArtista = id; }
+    public void setNombreArtista(String s)          { this.nombreArtista = s; }
+    public void setIdProductor(Integer id)          { this.idProductor = id; }
+    public void setNombreProductor(String s)        { this.nombreProductor = s; }
+    public void setIdCabina(Integer id)             { this.idCabina = id; }
+    public void setIdEstadoGrabacion(Integer id)    { this.idEstadoGrabacion = id; }
+    public void setNombreSesion(String s)           { this.nombreSesion = s; }
+    public void setNumeroSesion(Integer n)          { this.numeroSesion = n; }
+    public void setFechaGrabacion(LocalDate f)      { this.fechaGrabacion = f; }
+    public void setHoraInicio(LocalDateTime t)      { this.horaInicio = t; }
+    public void setHoraFin(LocalDateTime t)         { this.horaFin = t; }
+    public void setNotas(String s)                  { this.notas = s; }
 }

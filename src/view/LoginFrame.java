@@ -335,29 +335,36 @@ public class LoginFrame extends JFrame {
     // =================================================================
     // VERIFICAR CONEXIÓN
     // =================================================================
-    private void verificarConexion() {
-        new SwingWorker<Boolean, Void>() {
-            protected Boolean doInBackground() { return usuarioService.hayConexion(); }
-            protected void done() {
-                try {
-                    if (get()) {
-                        lblConexion.setText("Oracle conectado correctamente");
-                        lblConexion.setForeground(SUCCESS);
-                        dotConexion.setColor(SUCCESS);
-                    } else {
-                        lblConexion.setText("Sin conexión — revisa ConexionDB.java");
-                        lblConexion.setForeground(ACCENT_PINK);
-                        dotConexion.setColor(ACCENT_PINK);
-                    }
-                } catch (Exception e) {
-                    lblConexion.setText("Error de conexión");
+private void verificarConexion() {
+    new SwingWorker<Boolean, Void>() {
+        protected Boolean doInBackground() { 
+            try {
+                return usuarioService.hayConexion(); 
+            } catch (Exception e) {
+                e.printStackTrace(); // <-- VER ERROR EN OUTPUT
+                return false;
+            }
+        }
+        protected void done() {
+            try {
+                if (get()) {
+                    lblConexion.setText("Oracle conectado correctamente");
+                    lblConexion.setForeground(SUCCESS);
+                    dotConexion.setColor(SUCCESS);
+                } else {
+                    lblConexion.setText("Sin conexión — revisa ConexionDB.java");
                     lblConexion.setForeground(ACCENT_PINK);
                     dotConexion.setColor(ACCENT_PINK);
                 }
+            } catch (Exception e) {
+                e.printStackTrace(); // <-- VER ERROR EN OUTPUT
+                lblConexion.setText("Error: " + e.getMessage());
+                lblConexion.setForeground(ACCENT_PINK);
+                dotConexion.setColor(ACCENT_PINK);
             }
-        }.execute();
-    }
-
+        }
+    }.execute();
+}
     // =================================================================
     // ANIMACIÓN CORTINA MORADA → abre RegistroDialog
     // =================================================================

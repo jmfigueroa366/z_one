@@ -34,30 +34,22 @@ public class UsuarioService {
      *
      * @param idRol 1=ADMIN, 2=ARTISTA, 3=PRODUCTOR, 4=USUARIO
      */
-    public Usuario registrar(String username, String password, String correo,
-                             String nombreCompleto, int idRol) throws Exception {
-        if (username == null || username.trim().length() < 3)
-            throw new Exception("El usuario debe tener al menos 3 caracteres.");
-        if (password == null || password.length() < 4)
-            throw new Exception("La contrasena debe tener al menos 4 caracteres.");
-        if (correo == null || !correo.contains("@"))
-            throw new Exception("El correo debe tener formato valido.");
-        if (nombreCompleto == null || nombreCompleto.trim().isEmpty())
-            throw new Exception("El nombre completo no puede estar vacio.");
-        if (idRol < 1 || idRol > 4)
-            throw new Exception("Rol invalido (1-4).");
+public Usuario registrar(String username, String password,
+                         String correo, String nombreCompleto, int idRol) throws Exception {
+    if (username == null || username.trim().length() < 3)
+        throw new Exception("El usuario debe tener al menos 3 caracteres.");
+    if (password == null || password.length() < 4)
+        throw new Exception("La contraseña debe tener al menos 4 caracteres.");
+ if (idRol != 1)
+    throw new Exception("Solo puedes registrarte como Administrador.");
+    if (dao.existeUsername(username.trim()))
+        throw new Exception("El usuario '" + username + "' ya está registrado.");
 
-        if (dao.existeUsername(username.trim()))
-            throw new Exception("El usuario '" + username + "' ya esta registrado.");
-        if (dao.existeCorreo(correo.trim()))
-            throw new Exception("El correo '" + correo + "' ya esta registrado.");
-
-        String hash = PasswordUtil.hashPassword(password);
-        Usuario nuevo = new Usuario(username.trim(), hash, correo.trim(),
-                                    nombreCompleto.trim(), idRol);
-        int id = dao.guardar(nuevo);
-        return dao.buscarPorId(id);
-    }
+    String hash = PasswordUtil.hashPassword(password);
+    Usuario nuevo = new Usuario(username.trim(), hash, null, null, idRol);
+    int id = dao.guardar(nuevo);
+    return dao.buscarPorId(id);
+}
 
     public List<Usuario> listar() throws SQLException {
         return dao.listarTodos();
@@ -82,12 +74,13 @@ public class UsuarioService {
         return dao.cambiarPassword(idUsuario, PasswordUtil.hashPassword(passwordNuevo));
     }
 
-    public boolean hayConexion() {
-        try {
-            dao.listarTodos();
-            return true;
-        } catch (SQLException e) {
-            return false;
-        }
+public boolean hayConexion() {
+    try {
+        util.ConexionDB.getConexion();
+        return true;
+    } catch (Exception e) {
+        e.printStackTrace(); // <-- esto imprime el error real
+        return false;
     }
+}
 }

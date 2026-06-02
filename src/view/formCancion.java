@@ -726,14 +726,15 @@ public class formCancion extends JPanel {
             if(col==COL_TITULO){c.setFont(F_BOLD);}
             if(col==COL_GENERO&&val!=null){c.setForeground(CYAN);c.setFont(F_BOLD);c.setText("● "+val);}
             if(col==COL_BPM   &&val!=null){c.setForeground(PURPLE_LT);c.setFont(F_MONO_B);}
-            if(col==COL_ESTADO&&val!=null){
-                String est=val.toString();
-                Color ce="Publicada".equals(est)?GREEN
-                        :"Grabando".equals(est)||"Mezcla".equals(est)?CYAN
-                        :"Master".equals(est)?AMBER
-                        :"Archivada".equals(est)?PINK:TXT_SEC;
-                c.setForeground(ce);c.setFont(F_BOLD);c.setText("● "+est);
-            }
+if(col==COL_ESTADO&&val!=null){
+    String est=val.toString();
+    Color ce="Publicada".equals(est)?GREEN
+            :"En Produccion".equals(est)?CYAN
+            :"Lista".equals(est)?AMBER
+            :"Retirada".equals(est)?PINK
+            :"Archivada".equals(est)?TXT_SEC:PURPLE_LT;
+    c.setForeground(ce);c.setFont(F_BOLD);c.setText("● "+est);
+}
             return c;
         }
     }
@@ -951,9 +952,15 @@ private void abrirFormulario(Cancion orig){
     JTextField fFecha  = dlgField(esEd && orig.getFechaCompilacion() != null
         ? orig.getFechaCompilacion().format(FMT) : LocalDate.now().format(FMT));
 
+    String[] opFormato = {
+    "Mañana Sera Bonito","Rojo","Circuito Roto",
+    "Desde el Silencio","Ecos del Pasado","Lejania",
+    "Borrador Interno","Noches de Verano"
+};
+JComboBox<String> cbFor = dlgCombo(opFormato);
     String[] opGenero = {"Reggaeton","Pop","Rock","Vallenato","Salsa","Bachata","Trap","Hip-hop","Electronica","Jazz"};
     String[] opIdioma = {"Espanol","Ingles","Portugues","Frances","Italiano"};
-    String[] opEstado = {"En composicion","Grabando","Mezcla","Master","Publicada","Archivada"};
+    String[] opEstado = {"Archivada","En Produccion","Lista","Publicada","Retirada"};
     JComboBox<String> cbGen = dlgCombo(opGenero);
     JComboBox<String> cbIdi = dlgCombo(opIdioma);
     JComboBox<String> cbEst = dlgCombo(opEstado);
@@ -961,6 +968,7 @@ private void abrirFormulario(Cancion orig){
         if (orig.getNombreGenero() != null) cbGen.setSelectedItem(orig.getNombreGenero());
         if (orig.getNombreIdioma() != null) cbIdi.setSelectedItem(orig.getNombreIdioma());
         if (orig.getNombreEstado() != null) cbEst.setSelectedItem(orig.getNombreEstado());
+        if (orig.getNombreFormato() != null) cbFor.setSelectedItem(orig.getNombreFormato());
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -1009,12 +1017,14 @@ private void abrirFormulario(Cancion orig){
     gbc.fill=GridBagConstraints.HORIZONTAL;
     gbc.insets=new Insets(4,0,4,6);
 
-    gbc.gridx=0; gbc.gridy=0; gbc.weightx=0.34;
-    grid2.add(comboConLabel("Género", cbGen, PURPLE), gbc);
-    gbc.gridx=1; gbc.weightx=0.33; gbc.insets=new Insets(4,6,4,6);
-    grid2.add(comboConLabel("Idioma", cbIdi, CYAN), gbc);
-    gbc.gridx=2; gbc.weightx=0.33; gbc.insets=new Insets(4,6,4,0);
-    grid2.add(comboConLabel("Estado", cbEst, GREEN), gbc);
+    gbc.gridx=0; gbc.gridy=0; gbc.weightx=0.25;
+grid2.add(comboConLabel("Género", cbGen, PURPLE), gbc);
+gbc.gridx=1; gbc.weightx=0.25; gbc.insets=new Insets(4,6,4,6);
+grid2.add(comboConLabel("Idioma", cbIdi, CYAN), gbc);
+gbc.gridx=2; gbc.weightx=0.25; gbc.insets=new Insets(4,6,4,6);
+grid2.add(comboConLabel("Estado", cbEst, GREEN), gbc);
+gbc.gridx=3; gbc.weightx=0.25; gbc.insets=new Insets(4,6,4,0);
+grid2.add(comboConLabel("Formato", cbFor, AMBER), gbc);
 
     form.add(grid2);
 
@@ -1045,7 +1055,7 @@ private void abrirFormulario(Cancion orig){
     bCan.addActionListener(e -> dlg.dispose());
     ZBtn bGua = new ZBtn(esEd ? "💾  Guardar cambios" : "✦  Crear canción", true);
     bGua.addActionListener(e ->
-        guardar(dlg, orig, esEd, fTitulo, fBpm, fProd, fFecha, cbGen, cbIdi, cbEst));
+    guardar(dlg, orig, esEd, fTitulo, fBpm, fProd, fFecha, cbGen, cbIdi, cbEst, cbFor));
     botones.add(bCan);
     botones.add(bGua);
 
@@ -1215,9 +1225,10 @@ private JComboBox<String> dlgCombo(String[] items) {
         l.setBorder(new EmptyBorder(0,0,0,8)); return l;
     }
 
-    private void guardar(JDialog dlg,Cancion orig,boolean esEd,
-            JTextField fT,JTextField fB,JTextField fP,JTextField fF,
-            JComboBox<String> cbG,JComboBox<String> cbI,JComboBox<String> cbE){
+   private void guardar(JDialog dlg,Cancion orig,boolean esEd,
+        JTextField fT,JTextField fB,JTextField fP,JTextField fF,
+        JComboBox<String> cbG,JComboBox<String> cbI,JComboBox<String> cbE,
+        JComboBox<String> cbFor){
         try{
             if(fT.getText().isBlank()) throw new IllegalArgumentException("El título es obligatorio");
             if(fP.getText().isBlank()) throw new IllegalArgumentException("El ID de productor es obligatorio");
@@ -1230,6 +1241,7 @@ private JComboBox<String> dlgCombo(String[] items) {
             c.setNombreGenero((String)cbG.getSelectedItem());
             c.setNombreIdioma((String)cbI.getSelectedItem());
             c.setNombreEstado((String)cbE.getSelectedItem());
+            c.setNombreFormato((String)cbFor.getSelectedItem());
             if(esEd) svc.actualizar(c); else svc.crear(c);
             MainFrame.showToast(esEd?"Canción actualizada ✓":"Canción creada ✓",MainFrame.ToastType.SUCCESS);
             cargarCanciones(); dlg.dispose();

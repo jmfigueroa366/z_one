@@ -2,7 +2,6 @@ package services;
 
 import dao.ColaboracionDAO;
 import model.Colaboracion;
-
 import java.sql.SQLException;
 import java.util.List;
 
@@ -35,8 +34,8 @@ public class ColaboracionService {
     }
 
     private String validar(Colaboracion c) {
-        if (c.getColaboracionArtista() == null || c.getColaboracionArtista().isBlank())
-            return "El nombre del artista colaborador es obligatorio";
+        if (c.getNombreColaborador() == null || c.getNombreColaborador().isBlank())
+            return "El nombre del colaborador es obligatorio";
         if (c.getIdCancion() == null)
             return "Selecciona una cancion";
         if (c.getFechaColaboracion() == null)

@@ -9,19 +9,22 @@ import java.util.List;
 
 public class ProductorDAO {
 
+    private static final String SCHEMA = "PRODUCTORA_BD.";
+
     private static final String SELECT_BASE =
-        "SELECT p.id_productor, p.id_usuario, p.nombre, p.especialidad, " +
-        "       p.fecha_firma, p.fecha_nacimiento, p.num_identificacion, " +
-        "       p.tarifa_hora, " +
+        "SELECT p.id_productor, p.num_identificacion, p.nombre, " +
+        "       p.fecha_nacimiento, p.fecha_firma, p.especialidad, " +
         "       gp.descripcion AS genero_persona, " +
         "       n.nombre       AS nacionalidad, " +
         "       gm.nombre      AS genero_musical, " +
         "       es.nombre      AS estado " +
-        "FROM productores p " +
-        "LEFT JOIN genero_persona     gp ON p.id_genero_persona = gp.id_genero_persona " +
-        "LEFT JOIN nacionalidades     n  ON p.id_nacionalidad   = n.id_nacionalidad " +
-        "LEFT JOIN genero_musicales   gm ON p.id_genero_musical = gm.id_genero " +
-        "LEFT JOIN estados_art_pro    es ON p.id_estado         = es.id_estado ";
+        "FROM "      + SCHEMA + "PRODUCTOR p " +
+        "LEFT JOIN " + SCHEMA + "GENERO_PERSONA  gp ON p.id_genero_persona  = gp.id_genero_persona " +
+        "LEFT JOIN " + SCHEMA + "NACIONALIDAD    n  ON p.id_nacionalidad    = n.id_nacionalidad " +
+        "LEFT JOIN " + SCHEMA + "GENERO_MUSICAL  gm ON p.id_genero_musical  = gm.id_genero_musical " +
+        "LEFT JOIN " + SCHEMA + "ESTADO_ART_PRO  es ON p.id_estado_art_pro  = es.id_estado_art_pro ";
+
+    // ── LISTAR / BUSCAR ──────────────────────────────────────────────
 
     public List<Productor> listarTodos() throws SQLException {
         return ejecutar(SELECT_BASE + "ORDER BY p.nombre", null);
@@ -32,79 +35,6 @@ public class ProductorDAO {
         return r.isEmpty() ? null : r.get(0);
     }
 
-    // ── INSERTAR ──
-    public int crear(Productor p) throws SQLException {
-        Integer idNac    = resolverId("nacionalidades",   "id_nacionalidad",   "nombre",      p.getNacionalidad(),  "Nacionalidad");
-        Integer idGenPer = resolverId("genero_persona",   "id_genero_persona", "descripcion", p.getGeneroPersona(), "Genero persona");
-        Integer idGenMus = resolverId("genero_musicales", "id_genero",         "nombre",      p.getGeneroMusical(), "Genero musical");
-        Integer idEstado = resolverId("estados_art_pro",  "id_estado",         "nombre",      p.getEstado(),        "Estado");
-
-        String sql = "INSERT INTO productores (nombre, especialidad, fecha_firma, fecha_nacimiento, " +
-                     "num_identificacion, tarifa_hora, id_nacionalidad, id_genero_persona, " +
-                     "id_genero_musical, id_estado, id_usuario) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-        try (Connection c = ConexionDB.getConexion();
-             PreparedStatement ps = c.prepareStatement(sql, new String[]{"id_productor"})) {
-            ps.setString(1, p.getNombre());
-            ps.setString(2, p.getEspecialidad());
-            ps.setDate  (3, p.getFechaFirma() != null ? Date.valueOf(p.getFechaFirma()) : null);
-            ps.setDate  (4, p.getFechaNacimiento() != null ? Date.valueOf(p.getFechaNacimiento()) : null);
-            ps.setString(5, p.getNumIdentificacion());
-            ps.setDouble(6, p.getTarifaHora());
-            setIntOrNull(ps, 7,  idNac);
-            setIntOrNull(ps, 8,  idGenPer);
-            setIntOrNull(ps, 9,  idGenMus);
-            setIntOrNull(ps, 10, idEstado);
-            setIntOrNull(ps, 11, p.getIdUsuario());
-            ps.executeUpdate();
-            try (ResultSet rs = ps.getGeneratedKeys()) {
-                if (rs.next()) return rs.getInt(1);
-            }
-        }
-        return -1;
-    }
-
-    // ── ACTUALIZAR ──
-    public boolean actualizar(Productor p) throws SQLException {
-        Integer idNac    = resolverId("nacionalidades",   "id_nacionalidad",   "nombre",      p.getNacionalidad(),  "Nacionalidad");
-        Integer idGenPer = resolverId("genero_persona",   "id_genero_persona", "descripcion", p.getGeneroPersona(), "Genero persona");
-        Integer idGenMus = resolverId("genero_musicales", "id_genero",         "nombre",      p.getGeneroMusical(), "Genero musical");
-        Integer idEstado = resolverId("estados_art_pro",  "id_estado",         "nombre",      p.getEstado(),        "Estado");
-
-        String sql = "UPDATE productores SET nombre=?, especialidad=?, fecha_firma=?, " +
-                     "fecha_nacimiento=?, num_identificacion=?, tarifa_hora=?, " +
-                     "id_nacionalidad=?, id_genero_persona=?, id_genero_musical=?, id_estado=? " +
-                     "WHERE id_productor = ?";
-
-        try (Connection c = ConexionDB.getConexion();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setString(1, p.getNombre());
-            ps.setString(2, p.getEspecialidad());
-            ps.setDate  (3, p.getFechaFirma() != null ? Date.valueOf(p.getFechaFirma()) : null);
-            ps.setDate  (4, p.getFechaNacimiento() != null ? Date.valueOf(p.getFechaNacimiento()) : null);
-            ps.setString(5, p.getNumIdentificacion());
-            ps.setDouble(6, p.getTarifaHora());
-            setIntOrNull(ps, 7,  idNac);
-            setIntOrNull(ps, 8,  idGenPer);
-            setIntOrNull(ps, 9,  idGenMus);
-            setIntOrNull(ps, 10, idEstado);
-            ps.setInt(11, p.getIdProductor());
-            return ps.executeUpdate() > 0;
-        }
-    }
-
-    // ── ELIMINAR ──
-    public boolean eliminar(int idProductor) throws SQLException {
-        String sql = "DELETE FROM productores WHERE id_productor = ?";
-        try (Connection c = ConexionDB.getConexion();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setInt(1, idProductor);
-            return ps.executeUpdate() > 0;
-        }
-    }
-
-    // ── BUSCAR por texto ──
     public List<Productor> buscar(String texto) throws SQLException {
         if (texto == null || texto.isBlank()) return listarTodos();
         String q = "%" + texto.toLowerCase() + "%";
@@ -114,19 +44,126 @@ public class ProductorDAO {
         return ejecutar(sql, new Object[]{q, q});
     }
 
-    // ══════════════════════════════════════════════════════════════
-    //  HELPERS
-    // ══════════════════════════════════════════════════════════════
+    // ── INSERTAR ─────────────────────────────────────────────────────
 
-    /**
-     * Busca el ID de un catalogo por su nombre, tolerante a tildes/mayusculas.
-     * - Si el valor viene vacio/null: devuelve null (campo opcional, queda NULL en BD).
-     * - Si el valor viene con datos pero NO existe en el catalogo: LANZA error claro.
-     */
+    public int crear(Productor p) throws SQLException {
+        Integer idNac    = resolverId("NACIONALIDAD",   "id_nacionalidad",   "nombre",      p.getNacionalidad(),  "Nacionalidad");
+        Integer idGenPer = resolverId("GENERO_PERSONA", "id_genero_persona", "descripcion", p.getGeneroPersona(), "Genero persona");
+        Integer idGenMus = resolverId("GENERO_MUSICAL", "id_genero_musical", "nombre",      p.getGeneroMusical(), "Genero musical");
+        Integer idEstado = resolverId("ESTADO_ART_PRO", "id_estado_art_pro", "nombre",      p.getEstado(),        "Estado");
+
+        String sql =
+            "INSERT INTO " + SCHEMA + "PRODUCTOR " +
+            "(num_identificacion, nombre, fecha_nacimiento, fecha_firma, especialidad, " +
+            " id_genero_persona, id_nacionalidad, id_genero_musical, id_estado_art_pro) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection c = ConexionDB.getConexion();
+             PreparedStatement ps = c.prepareStatement(sql, new String[]{"ID_PRODUCTOR"})) {
+
+            ps.setString(1, p.getNumIdentificacion());
+            ps.setString(2, p.getNombre());
+            ps.setDate  (3, p.getFechaNacimiento() != null ? Date.valueOf(p.getFechaNacimiento()) : null);
+            ps.setDate  (4, p.getFechaFirma()      != null ? Date.valueOf(p.getFechaFirma())      : null);
+            ps.setString(5, p.getEspecialidad());
+            setIntOrNull(ps, 6, idGenPer);
+            setIntOrNull(ps, 7, idNac);
+            setIntOrNull(ps, 8, idGenMus);
+            setIntOrNull(ps, 9, idEstado);
+
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        }
+        return -1;
+    }
+
+    // ── ACTUALIZAR ───────────────────────────────────────────────────
+
+    public boolean actualizar(Productor p) throws SQLException {
+        Integer idNac    = resolverId("NACIONALIDAD",   "id_nacionalidad",   "nombre",      p.getNacionalidad(),  "Nacionalidad");
+        Integer idGenPer = resolverId("GENERO_PERSONA", "id_genero_persona", "descripcion", p.getGeneroPersona(), "Genero persona");
+        Integer idGenMus = resolverId("GENERO_MUSICAL", "id_genero_musical", "nombre",      p.getGeneroMusical(), "Genero musical");
+        Integer idEstado = resolverId("ESTADO_ART_PRO", "id_estado_art_pro", "nombre",      p.getEstado(),        "Estado");
+
+        String sql =
+            "UPDATE " + SCHEMA + "PRODUCTOR SET " +
+            "num_identificacion = ?, nombre = ?, fecha_nacimiento = ?, fecha_firma = ?, " +
+            "especialidad = ?, id_genero_persona = ?, id_nacionalidad = ?, " +
+            "id_genero_musical = ?, id_estado_art_pro = ? " +
+            "WHERE id_productor = ?";
+
+        try (Connection c = ConexionDB.getConexion();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+
+            ps.setString(1, p.getNumIdentificacion());
+            ps.setString(2, p.getNombre());
+            ps.setDate  (3, p.getFechaNacimiento() != null ? Date.valueOf(p.getFechaNacimiento()) : null);
+            ps.setDate  (4, p.getFechaFirma()      != null ? Date.valueOf(p.getFechaFirma())      : null);
+            ps.setString(5, p.getEspecialidad());
+            setIntOrNull(ps, 6,  idGenPer);
+            setIntOrNull(ps, 7,  idNac);
+            setIntOrNull(ps, 8,  idGenMus);
+            setIntOrNull(ps, 9,  idEstado);
+            ps.setInt   (10, p.getIdProductor());
+
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    // ── ELIMINAR ─────────────────────────────────────────────────────
+
+    public boolean eliminar(int idProductor) throws SQLException {
+        String sql = "DELETE FROM " + SCHEMA + "PRODUCTOR WHERE id_productor = ?";
+        try (Connection c = ConexionDB.getConexion();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, idProductor);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    // ── CATÁLOGOS ────────────────────────────────────────────────────
+
+    public List<String> listarNacionalidades() throws SQLException {
+        List<String> out = new ArrayList<>();
+        String sql = "SELECT nombre FROM " + SCHEMA + "NACIONALIDAD ORDER BY nombre";
+        try (Connection c = ConexionDB.getConexion();
+             PreparedStatement ps = c.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) out.add(rs.getString(1));
+        }
+        return out;
+    }
+
+    public List<String> listarGenerosMusicales() throws SQLException {
+        List<String> out = new ArrayList<>();
+        String sql = "SELECT nombre FROM " + SCHEMA + "GENERO_MUSICAL ORDER BY nombre";
+        try (Connection c = ConexionDB.getConexion();
+             PreparedStatement ps = c.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) out.add(rs.getString(1));
+        }
+        return out;
+    }
+
+    public List<String> listarEstados() throws SQLException {
+        List<String> out = new ArrayList<>();
+        String sql = "SELECT nombre FROM " + SCHEMA + "ESTADO_ART_PRO ORDER BY nombre";
+        try (Connection c = ConexionDB.getConexion();
+             PreparedStatement ps = c.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) out.add(rs.getString(1));
+        }
+        return out;
+    }
+
+    // ── HELPERS ──────────────────────────────────────────────────────
+
     private Integer resolverId(String tabla, String colId, String colNombre,
                                 String valor, String etiqueta) throws SQLException {
         if (valor == null || valor.isBlank()) return null;
-        String sql = "SELECT " + colId + " FROM " + tabla +
+        String sql = "SELECT " + colId + " FROM " + SCHEMA + tabla +
                      " WHERE UPPER(TRIM(" + colNombre + ")) = UPPER(TRIM(?))";
         try (Connection c = ConexionDB.getConexion();
              PreparedStatement ps = c.prepareStatement(sql)) {
@@ -136,7 +173,7 @@ public class ProductorDAO {
             }
         }
         throw new SQLException(etiqueta + " '" + valor + "' no existe en la BD. " +
-                "Verifica que este registrado en la tabla " + tabla + ".");
+                "Verifica que esté registrado en la tabla " + SCHEMA + tabla + ".");
     }
 
     private void setIntOrNull(PreparedStatement ps, int idx, Integer val) throws SQLException {
@@ -159,21 +196,18 @@ public class ProductorDAO {
 
     private Productor mapear(ResultSet rs) throws SQLException {
         Productor p = new Productor();
-        p.setIdProductor(rs.getInt("id_productor"));
-        int idU = rs.getInt("id_usuario");
-        p.setIdUsuario(rs.wasNull() ? null : idU);
-        p.setNombre(rs.getString("nombre"));
-        p.setEspecialidad(rs.getString("especialidad"));
-        Date ff = rs.getDate("fecha_firma");
-        p.setFechaFirma(ff != null ? ff.toLocalDate() : null);
-        Date fn = rs.getDate("fecha_nacimiento");
-        p.setFechaNacimiento(fn != null ? fn.toLocalDate() : null);
+        p.setIdProductor      (rs.getInt("id_productor"));
         p.setNumIdentificacion(rs.getString("num_identificacion"));
-        p.setTarifaHora(rs.getDouble("tarifa_hora"));
-        p.setGeneroPersona(rs.getString("genero_persona"));
-        p.setNacionalidad(rs.getString("nacionalidad"));
-        p.setGeneroMusical(rs.getString("genero_musical"));
-        p.setEstado(rs.getString("estado"));
+        p.setNombre           (rs.getString("nombre"));
+        Date fn = rs.getDate("fecha_nacimiento");
+        p.setFechaNacimiento  (fn != null ? fn.toLocalDate() : null);
+        Date ff = rs.getDate("fecha_firma");
+        p.setFechaFirma       (ff != null ? ff.toLocalDate() : null);
+        p.setEspecialidad     (rs.getString("especialidad"));
+        p.setGeneroPersona    (rs.getString("genero_persona"));
+        p.setNacionalidad     (rs.getString("nacionalidad"));
+        p.setGeneroMusical    (rs.getString("genero_musical"));
+        p.setEstado           (rs.getString("estado"));
         return p;
     }
 }

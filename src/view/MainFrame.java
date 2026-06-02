@@ -506,9 +506,9 @@ items.put("Configuración",  new String[]{"configuracion",  "⚙"});
                 g2.setColor(Color.WHITE);
                 g2.setFont(new Font("Segoe UI", Font.BOLD, 14));
                 FontMetrics fm = g2.getFontMetrics();
-                String ini = usuarioActual.getNombreCompleto().substring(0, 1).toUpperCase();
-                g2.drawString(ini, cx - fm.stringWidth(ini) / 2,
-                              cy + (fm.getAscent() - fm.getDescent()) / 2);
+String ini = usuarioActual.getNombreCompleto() != null 
+    ? usuarioActual.getNombreCompleto().substring(0, 1).toUpperCase()
+    : usuarioActual.getUsername().substring(0, 1).toUpperCase();
                 g2.dispose();
             }
         };
@@ -688,37 +688,42 @@ private void cambiarVista(String vista) {
         }
     }
 }
-    private void mostrarToastInterno(String mensaje, ToastType tipo) {
-        Color color; String icono;
-        switch (tipo) {
-            case SUCCESS: color = SUCCESS;     icono = "✓"; break;
-            case ERROR:   color = ACCENT_PINK; icono = "✗"; break;
-            default:      color = ACCENT_CYAN; icono = "i"; break;
+  private void mostrarToastInterno(String mensaje, ToastType tipo) {
+    // Si la ventana no está visible todavía, ignorar el toast
+    if (!isShowing()) return;
+    
+    Color color; String icono;
+    switch (tipo) {
+        case SUCCESS: color = SUCCESS;     icono = "✓"; break;
+        case ERROR:   color = ACCENT_PINK; icono = "✗"; break;
+        default:      color = ACCENT_CYAN; icono = "i"; break;
+    }
+    JWindow toast = new JWindow(this);
+    JPanel panel = new JPanel() {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(24, 24, 52, 245));
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
+            g2.setColor(color);
+            g2.fillRoundRect(0, 0, 4, getHeight(), 4, 4);
+            g2.dispose();
         }
-        JWindow toast = new JWindow(this);
-        JPanel panel = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(24, 24, 52, 245));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
-                g2.setColor(color);
-                g2.fillRoundRect(0, 0, 4, getHeight(), 4, 4);
-                g2.dispose();
-            }
-        };
-        panel.setOpaque(false);
-        panel.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 12));
-        panel.setBorder(new EmptyBorder(8, 16, 8, 20));
-        JLabel ico = new JLabel(icono);
-        ico.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        ico.setForeground(color);
-        JLabel txt = new JLabel(mensaje);
-        txt.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        txt.setForeground(TEXT_PRIMARY);
-        panel.add(ico); panel.add(txt);
-        toast.setContentPane(panel);
-        toast.pack();
+    };
+    panel.setOpaque(false);
+    panel.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 12));
+    panel.setBorder(new EmptyBorder(8, 16, 8, 20));
+    JLabel ico = new JLabel(icono);
+    ico.setFont(new Font("Segoe UI", Font.BOLD, 16));
+    ico.setForeground(color);
+    JLabel txt = new JLabel(mensaje);
+    txt.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    txt.setForeground(TEXT_PRIMARY);
+    panel.add(ico); panel.add(txt);
+    toast.setContentPane(panel);
+    toast.pack();
+    
+    try {
         Point loc = getLocationOnScreen();
         toast.setLocation(loc.x + getWidth() - toast.getWidth() - 24,
                           loc.y + getHeight() - toast.getHeight() - 48);
@@ -726,7 +731,10 @@ private void cambiarVista(String vista) {
         toast.setVisible(true);
         Timer t = new Timer(2500, e -> toast.dispose());
         t.setRepeats(false); t.start();
+    } catch (IllegalComponentStateException ex) {
+        toast.dispose(); // Si falla, simplemente ignorar
     }
+}
 
     // =================================================================
     //  SIDEBAR ITEM

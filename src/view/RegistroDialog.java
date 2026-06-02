@@ -329,11 +329,9 @@ public class RegistroDialog extends JDialog {
         });
 
         // ── Combo de rol — usa RolItem igual que el código original ───
-        cmbRol = new JComboBox<>(new RolItem[]{
-            new RolItem(2, "ARTISTA"),
-            new RolItem(3, "PRODUCTOR"),
-            new RolItem(4, "USUARIO")
-        });
+cmbRol = new JComboBox<>(new RolItem[]{
+    new RolItem(1, "ADMINISTRADOR")
+});
         cmbRol.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cmbRol.setBackground(ModernUI.INPUT_BG);
         cmbRol.setForeground(ModernUI.TEXT_PRIMARY);

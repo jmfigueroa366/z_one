@@ -315,7 +315,7 @@ public class formColaboracion extends JPanel {
             info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
             info.setOpaque(false);
 
-            String artista = c.getColaboracionArtista() != null ? c.getColaboracionArtista() : "—";
+           String artista = c.getNombreColaborador() != null ? c.getNombreColaborador() : "—";
             String cancion = c.getNombreCancion() != null ? c.getNombreCancion() : "Sin canción";
             String fecha   = c.getFechaColaboracion() != null ? c.getFechaColaboracion().format(FMT) : "—";
 
@@ -354,7 +354,7 @@ public class formColaboracion extends JPanel {
     }
 
     private int getTipoIndex(Colaboracion c) {
-        if (c == null || c.getColaboracionArtista() == null) return 3;
+       if (c == null || c.getNombreColaborador() == null) return 3;
         // Si el modelo tiene campo tipo puedes usarlo; aquí lo inferimos del artista como demo
         return 3; // default Remix — ajusta según tu campo real
     }
@@ -477,10 +477,10 @@ public class formColaboracion extends JPanel {
             return;
         }
         int tipoIdx = getTipoIndex(c);
-        detAvatar.setText(iniciales(c.getColaboracionArtista()));
+        detAvatar.setText(iniciales(c.getNombreColaborador()));
         detAvatar.setBackground(TIPO_BG[tipoIdx]);
         detAvatar.setForeground(TIPO_FG[tipoIdx]);
-        detNombre.setText(c.getColaboracionArtista() != null ? c.getColaboracionArtista() : "—");
+        detNombre.setText(c.getNombreColaborador() != null ? c.getNombreColaborador() : "—");
         detCancion.setText("♪  " + (c.getNombreCancion() != null ? c.getNombreCancion() : "Sin canción"));
         detFecha.setText(c.getFechaColaboracion() != null ? c.getFechaColaboracion().format(FMT) : "—");
         detTipo.setText(TIPO_NOMBRES[tipoIdx]);
@@ -514,7 +514,7 @@ public class formColaboracion extends JPanel {
     private void actualizarStats(List<Colaboracion> all) {
         lblTotal.setText(String.valueOf(all.size()));
         long artUnicos = all.stream()
-            .map(Colaboracion::getColaboracionArtista)
+            .map(Colaboracion::getNombreColaborador)
             .filter(a -> a != null)
             .distinct().count();
         lblArtistas.setText(String.valueOf(artUnicos));
@@ -537,7 +537,7 @@ public class formColaboracion extends JPanel {
         Colaboracion s = lista.getSelectedValue();
         if (s == null) { MainFrame.showToast("Selecciona una colaboración", MainFrame.ToastType.INFO); return; }
         int op = JOptionPane.showConfirmDialog(this,
-            "¿Eliminar la colaboración de " + s.getColaboracionArtista() + "?",
+            "¿Eliminar la colaboración de " + s.getNombreColaborador() + "?",
             "Z-One", JOptionPane.YES_NO_OPTION);
         if (op == JOptionPane.YES_OPTION) {
             try {
@@ -779,7 +779,7 @@ private void openForm(Colaboracion c) {
 
     // Artista + ID Canción en fila
     JTextField fArt = buildFieldAnimado(
-            isEdit && c.getColaboracionArtista() != null ? c.getColaboracionArtista() : "",
+            isEdit && c.getNombreColaborador() != null ? c.getNombreColaborador():"",
             "Ej. J Balvin", dlgTimers);
     JTextField fCan = buildFieldAnimado(
             isEdit && c.getIdCancion() != null ? String.valueOf(c.getIdCancion()) : "",
@@ -1015,7 +1015,7 @@ private void openForm(Colaboracion c) {
         Timer tGuardar = new Timer(750, done -> {
             try {
                 Colaboracion n = isEdit ? c : new Colaboracion();
-                n.setColaboracionArtista(artTxt);
+                n.setNombreColaborador(artTxt);
                 n.setIdCancion(Integer.parseInt(canTxt));
                 n.setFechaColaboracion(fechaFinal);
                 // n.setTipo(TIPO_NOMBRES[tipoSel[0]]); // descomenta si tu modelo lo tiene
