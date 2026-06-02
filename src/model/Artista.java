@@ -3,46 +3,39 @@ package model;
 import java.time.LocalDate;
 
 /**
- * Artista — modelo que refleja exactamente la tabla PERFIL_ARTISTA de Oracle.
- *
- * Columnas mapeadas:
- *   ID_ARTISTA, ID_USUARIO, NOMBRE_ARTISTA, NOMBRE_REAL,
- *   FECHA_NACIMIENTO, GENERO, NACIONALIDAD, GENERO_MUSICAL,
- *   REDES_SOCIALES, FECHA_FIRMA, ESTADO_ARTISTA, TIPO_ARTISTA
+ * Entidad Artista alineada con la tabla ARTISTAS.
  */
 public class Artista {
 
-    // ── Estados válidos según la BD ──────────────────────────────────
     public static final String ESTADO_ACTIVO   = "Activo";
-    public static final String ESTADO_EN_PAUSA = "En Pausa";
-    public static final String ESTADO_INACTIVO = "Inactivo";
-    public static final String[] ESTADOS_VALIDOS = {
-        ESTADO_ACTIVO, ESTADO_EN_PAUSA, ESTADO_INACTIVO
-    };
+    public static final String ESTADO_EN_PAUSA = "En pausa";
+    public static final String ESTADO_RETIRADO = "Retirado";
+    public static final String[] ESTADOS_VALIDOS = {ESTADO_ACTIVO, ESTADO_EN_PAUSA, ESTADO_RETIRADO};
 
-    // ── Tipos válidos según la BD ────────────────────────────────────
     public static final String TIPO_SOLISTA = "Solista";
-    public static final String TIPO_GRUPO   = "Grupo";
-    public static final String[] TIPOS_VALIDOS = { TIPO_SOLISTA, TIPO_GRUPO };
+    public static final String TIPO_BANDA   = "Banda";
+    public static final String TIPO_DUO     = "Duo";
+    public static final String[] TIPOS_VALIDOS = {TIPO_SOLISTA, TIPO_BANDA, TIPO_DUO};
 
-    // ── Atributos (uno por columna) ──────────────────────────────────
-    private int       idArtista;
-    private Integer   idUsuario;        // puede ser null (enlace opcional)
+    private Integer   idArtista;
+    private Integer   idUsuario;
     private String    nombreArtista;
     private String    nombreReal;
     private LocalDate fechaNacimiento;
-    private String    genero;           // genero de persona (M/F/Otro)
+    private String    generoPersona;
     private String    nacionalidad;
     private String    generoMusical;
     private String    redesSociales;
     private LocalDate fechaFirma;
     private String    estadoArtista;
     private String    tipoArtista;
+    private String    numIdentificacion;
 
-    // ── Constructor completo ─────────────────────────────────────────
-    public Artista(int idArtista, Integer idUsuario,
+    public Artista() {}
+
+    public Artista(Integer idArtista, Integer idUsuario,
                    String nombreArtista, String nombreReal,
-                   LocalDate fechaNacimiento, String genero,
+                   LocalDate fechaNacimiento, String generoPersona,
                    String nacionalidad, String generoMusical,
                    String redesSociales, LocalDate fechaFirma,
                    String estadoArtista, String tipoArtista) {
@@ -51,7 +44,7 @@ public class Artista {
         this.nombreArtista   = nombreArtista;
         this.nombreReal      = nombreReal;
         this.fechaNacimiento = fechaNacimiento;
-        this.genero          = genero;
+        this.generoPersona   = generoPersona;
         this.nacionalidad    = nacionalidad;
         this.generoMusical   = generoMusical;
         this.redesSociales   = redesSociales;
@@ -60,86 +53,38 @@ public class Artista {
         this.tipoArtista     = tipoArtista;
     }
 
-    // ── Constructor mínimo (para formularios de alta) ────────────────
-    public Artista(String nombreArtista, String nombreReal,
-                   LocalDate fechaNacimiento, String genero,
-                   String nacionalidad, String generoMusical,
-                   String redesSociales, LocalDate fechaFirma,
-                   String estadoArtista, String tipoArtista) {
-        this(0, null, nombreArtista, nombreReal, fechaNacimiento,
-             genero, nacionalidad, generoMusical, redesSociales,
-             fechaFirma, estadoArtista, tipoArtista);
-    }
+    // ── Getters ──
+    public Integer   getIdArtista()         { return idArtista; }
+    public Integer   getIdUsuario()         { return idUsuario; }
+    public String    getNombreArtista()     { return nombreArtista; }
+    public String    getNombreReal()        { return nombreReal; }
+    public LocalDate getFechaNacimiento()   { return fechaNacimiento; }
+    public String    getGeneroPersona()     { return generoPersona; }
+    public String    getNacionalidad()      { return nacionalidad; }
+    public String    getGeneroMusical()     { return generoMusical; }
+    public String    getRedesSociales()     { return redesSociales; }
+    public LocalDate getFechaFirma()        { return fechaFirma; }
+    public String    getEstadoArtista()     { return estadoArtista; }
+    public String    getTipoArtista()       { return tipoArtista; }
+    public String    getNumIdentificacion() { return numIdentificacion; }
 
-    // ── Getters y Setters ────────────────────────────────────────────
-    public int       getIdArtista(){ 
-        return idArtista; }
-    public void      setIdArtista(int idArtista){
-        this.idArtista = idArtista; }
-
-    public Integer   getIdUsuario(){ 
-        return idUsuario; }
-    public void      setIdUsuario(Integer idUsuario)
-    { this.idUsuario = idUsuario; }
-
-    public String    getNombreArtista()
-    { return nombreArtista; }
-    public void      setNombreArtista(String nombreArtista)  
-    { this.nombreArtista = nombreArtista; }
-
-    public String    getNombreReal()
-    { return nombreReal; }
-    public void      setNombreReal(String nombreReal)
-    { this.nombreReal = nombreReal; }
-
-    public LocalDate getFechaNacimiento()
-    { return fechaNacimiento; }
-    public void      setFechaNacimiento(LocalDate f) 
-    { this.fechaNacimiento = f; }
-
-    public String    getGenero()
-    { return genero; }
-    public void      setGenero(String genero)
-    { this.genero = genero; }
-
-    public String    getNacionalidad()
-    { return nacionalidad; }
-    public void      setNacionalidad(String nacionalidad)   
-    { this.nacionalidad = nacionalidad; }
-
-    public String    getGeneroMusical()            
-    { return generoMusical; }
-    public void      setGeneroMusical(String generoMusical) 
-    { this.generoMusical = generoMusical; }
-
-    public String    getRedesSociales()              
-    { return redesSociales; }
-    public void      setRedesSociales(String redesSociales)  
-    { this.redesSociales = redesSociales; }
-
-    public LocalDate getFechaFirma()                        
-    { return fechaFirma; }
-    public void      setFechaFirma(LocalDate fechaFirma)    
-    { this.fechaFirma = fechaFirma; }
-
-    public String    getEstadoArtista()                     
-    { return estadoArtista; }
-    public void      setEstadoArtista(String estadoArtista) 
-    { this.estadoArtista = estadoArtista; }
-
-    public String    getTipoArtista()                      
-    { return tipoArtista; }
-    public void      setTipoArtista(String tipoArtista)    
-    { this.tipoArtista = tipoArtista; }
+    // ── Setters ──
+    public void setIdArtista(Integer id)             { this.idArtista = id; }
+    public void setIdUsuario(Integer id)             { this.idUsuario = id; }
+    public void setNombreArtista(String s)           { this.nombreArtista = s; }
+    public void setNombreReal(String s)              { this.nombreReal = s; }
+    public void setFechaNacimiento(LocalDate f)      { this.fechaNacimiento = f; }
+    public void setGeneroPersona(String s)           { this.generoPersona = s; }
+    public void setNacionalidad(String s)            { this.nacionalidad = s; }
+    public void setGeneroMusical(String s)           { this.generoMusical = s; }
+    public void setRedesSociales(String s)           { this.redesSociales = s; }
+    public void setFechaFirma(LocalDate f)           { this.fechaFirma = f; }
+    public void setEstadoArtista(String s)           { this.estadoArtista = s; }
+    public void setTipoArtista(String s)             { this.tipoArtista = s; }
+    public void setNumIdentificacion(String s)       { this.numIdentificacion = s; }
 
     @Override
     public String toString() {
-        return "Artista{id=" + idArtista
-             + ", nombre='" + nombreArtista + '\''
-             + ", nombreReal='" + nombreReal + '\''
-             + ", generoMusical='" + generoMusical + '\''
-             + ", nacionalidad='" + nacionalidad + '\''
-             + ", estado='" + estadoArtista + '\''
-             + ", tipo='" + tipoArtista + "'}";
+        return nombreArtista != null ? nombreArtista : "Artista#" + idArtista;
     }
 }

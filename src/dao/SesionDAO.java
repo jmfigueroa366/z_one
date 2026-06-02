@@ -1,4 +1,3 @@
-
 package dao;
 
 import model.Artista;
@@ -7,31 +6,37 @@ import model.Sesion;
 import util.ConexionDB;
 
 import java.sql.*;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * SesionDAO — acceso a datos de la tabla SESION_GRABACION.
- * Usa util.ConexionDB.getConexion() para obtener la conexión JDBC.
+ * SesionDAO — alineado con el schema Oracle (tablas: sesion_grabaciones,
+ * artistas, productores y catalogos de nacionalidades/generos/etc).
  */
 public class SesionDAO {
 
-    // SELECT base con JOIN a artista y productor (datos para reconstruir objetos)
-    private static final String SELECT_BASE = """
-        SELECT s.id_sesion, s.id_cabina, s.nombre_sesion, s.fecha,
-               s.hora_inicio, s.hora_fin, s.duracion, s.estado_sesion, s.observaciones,
-               a.id_artista, a.id_usuario, a.nombre_artista, a.nombre_real,
-               a.fecha_nacimiento, a.genero, a.nacionalidad, a.genero_musical,
-               a.redes_sociales, a.fecha_firma, a.estado_artista, a.tipo_artista,
-               p.id_productor, p.nombre AS prod_nombre, p.especialidad AS prod_esp,
-               p.tarifa_hora
-          FROM sesion_grabacion s
-          JOIN perfil_artista a ON a.id_artista   = s.id_artista
-          JOIN productor      p ON p.id_productor = s.id_productor
-        """;
+    private static final String SELECT_BASE =
+        "SELECT s.id_sesion, s.id_cabina, s.nombre_sesion, s.fecha, " +
+        "       s.hora_inicio, s.hora_fin, s.duracion, s.estado_sesion, s.observaciones, " +
+        "       a.id_artista, a.id_usuario, a.nombre_artista, a.nombre_real, " +
+        "       a.fecha_nacimiento, a.redes_sociales, a.fecha_firma, " +
+        "       gp.descripcion AS genero_persona, " +
+        "       n.nombre        AS nacionalidad, " +
+        "       gm.nombre       AS genero_musical, " +
+        "       ta.nombre       AS tipo_artista, " +
+        "       es.nombre       AS estado_artista, " +
+        "       p.id_productor, p.nombre AS prod_nombre, p.especialidad AS prod_esp, " +
+        "       p.tarifa_hora " +
+        "  FROM sesion_grabaciones s " +
+        "  JOIN artistas    a ON a.id_artista   = s.id_artista " +
+        "  JOIN productores p ON p.id_productor = s.id_productor " +
+        "  LEFT JOIN nacionalidades   n  ON a.id_nacionalidad   = n.id_nacionalidad " +
+        "  LEFT JOIN genero_persona   gp ON a.id_genero_persona = gp.id_genero_persona " +
+        "  LEFT JOIN genero_musicales gm ON a.id_genero_musical = gm.id_genero " +
+        "  LEFT JOIN tipo_artista     ta ON a.id_tipo_artista   = ta.id_tipo_artista " +
+        "  LEFT JOIN estados_art_pro  es ON a.id_estado         = es.id_estado ";
 
-    // ── LISTAR todas las sesiones ────────────────────────────────────
+    // ── LISTAR ──
     public List<Sesion> listarTodas() throws SQLException {
         List<Sesion> lista = new ArrayList<>();
         String sql = SELECT_BASE + " ORDER BY s.id_sesion";
@@ -43,7 +48,7 @@ public class SesionDAO {
         return lista;
     }
 
-    // ── BUSCAR una sesión por id ─────────────────────────────────────
+    // ── BUSCAR POR ID ──
     public Sesion buscarPorId(int idSesion) throws SQLException {
         String sql = SELECT_BASE + " WHERE s.id_sesion = ?";
         try (Connection con = ConexionDB.getConexion();
@@ -55,14 +60,12 @@ public class SesionDAO {
         }
     }
 
-    // ── INSERTAR una sesión nueva (Oracle genera el id) ──────────────
+    // ── INSERTAR ──
     public int insertar(Sesion s) throws SQLException {
-        String sql = """
-            INSERT INTO sesion_grabacion
-              (id_artista, id_productor, id_cabina, nombre_sesion, fecha,
-               hora_inicio, hora_fin, duracion, estado_sesion, observaciones)
-            VALUES (?,?,?,?,?,?,?,?,?,?)
-            """;
+        String sql = "INSERT INTO sesion_grabaciones " +
+                     "(id_artista, id_productor, id_cabina, nombre_sesion, fecha, " +
+                     " hora_inicio, hora_fin, duracion, estado_sesion, observaciones) " +
+                     "VALUES (?,?,?,?,?,?,?,?,?,?)";
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(sql, new String[]{"ID_SESION"})) {
             llenarParametros(ps, s);
@@ -78,15 +81,13 @@ public class SesionDAO {
         return 0;
     }
 
-    // ── ACTUALIZAR una sesión existente ──────────────────────────────
+    // ── ACTUALIZAR ──
     public boolean actualizar(Sesion s) throws SQLException {
-        String sql = """
-            UPDATE sesion_grabacion SET
-              id_artista = ?, id_productor = ?, id_cabina = ?, nombre_sesion = ?,
-              fecha = ?, hora_inicio = ?, hora_fin = ?, duracion = ?,
-              estado_sesion = ?, observaciones = ?
-            WHERE id_sesion = ?
-            """;
+        String sql = "UPDATE sesion_grabaciones SET " +
+                     "id_artista = ?, id_productor = ?, id_cabina = ?, nombre_sesion = ?, " +
+                     "fecha = ?, hora_inicio = ?, hora_fin = ?, duracion = ?, " +
+                     "estado_sesion = ?, observaciones = ? " +
+                     "WHERE id_sesion = ?";
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
             llenarParametros(ps, s);
@@ -95,9 +96,9 @@ public class SesionDAO {
         }
     }
 
-    // ── ELIMINAR una sesión por id ───────────────────────────────────
+    // ── ELIMINAR ──
     public boolean eliminar(int idSesion) throws SQLException {
-        String sql = "DELETE FROM sesion_grabacion WHERE id_sesion = ?";
+        String sql = "DELETE FROM sesion_grabaciones WHERE id_sesion = ?";
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, idSesion);
@@ -105,9 +106,8 @@ public class SesionDAO {
         }
     }
 
-    // ── Helpers privados ─────────────────────────────────────────────
+    // ── Helpers ──
 
-    /** Coloca los 10 parámetros comunes de INSERT/UPDATE (índices 1..10). */
     private void llenarParametros(PreparedStatement ps, Sesion s) throws SQLException {
         ps.setInt(1, s.getArtista().getIdArtista());
         ps.setInt(2, s.getProductor().getIdProductor());
@@ -122,9 +122,9 @@ public class SesionDAO {
         ps.setString(10, s.getObservaciones());
     }
 
-    /** Reconstruye una Sesion completa desde una fila del ResultSet. */
     private Sesion mapear(ResultSet rs) throws SQLException {
-        Integer idCabina = rs.getObject("id_cabina") != null ? rs.getInt("id_cabina") : null;
+        int idCab = rs.getInt("id_cabina");
+        Integer idCabina = rs.wasNull() ? null : idCab;
         Date fecha = rs.getDate("fecha");
         return new Sesion(
             rs.getInt("id_sesion"),
@@ -141,21 +141,24 @@ public class SesionDAO {
     }
 
     private Artista mapearArtista(ResultSet rs) throws SQLException {
-        Integer idUsuario = rs.getObject("id_usuario") != null ? rs.getInt("id_usuario") : null;
+        int idU = rs.getInt("id_usuario");
+        Integer idUsuario = rs.wasNull() ? null : idU;
         Date fNac  = rs.getDate("fecha_nacimiento");
         Date fFirm = rs.getDate("fecha_firma");
         return new Artista(
             rs.getInt("id_artista"), idUsuario,
             rs.getString("nombre_artista"), rs.getString("nombre_real"),
-            fNac  != null ? fNac.toLocalDate()  : null,
-            rs.getString("genero"), rs.getString("nacionalidad"),
-            rs.getString("genero_musical"), rs.getString("redes_sociales"),
+            fNac != null ? fNac.toLocalDate() : null,
+            rs.getString("genero_persona"),
+            rs.getString("nacionalidad"),
+            rs.getString("genero_musical"),
+            rs.getString("redes_sociales"),
             fFirm != null ? fFirm.toLocalDate() : null,
-            rs.getString("estado_artista"), rs.getString("tipo_artista"));
+            rs.getString("estado_artista"),
+            rs.getString("tipo_artista"));
     }
 
     private Productor mapearProductor(ResultSet rs) throws SQLException {
-        // OJO: la tabla PRODUCTOR no tiene correo ni teléfono → van vacíos.
         return new Productor(
             rs.getInt("id_productor"),
             rs.getString("prod_nombre"),

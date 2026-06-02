@@ -192,8 +192,8 @@ public class LoginFrame extends JFrame {
         JPanel conexionPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
         conexionPanel.setOpaque(false);
         conexionPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
-        dotConexion  = new ModernUI.StatusDot();
-        lblConexion  = new JLabel("Verificando conexión...");
+        dotConexion = new ModernUI.StatusDot();
+        lblConexion = new JLabel("Verificando conexión...");
         lblConexion.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         lblConexion.setForeground(TEXT_MUTED);
         conexionPanel.add(dotConexion);
@@ -306,7 +306,8 @@ public class LoginFrame extends JFrame {
                 btnLogin.setEnabled(true);
                 try {
                     Usuario u = get();
-                    mostrarEstado("¡Bienvenido, " + u.getNombre() + "!", SUCCESS);
+                    // ✔ CORRECCIÓN: getNombre() no existe → getNombreCompleto()
+                    mostrarEstado("¡Bienvenido, " + u.getNombreCompleto() + "!", SUCCESS);
                     Timer t = new Timer(800, ev -> {
                         try {
                             dispose();
@@ -360,127 +361,126 @@ public class LoginFrame extends JFrame {
     // =================================================================
     // ANIMACIÓN CORTINA MORADA → abre RegistroDialog
     // =================================================================
-    
-    
     private static class CurtainPanel extends JPanel {
- 
-    private float   progress = 0f;
-    private boolean closing  = false;
- 
-    public float   getProgress()        { return progress; }
-    public void    setProgress(float p) { this.progress = p; repaint(); }
-    public boolean isClosing()          { return closing; }
-    public void    startClose()         { this.closing = true; }
- 
-    private float easeInOutCubic(float t) {
-        return t < 0.5f
-            ? 4 * t * t * t
-            : 1 - (float) Math.pow(-2 * t + 2, 3) / 2;
-    }
- 
-    @Override
-    protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                            RenderingHints.VALUE_ANTIALIAS_ON);
- 
-        int totalW   = getWidth();
-        int totalH   = getHeight();
-        int curtainW = (int)(totalW * easeInOutCubic(progress));
- 
-        // Cuerpo principal
-        g2.setColor(new Color(0x5B21B6));
-        g2.fillRect(0, 0, curtainW, totalH);
- 
-        // Borde de barrido con gradiente
-        if (curtainW > 0 && curtainW < totalW) {
-            int edgeW = 18;
-            g2.setPaint(new GradientPaint(
-                curtainW - edgeW, 0, new Color(0x7C3AED),
-                curtainW,         0, new Color(0x3B0F8C)));
-            g2.fillRect(curtainW - edgeW, 0, edgeW, totalH);
- 
-            // Línea brillante en el frente
-            g2.setColor(new Color(167, 139, 250, 180));
-            g2.fillRect(curtainW - 2, 0, 2, totalH);
+
+        private float   progress = 0f;
+        private boolean closing  = false;
+
+        public float   getProgress()        { return progress; }
+        public void    setProgress(float p) { this.progress = p; repaint(); }
+        public boolean isClosing()          { return closing; }
+        public void    startClose()         { this.closing = true; }
+
+        private float easeInOutCubic(float t) {
+            return t < 0.5f
+                ? 4 * t * t * t
+                : 1 - (float) Math.pow(-2 * t + 2, 3) / 2;
         }
- 
-        // Partículas decorativas
-        g2.setColor(new Color(196, 181, 253, 60));
-        int[][] sparks = {
-            {12, 40}, {28, 120}, {8, 240}, {40, 320}, {20, 420}
-        };
-        for (int[] s : sparks) {
-            if (s[0] < curtainW - 4) {
-                g2.fillOval(s[0], s[1] % totalH, 3, 3);
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                                RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int totalW   = getWidth();
+            int totalH   = getHeight();
+            int curtainW = (int)(totalW * easeInOutCubic(progress));
+
+            // Cuerpo principal
+            g2.setColor(new Color(0x5B21B6));
+            g2.fillRect(0, 0, curtainW, totalH);
+
+            // Borde de barrido con gradiente
+            if (curtainW > 0 && curtainW < totalW) {
+                int edgeW = 18;
+                g2.setPaint(new GradientPaint(
+                    curtainW - edgeW, 0, new Color(0x7C3AED),
+                    curtainW,         0, new Color(0x3B0F8C)));
+                g2.fillRect(curtainW - edgeW, 0, edgeW, totalH);
+
+                // Línea brillante en el frente
+                g2.setColor(new Color(167, 139, 250, 180));
+                g2.fillRect(curtainW - 2, 0, 2, totalH);
             }
+
+            // Partículas decorativas
+            g2.setColor(new Color(196, 181, 253, 60));
+            int[][] sparks = {
+                {12, 40}, {28, 120}, {8, 240}, {40, 320}, {20, 420}
+            };
+            for (int[] s : sparks) {
+                if (s[0] < curtainW - 4) {
+                    g2.fillOval(s[0], s[1] % totalH, 3, 3);
+                }
+            }
+
+            g2.dispose();
         }
- 
-        g2.dispose();
     }
-}
+
     private void abrirRegistroConAnimacion() {
- 
-    final int   TOTAL_W   = getWidth();
-    final int   TOTAL_H   = getHeight();
-    final int   TICK_MS   = 10;
-    final float SPEED_IN  = 0.07f;
-    final float SPEED_OUT = 0.09f;
- 
-    CurtainPanel curtain = new CurtainPanel();
-    curtain.setOpaque(false);
-    curtain.setBounds(0, 0, TOTAL_W, TOTAL_H);
- 
-    getLayeredPane().add(curtain, JLayeredPane.POPUP_LAYER);
- 
-    final boolean[] dialogOpened = {false};
- 
-    Timer timer = new Timer(TICK_MS, null);
-    timer.addActionListener(e -> {
-        float p = curtain.getProgress();
- 
-        if (!curtain.isClosing()) {
-            // FASE 1: cortina entra
-            p = Math.min(p + SPEED_IN, 1f);
-            curtain.setProgress(p);
- 
-            if (p >= 1f && !dialogOpened[0]) {
-                dialogOpened[0] = true;
- 
-                Timer openDelay = new Timer(60, ev -> {
-                    ((Timer) ev.getSource()).stop();
- 
-                    RegistroDialog dlg = new RegistroDialog(
-                            LoginFrame.this, usuarioService);
- 
-                    dlg.addWindowListener(new WindowAdapter() {
-                        @Override
-                        public void windowClosed(WindowEvent we) {
-                            curtain.startClose();
-                        }
+
+        final int   TOTAL_W   = getWidth();
+        final int   TOTAL_H   = getHeight();
+        final int   TICK_MS   = 10;
+        final float SPEED_IN  = 0.07f;
+        final float SPEED_OUT = 0.09f;
+
+        CurtainPanel curtain = new CurtainPanel();
+        curtain.setOpaque(false);
+        curtain.setBounds(0, 0, TOTAL_W, TOTAL_H);
+
+        getLayeredPane().add(curtain, JLayeredPane.POPUP_LAYER);
+
+        final boolean[] dialogOpened = {false};
+
+        Timer timer = new Timer(TICK_MS, null);
+        timer.addActionListener(e -> {
+            float p = curtain.getProgress();
+
+            if (!curtain.isClosing()) {
+                // FASE 1: cortina entra
+                p = Math.min(p + SPEED_IN, 1f);
+                curtain.setProgress(p);
+
+                if (p >= 1f && !dialogOpened[0]) {
+                    dialogOpened[0] = true;
+
+                    Timer openDelay = new Timer(60, ev -> {
+                        ((Timer) ev.getSource()).stop();
+
+                        RegistroDialog dlg = new RegistroDialog(
+                                LoginFrame.this, usuarioService);
+
+                        dlg.addWindowListener(new WindowAdapter() {
+                            @Override
+                            public void windowClosed(WindowEvent we) {
+                                curtain.startClose();
+                            }
+                        });
+
+                        dlg.setVisible(true);
                     });
- 
-                    dlg.setVisible(true);
-                });
-                openDelay.setRepeats(false);
-                openDelay.start();
+                    openDelay.setRepeats(false);
+                    openDelay.start();
+                }
+
+            } else {
+                // FASE 2: cortina sale
+                p = Math.max(p - SPEED_OUT, 0f);
+                curtain.setProgress(p);
+
+                if (p <= 0f) {
+                    timer.stop();
+                    getLayeredPane().remove(curtain);
+                    getLayeredPane().repaint();
+                }
             }
- 
-        } else {
-            // FASE 2: cortina sale
-            p = Math.max(p - SPEED_OUT, 0f);
-            curtain.setProgress(p);
- 
-            if (p <= 0f) {
-                timer.stop();
-                getLayeredPane().remove(curtain);
-                getLayeredPane().repaint();
-            }
-        }
-    });
- 
-    timer.start();
-}
+        });
+
+        timer.start();
+    }
 
     // =================================================================
     // HELPERS

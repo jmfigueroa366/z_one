@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public class formProductor extends JPanel {
+
     // ══════════════════════════════════════════════════════════════════
     //  PALETA
     // ══════════════════════════════════════════════════════════════════
@@ -21,19 +22,18 @@ public class formProductor extends JPanel {
     static final Color BG_ROW_A  = new Color(8,  14,  32);
     static final Color BG_ROW_B  = new Color(11, 18,  40);
     static final Color COL_BRD   = new Color(22, 48, 100);
-    static final Color PURPLE    = new Color(37, 99,  235);   // azul principal  #2563EB
-    static final Color PURPLE_LT = new Color(96, 165, 250);   // azul claro      #60A5FA
+    static final Color PURPLE    = new Color(37,  99, 235);
+    static final Color PURPLE_LT = new Color(96, 165, 250);
     static final Color CYAN      = new Color(6,  182, 212);
-    static final Color GREEN     = new Color(56, 189, 248);   // sky blue #38BDF8
-    static final Color AMBER     = new Color(186, 230, 253);   // sky-100 #BAE6FD — blanco azulado
+    static final Color GREEN     = new Color(56, 189, 248);
+    static final Color AMBER     = new Color(186,230, 253);
     static final Color PINK      = new Color(244,114, 182);
     static final Color TXT_PRI   = new Color(226,232, 255);
-    static final Color TXT_SEC   = new Color(71,  100, 160);
+    static final Color TXT_SEC   = new Color(71, 100, 160);
     static final Color SEL_BG    = new Color(37,  99, 235, 60);
-
-    static final Color ORO    = new Color(224, 242, 254);   // sky-50  #E0F2FE — blanco perla
-    static final Color PLATA  = new Color(203, 213, 225);
-    static final Color BRONCE = new Color(125, 211, 252);   // sky-300 #7DD3FC — azul medio
+    static final Color ORO       = new Color(224,242, 254);
+    static final Color PLATA     = new Color(203,213, 225);
+    static final Color BRONCE    = new Color(125,211, 252);
 
     // ── Fuentes ───────────────────────────────────────────────────────
     static final Font F_TITLE  = new Font("Segoe UI", Font.BOLD,  26);
@@ -46,32 +46,28 @@ public class formProductor extends JPanel {
     // ══════════════════════════════════════════════════════════════════
     //  COLUMNAS
     // ══════════════════════════════════════════════════════════════════
-    private static final String[] COLS = {
-        "ID", "Nombre", "Especialidad", "Experiencia", "Nacionalidad", "Tarifa/h", "Estado"
+    static final String[] COLS = {
+        "ID", "Nombre", "Especialidad", "Nacionalidad", "Tarifa/h", "Estado"
     };
-    private static final int
+    static final int
         COL_ID           = 0,
         COL_NOMBRE       = 1,
         COL_ESPECIALIDAD = 2,
-        COL_EXPERIENCIA  = 3,
-        COL_NACIONALIDAD = 4,
-        COL_TARIFA       = 5,
-        COL_ESTADO       = 6;
+        COL_NACIONALIDAD = 3,
+        COL_TARIFA       = 4,
+        COL_ESTADO       = 5;
 
     // ══════════════════════════════════════════════════════════════════
     //  ESTADO
     // ══════════════════════════════════════════════════════════════════
-    private final ProductorService svc = new ProductorService();
-    private DefaultTableModel modeloTabla;
-    private JTable            tabla;
-    private JTextField        campoBusqueda;
-    private JLabel            lblTotal, lblEspecialidades, lblTarifaProm, lblTarifaMax;
-
-    private JPanel rankingContainer;
-    private GraficoBarras graficoBarras;
-
-    // Labels resumen
-    private JLabel lblResTotal, lblResEsp, lblResTop;
+    final ProductorService svc = new ProductorService();
+    DefaultTableModel modeloTabla;
+    JTable            tabla;
+    private JTextField campoBusqueda;
+    private JLabel     lblTotal, lblEspecialidades, lblTarifaProm, lblTarifaMax;
+    private JPanel     rankingContainer;
+    GraficoBarras      graficoBarras;
+    private JLabel     lblResTotal, lblResEsp, lblResTop;
 
     // ══════════════════════════════════════════════════════════════════
     //  CONSTRUCTOR
@@ -88,7 +84,6 @@ public class formProductor extends JPanel {
     //  CONSTRUCCIÓN UI
     // ══════════════════════════════════════════════════════════════════
     private void construirUI() {
-        // ── Columna izquierda (encabezado + stats + tabla) ────────────
         JPanel izq = new JPanel(new BorderLayout(0, 0));
         izq.setOpaque(false);
         izq.add(encabezado(), BorderLayout.NORTH);
@@ -102,21 +97,15 @@ public class formProductor extends JPanel {
         cuerpo.add(panelTabla());
         izq.add(cuerpo, BorderLayout.CENTER);
 
-        // ── Columna derecha (ranking + gráfico + resumen) ─────────────
         JPanel der = new JPanel(new BorderLayout(0, 10));
         der.setOpaque(false);
         der.setBorder(new EmptyBorder(0, 14, 0, 0));
         der.setPreferredSize(new Dimension(275, 0));
 
-        // TOP TARIFAS (altura fija)
         JPanel rank = panelRanking();
         rank.setPreferredSize(new Dimension(275, 280));
-
-        // TARIFA POR PRODUCTOR (gráfico de barras)
         JPanel graf = panelGrafico();
-
-        // RESUMEN
-        JPanel res = panelResumen();
+        JPanel res  = panelResumen();
         res.setPreferredSize(new Dimension(275, 138));
 
         der.add(rank, BorderLayout.NORTH);
@@ -157,7 +146,7 @@ public class formProductor extends JPanel {
         });
         ZBtn btnNuevo = new ZBtn("＋ Nuevo productor", true);
         btnNuevo.setPreferredSize(new Dimension(178, 38));
-        btnNuevo.addActionListener(e -> dialogFormulario(null));
+        btnNuevo.addActionListener(e -> new Formproductordialog(this, null).setVisible(true));
         acc.add(campoBusqueda);
         acc.add(btnNuevo);
 
@@ -178,9 +167,9 @@ public class formProductor extends JPanel {
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
         p.setAlignmentX(LEFT_ALIGNMENT);
         p.add(statCard("TOTAL PRODUCTORES", lblTotal,          PURPLE, "🎚"));
-        p.add(statCard("ESPECIALIDADES",     lblEspecialidades, CYAN,   "🎛"));
-        p.add(statCard("TARIFA PROMEDIO",    lblTarifaProm,     GREEN,  "💵"));
-        p.add(statCard("TARIFA MÁXIMA",      lblTarifaMax,      AMBER,  "⭐"));
+        p.add(statCard("ESPECIALIDADES",    lblEspecialidades, CYAN,   "🎛"));
+        p.add(statCard("TARIFA PROMEDIO",   lblTarifaProm,     GREEN,  "💵"));
+        p.add(statCard("TARIFA MÁXIMA",     lblTarifaMax,      AMBER,  "⭐"));
         return p;
     }
 
@@ -203,7 +192,6 @@ public class formProductor extends JPanel {
         card.setOpaque(false);
         card.setLayout(new BorderLayout(8, 0));
         card.setBorder(new EmptyBorder(12, 14, 12, 14));
-
         JLabel emo = mkLabel(emoji, new Font("Segoe UI Emoji", Font.PLAIN, 20), TXT_PRI);
         JPanel txt = new JPanel();
         txt.setOpaque(false);
@@ -298,20 +286,19 @@ public class formProductor extends JPanel {
             @Override
             public Component getTableCellRendererComponent(
                     JTable t, Object val, boolean sel, boolean foc, int row, int col) {
-                JLabel l = (JLabel) super.getTableCellRendererComponent(t, val, sel, foc, row, col);
+                JLabel l = (JLabel) super.getTableCellRendererComponent(t,val,sel,foc,row,col);
                 l.setBackground(new Color(5, 12, 30));
                 l.setForeground(PURPLE_LT);
                 l.setFont(new Font("Segoe UI", Font.BOLD, 9));
                 l.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createMatteBorder(0, 0, 1, 0, COL_BRD),
-                    new EmptyBorder(0, 16, 0, 16)
-                ));
+                    BorderFactory.createMatteBorder(0,0,1,0, COL_BRD),
+                    new EmptyBorder(0,16,0,16)));
                 l.setOpaque(true);
                 return l;
             }
         });
 
-        int[] w = {52, 155, 125, 110, 105, 85, 90};
+        int[] w = {52, 155, 130, 110, 90, 90};
         for (int i = 0; i < w.length; i++)
             tabla.getColumnModel().getColumn(i).setPreferredWidth(w[i]);
 
@@ -319,7 +306,7 @@ public class formProductor extends JPanel {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  PANEL RANKING (TOP TARIFAS)
+    //  RANKING
     // ══════════════════════════════════════════════════════════════════
     private JPanel panelRanking() {
         JPanel inner = new JPanel() {
@@ -337,7 +324,6 @@ public class formProductor extends JPanel {
         inner.setOpaque(false);
         inner.setLayout(new BorderLayout());
 
-        // Cabecera con "más" y "···" a la derecha (como en la imagen)
         JPanel cab = new JPanel(new BorderLayout(6, 0)) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
@@ -360,9 +346,8 @@ public class formProductor extends JPanel {
         lblOpc.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         cabDer.add(lblMas);
         cabDer.add(lblOpc);
-
-        cab.add(titulo,  BorderLayout.WEST);
-        cab.add(cabDer,  BorderLayout.EAST);
+        cab.add(titulo, BorderLayout.WEST);
+        cab.add(cabDer, BorderLayout.EAST);
 
         JPanel sepOro = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -398,7 +383,7 @@ public class formProductor extends JPanel {
         return inner;
     }
 
-    private void actualizarRanking(List<Productor> lista) {
+    void actualizarRanking(List<Productor> lista) {
         rankingContainer.removeAll();
         List<Productor> orden = new ArrayList<>(lista);
         orden.sort(Comparator.comparingDouble(Productor::getTarifaHora).reversed());
@@ -411,9 +396,8 @@ public class formProductor extends JPanel {
             double maxTarifa = orden.get(0).getTarifaHora();
             if (maxTarifa <= 0) maxTarifa = 1;
             for (int i = 0; i < orden.size(); i++) {
-                Productor p = orden.get(i);
                 boolean esPodio = i < 3;
-                rankingContainer.add(filaRanking(i+1, p, maxTarifa, esPodio));
+                rankingContainer.add(filaRanking(i+1, orden.get(i), maxTarifa, esPodio));
                 rankingContainer.add(Box.createVerticalStrut(esPodio ? 6 : 4));
             }
         }
@@ -422,19 +406,9 @@ public class formProductor extends JPanel {
     }
 
     private JPanel filaRanking(int puesto, Productor p, double maxTarifa, boolean esPodio) {
-        Color acento;
-        if      (puesto == 1) acento = ORO;
-        else if (puesto == 2) acento = PLATA;
-        else if (puesto == 3) acento = BRONCE;
-        else                  acento = PURPLE_LT;
-
-        String medalla;
-        if      (puesto == 1) medalla = "🥇";
-        else if (puesto == 2) medalla = "🥈";
-        else if (puesto == 3) medalla = "🥉";
-        else                  medalla = "#" + puesto;
-
-        final Color acentoFinal = acento;
+        Color acento  = puesto == 1 ? ORO : puesto == 2 ? PLATA : puesto == 3 ? BRONCE : PURPLE_LT;
+        String medalla = puesto == 1 ? "🥇" : puesto == 2 ? "🥈" : puesto == 3 ? "🥉" : "#"+puesto;
+        final Color ac = acento;
 
         JPanel fila = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -442,8 +416,7 @@ public class formProductor extends JPanel {
                 g2.setColor(esPodio ? new Color(20, 16, 44) : BG_CARD);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 9, 9);
                 if (esPodio) {
-                    g2.setColor(new Color(acentoFinal.getRed(), acentoFinal.getGreen(),
-                                          acentoFinal.getBlue(), 110));
+                    g2.setColor(new Color(ac.getRed(), ac.getGreen(), ac.getBlue(), 110));
                     g2.setStroke(new BasicStroke(1.4f));
                     g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 9, 9);
                 }
@@ -455,8 +428,7 @@ public class formProductor extends JPanel {
         fila.setLayout(new BorderLayout(8, 0));
         fila.setBorder(new EmptyBorder(esPodio ? 8 : 5, 10, esPodio ? 8 : 5, 10));
         fila.setAlignmentX(LEFT_ALIGNMENT);
-        int alto = esPodio ? 50 : 38;
-        fila.setMaximumSize(new Dimension(Integer.MAX_VALUE, alto));
+        fila.setMaximumSize(new Dimension(Integer.MAX_VALUE, esPodio ? 50 : 38));
 
         JLabel lblMed = new JLabel(medalla, SwingConstants.CENTER);
         lblMed.setFont(esPodio
@@ -472,7 +444,7 @@ public class formProductor extends JPanel {
             new Font("Segoe UI", Font.BOLD, esPodio ? 12 : 11), TXT_PRI);
         lblNom.setAlignmentX(LEFT_ALIGNMENT);
         txt.add(lblNom);
-        if (esPodio) {
+        if (esPodio && p.getEspecialidad() != null) {
             JLabel lblEsp = mkLabel(recortar(p.getEspecialidad(), 18),
                 F_MONO.deriveFont(8.5f), TXT_SEC);
             lblEsp.setAlignmentX(LEFT_ALIGNMENT);
@@ -490,7 +462,7 @@ public class formProductor extends JPanel {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  PANEL GRÁFICO DE BARRAS — "TARIFA POR PRODUCTOR"
+    //  GRÁFICO DE BARRAS
     // ══════════════════════════════════════════════════════════════════
     private JPanel panelGrafico() {
         JPanel inner = new JPanel() {
@@ -508,7 +480,6 @@ public class formProductor extends JPanel {
         inner.setOpaque(false);
         inner.setLayout(new BorderLayout());
 
-        // Cabecera
         JPanel cab = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
@@ -545,31 +516,23 @@ public class formProductor extends JPanel {
 
         JPanel topSect = new JPanel(new BorderLayout());
         topSect.setOpaque(false);
-        topSect.add(cab,      BorderLayout.CENTER);
-        topSect.add(sepCyan,  BorderLayout.SOUTH);
+        topSect.add(cab,     BorderLayout.CENTER);
+        topSect.add(sepCyan, BorderLayout.SOUTH);
 
         graficoBarras = new GraficoBarras();
         graficoBarras.setOpaque(false);
         graficoBarras.setBorder(new EmptyBorder(10, 14, 14, 14));
 
-        inner.add(topSect,      BorderLayout.NORTH);
+        inner.add(topSect,       BorderLayout.NORTH);
         inner.add(graficoBarras, BorderLayout.CENTER);
         return inner;
     }
 
-    /**
-     * Panel personalizado que dibuja el gráfico de barras verticales
-     * mostrando tarifa por productor, exactamente como en la imagen de referencia.
-     */
-    private class GraficoBarras extends JPanel {
+    class GraficoBarras extends JPanel {
         private List<Productor> datos = new ArrayList<>();
-        // Colores por índice para las barras — familia azul
         private final Color[] BARES = {
-            new Color(56,  189, 248),   // sky blue     — posición 1
-            new Color(6,   182, 212),   // cyan         — posición 2
-            new Color(129, 140, 248),   // indigo claro — posición 3
-            new Color(186, 230, 253),   // sky-100      — posición 4
-            new Color(244, 114, 182),   // pink         — posición 5
+            new Color(56,189,248), new Color(6,182,212), new Color(129,140,248),
+            new Color(186,230,253), new Color(244,114,182),
             PURPLE, PURPLE_LT, GREEN, AMBER, PINK
         };
 
@@ -585,24 +548,17 @@ public class formProductor extends JPanel {
             if (datos.isEmpty()) return;
             Graphics2D g2 = g2d(g);
 
-            int W = getWidth();
-            int H = getHeight();
+            int W = getWidth(), H = getHeight();
             int n = Math.min(datos.size(), 8);
-
             double maxTar = datos.stream().mapToDouble(Productor::getTarifaHora).max().orElse(1);
             if (maxTar <= 0) maxTar = 1;
-
-            // Zona de barras: margen superior para valores, inferior para etiquetas
-            int marginTop  = 28;
-            int marginBot  = 42;
+            int marginTop = 28, marginBot = 42;
             int areaH = H - marginTop - marginBot;
             if (areaH < 10) { g2.dispose(); return; }
-
             int barW   = Math.min(32, (W - 20) / n - 8);
             int totalW = n * (barW + 8) - 8;
             int startX = (W - totalW) / 2;
 
-            // Línea guía horizontal sutil
             g2.setColor(new Color(35, 26, 80, 120));
             g2.setStroke(new BasicStroke(0.8f, BasicStroke.CAP_BUTT,
                 BasicStroke.JOIN_MITER, 1, new float[]{4,4}, 0));
@@ -614,38 +570,29 @@ public class formProductor extends JPanel {
             for (int i = 0; i < n; i++) {
                 Productor p = datos.get(i);
                 double ratio = p.getTarifaHora() / maxTar;
-                int bH  = (int)(areaH * ratio);
-                int bX  = startX + i * (barW + 8);
-                int bY  = marginTop + areaH - bH;
+                int bH = (int)(areaH * ratio);
+                int bX = startX + i * (barW + 8);
+                int bY = marginTop + areaH - bH;
                 Color c = BARES[i % BARES.length];
 
-                // Barra con glow sutil
                 g2.setColor(new Color(c.getRed(), c.getGreen(), c.getBlue(), 35));
                 g2.fillRoundRect(bX-2, bY-2, barW+4, bH+4, 8, 8);
-
-                // Barra principal
                 g2.setStroke(new BasicStroke(1f));
                 g2.setColor(c);
                 g2.fillRoundRect(bX, bY, barW, bH, 6, 6);
 
-                // Valor arriba de la barra
                 String val = "$" + (int)p.getTarifaHora();
                 g2.setFont(new Font("Consolas", Font.BOLD, 9));
                 g2.setColor(c);
                 FontMetrics fm = g2.getFontMetrics();
-                int vx = bX + (barW - fm.stringWidth(val)) / 2;
-                g2.drawString(val, vx, bY - 5);
+                g2.drawString(val, bX + (barW - fm.stringWidth(val)) / 2, bY - 5);
 
-                // Nombre abreviado debajo de la barra
                 String nombre = abreviar(p.getNombre(), 7);
                 g2.setFont(new Font("Segoe UI", Font.PLAIN, 9));
                 g2.setColor(TXT_SEC);
                 FontMetrics fm2 = g2.getFontMetrics();
-                int nx = bX + (barW - fm2.stringWidth(nombre)) / 2;
-                int ny = marginTop + areaH + 14;
-                g2.drawString(nombre, nx, ny);
-
-                // Punto de color como indicador (como en la imagen)
+                g2.drawString(nombre, bX + (barW - fm2.stringWidth(nombre)) / 2,
+                    marginTop + areaH + 14);
                 g2.setColor(c);
                 g2.fillOval(bX + barW/2 - 3, marginTop + areaH + 22, 6, 6);
             }
@@ -654,16 +601,13 @@ public class formProductor extends JPanel {
 
         private String abreviar(String s, int max) {
             if (s == null || s.isEmpty()) return "";
-            String[] parts = s.trim().split("\\s+");
-            // Tomar la primera parte del nombre
-            String first = parts.length > 0 ? parts[0] : s;
-            if (first.length() > max) return first.substring(0, max);
-            return first;
+            String first = s.trim().split("\\s+")[0];
+            return first.length() > max ? first.substring(0, max) : first;
         }
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  PANEL RESUMEN (parte inferior de la columna derecha)
+    //  PANEL RESUMEN
     // ══════════════════════════════════════════════════════════════════
     private JPanel panelResumen() {
         JPanel inner = new JPanel() {
@@ -681,7 +625,6 @@ public class formProductor extends JPanel {
         inner.setOpaque(false);
         inner.setLayout(new BorderLayout());
 
-        // Cabecera
         JPanel cab = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
@@ -714,7 +657,6 @@ public class formProductor extends JPanel {
         top.add(cab,       BorderLayout.CENTER);
         top.add(sepPurple, BorderLayout.SOUTH);
 
-        // Filas de resumen
         lblResTotal = new JLabel("0");
         lblResEsp   = new JLabel("0");
         lblResTop   = new JLabel("—");
@@ -723,8 +665,7 @@ public class formProductor extends JPanel {
         filas.setOpaque(false);
         filas.setLayout(new BoxLayout(filas, BoxLayout.Y_AXIS));
         filas.setBorder(new EmptyBorder(8, 14, 8, 14));
-
-        filas.add(filaResumen("Total productores",   lblResTotal, PURPLE_LT));
+        filas.add(filaResumen("Total productores",    lblResTotal, PURPLE_LT));
         filas.add(Box.createVerticalStrut(2));
         sepH(filas);
         filas.add(Box.createVerticalStrut(2));
@@ -732,7 +673,7 @@ public class formProductor extends JPanel {
         filas.add(Box.createVerticalStrut(2));
         sepH(filas);
         filas.add(Box.createVerticalStrut(2));
-        filas.add(filaResumen("Productor top",       lblResTop, ORO));
+        filas.add(filaResumen("Productor top",         lblResTop, ORO));
 
         inner.add(top,   BorderLayout.NORTH);
         inner.add(filas, BorderLayout.CENTER);
@@ -771,34 +712,24 @@ public class formProductor extends JPanel {
         @Override
         public Component getTableCellRendererComponent(
                 JTable t, Object val, boolean sel, boolean foc, int row, int col) {
-            JLabel c = (JLabel) super.getTableCellRendererComponent(t, val, sel, foc, row, col);
+            JLabel c = (JLabel) super.getTableCellRendererComponent(t,val,sel,foc,row,col);
             c.setBorder(new EmptyBorder(0, 16, 0, 16));
             c.setOpaque(true);
             c.setIcon(null);
             c.setBackground(sel ? SEL_BG : (row % 2 == 0 ? BG_ROW_A : BG_ROW_B));
             c.setForeground(TXT_PRI);
             c.setFont(F_BODY);
-
-            if (col == COL_ID) {
-                c.setForeground(PURPLE_LT);
-                c.setFont(new Font("Consolas", Font.BOLD, 11));
-            }
+            if (col == COL_ID)           { c.setForeground(PURPLE_LT); c.setFont(F_MONO_B); }
             if (col == COL_ESPECIALIDAD && val != null) {
-                c.setForeground(CYAN);
-                c.setFont(F_BOLD);
-                c.setText("● " + val);
+                c.setForeground(CYAN); c.setFont(F_BOLD); c.setText("● " + val);
             }
-            if (col == COL_TARIFA && val != null) {
-                c.setForeground(GREEN);
-                c.setFont(F_BOLD);
-            }
+            if (col == COL_TARIFA && val != null) { c.setForeground(GREEN); c.setFont(F_BOLD); }
             if (col == COL_ESTADO && val != null) {
                 String estado = val.toString();
-                Color colorEstado;
-                if      ("Disponible".equals(estado))   colorEstado = GREEN;
-                else if ("En proyecto".equals(estado))  colorEstado = CYAN;
-                else if ("Ocupado".equals(estado))      colorEstado = AMBER;
-                else                                    colorEstado = PINK;
+                Color colorEstado = "Disponible".equals(estado)  ? GREEN
+                                  : "En proyecto".equals(estado) ? CYAN
+                                  : "Ocupado".equals(estado)     ? AMBER
+                                  : PINK;
                 c.setForeground(colorEstado);
                 c.setFont(F_BOLD);
                 c.setText("● " + estado);
@@ -808,12 +739,10 @@ public class formProductor extends JPanel {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  CARGA Y ACCIONES
+    //  CARGA, BÚSQUEDA Y ACCIONES
     // ══════════════════════════════════════════════════════════════════
     private void cargarProductores() {
-        worker(() -> svc.obtenerTodos(), lista -> {
-            poblar(lista);
-        }, "Error al cargar");
+        worker(() -> svc.obtenerTodos(), this::poblar, "Error al cargar");
     }
 
     private void buscar() {
@@ -821,17 +750,16 @@ public class formProductor extends JPanel {
         worker(() -> svc.buscar(q), this::poblar, "Error al buscar");
     }
 
-    private void poblar(List<Productor> lista) {
+    void poblar(List<Productor> lista) {
         modeloTabla.setRowCount(0);
         for (Productor p : lista) {
             modeloTabla.addRow(new Object[]{
-                p.getIdentificacion(),
+                p.getIdProductor(),
                 p.getNombre(),
-                p.getEspecialidad(),
-                p.getExperiencia()     != null ? p.getExperiencia()     : "",
-                p.getNacionalidad()    != null ? p.getNacionalidad()    : "",
+                p.getEspecialidad()  != null ? p.getEspecialidad()  : "",
+                p.getNacionalidad()  != null ? p.getNacionalidad()  : "",
                 String.format("$%.0f", p.getTarifaHora()),
-                p.getEstadoProductor() != null ? p.getEstadoProductor() : "Disponible"
+                p.getEstado()        != null ? p.getEstado()        : "Disponible"
             });
         }
 
@@ -839,19 +767,14 @@ public class formProductor extends JPanel {
         double prom = lista.stream().mapToDouble(Productor::getTarifaHora).average().orElse(0);
         double max  = lista.stream().mapToDouble(Productor::getTarifaHora).max().orElse(0);
 
-        // Stats superiores
         lblTotal.setText(String.valueOf(lista.size()));
         lblEspecialidades.setText(String.valueOf(esp));
         lblTarifaProm.setText(String.format("$%.0f", prom));
         lblTarifaMax.setText(String.format("$%.0f", max));
 
-        // Ranking
         actualizarRanking(lista);
-
-        // Gráfico
         if (graficoBarras != null) graficoBarras.setDatos(lista);
 
-        // Resumen
         lblResTotal.setText(String.valueOf(lista.size()));
         lblResEsp.setText(String.valueOf(esp));
         if (!lista.isEmpty()) {
@@ -866,7 +789,7 @@ public class formProductor extends JPanel {
     private void accionEditar() {
         int row = tabla.getSelectedRow();
         if (row < 0) { toast("Selecciona un productor primero", MainFrame.ToastType.INFO); return; }
-        dialogFormulario(row);
+        new Formproductordialog(this, row).setVisible(true);
     }
 
     private void accionEliminar() {
@@ -874,7 +797,8 @@ public class formProductor extends JPanel {
         if (row < 0) { toast("Selecciona un productor primero", MainFrame.ToastType.INFO); return; }
         String nombre = modeloTabla.getValueAt(row, COL_NOMBRE).toString();
         int    id     = (int) modeloTabla.getValueAt(row, COL_ID);
-        if (JOptionPane.showConfirmDialog(this, "¿Eliminar a \"" + nombre + "\"?",
+        if (JOptionPane.showConfirmDialog(this,
+                "¿Eliminar a \"" + nombre + "\"?",
                 "Z-One — Confirmar", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
             worker(() -> { svc.darDeBaja(id); return svc.obtenerTodos(); }, lista -> {
                 poblar(lista);
@@ -891,7 +815,6 @@ public class formProductor extends JPanel {
         int    id  = esEdit ? (int)    modeloTabla.getValueAt(filaEditar, COL_ID)           : 0;
         String nom = esEdit ? (String) modeloTabla.getValueAt(filaEditar, COL_NOMBRE)       : "";
         String esp = esEdit ? (String) modeloTabla.getValueAt(filaEditar, COL_ESPECIALIDAD) : "";
-        String exp = esEdit ? (String) modeloTabla.getValueAt(filaEditar, COL_EXPERIENCIA)  : "";
         String nac = esEdit ? (String) modeloTabla.getValueAt(filaEditar, COL_NACIONALIDAD) : "";
         String tar = esEdit
             ? modeloTabla.getValueAt(filaEditar, COL_TARIFA).toString().replace("$", "")
@@ -920,16 +843,15 @@ public class formProductor extends JPanel {
 
         JTextField fNom = dlgField(nom);
         JTextField fEsp = dlgField(esp);
-        JTextField fExp = dlgField(exp);
         JTextField fNac = dlgField(nac);
         JTextField fTar = dlgField(tar);
         JTextField fEst = dlgField(est);
 
-        main.add(dlgFilaDoble("NOMBRE COMPLETO *", fNom, "ESPECIALIDAD *",     fEsp));
+        main.add(dlgFilaDoble("NOMBRE COMPLETO *", fNom, "ESPECIALIDAD *", fEsp));
         main.add(Box.createVerticalStrut(15));
-        main.add(dlgFilaDoble("EXPERIENCIA",        fExp, "NACIONALIDAD",       fNac));
+        main.add(dlgFilaDoble("NACIONALIDAD",      fNac, "TARIFA POR HORA ($)", fTar));
         main.add(Box.createVerticalStrut(15));
-        main.add(dlgFilaDoble("TARIFA POR HORA ($)", fTar, "ESTADO",            fEst));
+        main.add(dlgFilaCampo("ESTADO",            fEst));
         main.add(Box.createVerticalStrut(26));
 
         JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
@@ -942,7 +864,7 @@ public class formProductor extends JPanel {
         btnCanc.setPreferredSize(new Dimension(112, 40));
         btnSave.setPreferredSize(new Dimension(186, 40));
         btnCanc.addActionListener(e -> dlg.dispose());
-        btnSave.addActionListener(e -> guardar(esEdit, id, fNom, fEsp, fExp, fNac, fTar, fEst, dlg));
+        btnSave.addActionListener(e -> guardar(esEdit, id, fNom, fEsp, fNac, fTar, fEst, dlg));
         btnRow.add(btnCanc);
         btnRow.add(btnSave);
         main.add(btnRow);
@@ -1014,12 +936,11 @@ public class formProductor extends JPanel {
     }
 
     private void guardar(boolean esEdit, int id,
-            JTextField fNom, JTextField fEsp, JTextField fExp,
+            JTextField fNom, JTextField fEsp,
             JTextField fNac, JTextField fTar, JTextField fEst,
             JDialog dlg) {
         String nom = fNom.getText().trim();
         String esp = fEsp.getText().trim();
-        String exp = fExp.getText().trim();
         String nac = fNac.getText().trim();
         String est = fEst.getText().trim().isEmpty() ? "Disponible" : fEst.getText().trim();
         double tarifa;
@@ -1033,9 +954,9 @@ public class formProductor extends JPanel {
 
         worker(() -> {
             if (esEdit) {
-                svc.modificar(id, nom, esp, exp, tarifa, nac, est);
+                svc.modificar(id, nom, esp, tarifa, nac, est);
             } else {
-                svc.registrar(nom, esp, exp, tarifa, nac);
+                svc.registrar(nom, esp, tarifa, nac);
             }
             return svc.obtenerTodos();
         }, lista -> {
@@ -1102,14 +1023,14 @@ public class formProductor extends JPanel {
     // ══════════════════════════════════════════════════════════════════
     //  UTILIDADES
     // ══════════════════════════════════════════════════════════════════
-    private static JLabel mkLabel(String txt, Font f, Color c) {
+    static JLabel mkLabel(String txt, Font f, Color c) {
         JLabel l = new JLabel(txt);
         l.setFont(f);
         l.setForeground(c);
         return l;
     }
 
-    private JTextField mkTextField(String placeholder) {
+    JTextField mkTextField(String placeholder) {
         JTextField f = new JTextField() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
@@ -1130,23 +1051,21 @@ public class formProductor extends JPanel {
         return f;
     }
 
-    private static Graphics2D g2d(Graphics g) {
+    static Graphics2D g2d(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         return g2;
     }
 
-    private String recortar(String s, int max) {
+    String recortar(String s, int max) {
         if (s == null) return "";
         return s.length() > max ? s.substring(0, max-1) + "…" : s;
     }
 
-    private void worker(java.util.concurrent.Callable<List<Productor>> tarea,
-            java.util.function.Consumer<List<Productor>> fin, String err) {
+    void worker(java.util.concurrent.Callable<List<Productor>> tarea,
+                java.util.function.Consumer<List<Productor>> fin, String err) {
         new SwingWorker<List<Productor>, Void>() {
-            @Override protected List<Productor> doInBackground() throws Exception {
-                return tarea.call();
-            }
+            @Override protected List<Productor> doInBackground() throws Exception { return tarea.call(); }
             @Override protected void done() {
                 try { fin.accept(get()); }
                 catch (Exception ex) { toast(err + ": " + ex.getMessage(), MainFrame.ToastType.ERROR); }
@@ -1154,16 +1073,15 @@ public class formProductor extends JPanel {
         }.execute();
     }
 
-    private void toast(String msg, MainFrame.ToastType tipo) {
+    void toast(String msg, MainFrame.ToastType tipo) {
         MainFrame.showToast(msg, tipo);
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  ZBtn — botón estilo Z-One
+    //  ZBtn
     // ══════════════════════════════════════════════════════════════════
     static class ZBtn extends JButton {
         private final boolean primary;
-
         ZBtn(String text, boolean primary) {
             super(text);
             this.primary = primary;
@@ -1176,11 +1094,10 @@ public class formProductor extends JPanel {
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             setBorder(new EmptyBorder(8, 18, 8, 18));
         }
-
         @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = g2d(g);
             if (primary) {
-                g2.setColor(getModel().isPressed() ? new Color(29, 78, 216) : PURPLE);
+                g2.setColor(getModel().isPressed() ? new Color(29,78,216) : PURPLE);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                 if (!getModel().isPressed()) {
                     g2.setPaint(new GradientPaint(0,0,new Color(255,255,255,28),
@@ -1188,7 +1105,7 @@ public class formProductor extends JPanel {
                     g2.fillRoundRect(0, 0, getWidth(), getHeight()/2, 10, 10);
                 }
             } else {
-                g2.setColor(getModel().isRollover() ? new Color(14, 34, 80) : BG_CARD);
+                g2.setColor(getModel().isRollover() ? new Color(14,34,80) : BG_CARD);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                 g2.setColor(COL_BRD);
                 g2.setStroke(new BasicStroke(1f));
@@ -1197,7 +1114,6 @@ public class formProductor extends JPanel {
             g2.dispose();
             super.paintComponent(g);
         }
-
         private static Graphics2D g2d(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);

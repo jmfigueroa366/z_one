@@ -35,7 +35,7 @@ public class MainFrame extends JFrame {
     // UI PRINCIPAL
     // =================================================================
     private void inicializarUI() {
-        setTitle("Z-One Music — " + usuarioActual.getNombre());
+        setTitle("Z-One Music — " + usuarioActual.getNombreCompleto());
         setSize(1280, 780);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -47,22 +47,23 @@ public class MainFrame extends JFrame {
         ModernUI.GradientPanel root = new ModernUI.GradientPanel();
         root.setLayout(new BorderLayout());
 
-        // Sidebar
         root.add(construirSidebar(), BorderLayout.WEST);
 
-        // Área de contenido con CardLayout
         cardLayout   = new CardLayout();
         contentPanel = new JPanel(cardLayout);
         contentPanel.setOpaque(false);
         contentPanel.setBorder(new EmptyBorder(24, 24, 24, 24));
-
         contentPanel.add(new DashboardPanel(usuarioActual), "dashboard");
         contentPanel.add(new formArtista(),                 "artistas");
         contentPanel.add(new formProductor(),               "productores");
+        contentPanel.add(new formCancion(),                 "canciones");
         contentPanel.add(new formSesion(),                  "sesiones");
-        contentPanel.add(stubPanel("Catálogo",      "Catálogo musical, álbumes y canciones"),  "catalogo");
-        contentPanel.add(stubPanel("Bot",           "Chatbot asistencial — Z-One IA"),         "bot");
-        contentPanel.add(stubPanel("Configuración", "Preferencias del sistema y de cuenta"),   "configuracion");
+        contentPanel.add(new formCabina(),                  "cabinas");
+        contentPanel.add(new formEvento(),                  "eventos");
+        contentPanel.add(new formColaboracion(),            "colaboraciones");
+        contentPanel.add(new formCalendario(),              "calendario");
+        contentPanel.add(new Jesusitochatview(),            "asistente");
+        contentPanel.add(new formConfiguracion(usuarioActual), "configuracion");
 
         root.add(contentPanel,         BorderLayout.CENTER);
         root.add(construirStatusBar(), BorderLayout.SOUTH);
@@ -112,13 +113,17 @@ public class MainFrame extends JFrame {
 
         // ---- Items del menú ----
         Map<String, String> items = new LinkedHashMap<>();
-        items.put("Dashboard",     "dashboard");
-        items.put("Artistas",      "artistas");
-        items.put("Productores",   "productores");
-        items.put("Sesiones",      "sesiones");
-        items.put("Catálogo",      "catalogo");
-        items.put("Bot",           "bot");
-        items.put("Configuración", "configuracion");
+        items.put("Dashboard",      "dashboard");
+        items.put("Artistas",       "artistas");
+        items.put("Productores",    "productores");
+        items.put("Canciones",      "canciones");
+        items.put("Sesiones",       "sesiones");
+        items.put("Cabinas",        "cabinas");
+        items.put("Eventos",        "eventos");
+        items.put("Colaboraciones", "colaboraciones");
+        items.put("Calendario",     "calendario");
+        items.put("Asistente",      "asistente");
+        items.put("Configuración",  "configuracion");
 
         for (Map.Entry<String, String> e : items.entrySet()) {
             SidebarItem item = new SidebarItem(e.getKey(), e.getValue());
@@ -148,12 +153,12 @@ public class MainFrame extends JFrame {
         userInfo.setBorder(new EmptyBorder(12, 24, 12, 24));
         userInfo.setMaximumSize(new Dimension(240, 80));
 
-        JLabel lblNombre = new JLabel(usuarioActual.getNombre());
+        JLabel lblNombre = new JLabel(usuarioActual.getNombreCompleto());
         lblNombre.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblNombre.setForeground(TEXT_PRIMARY);
         lblNombre.setAlignmentX(LEFT_ALIGNMENT);
 
-        JLabel lblRol = new JLabel(usuarioActual.getRol());
+        JLabel lblRol = new JLabel(usuarioActual.getNombreRol());
         lblRol.setFont(new Font("Segoe UI", Font.PLAIN, 10));
         lblRol.setForeground(PRIMARY_LIGHT);
         lblRol.setAlignmentX(LEFT_ALIGNMENT);
@@ -331,7 +336,6 @@ public class MainFrame extends JFrame {
         toast.setContentPane(panel);
         toast.pack();
 
-        // ── Posicionar abajo-derecha de la ventana principal ──────────
         Point loc    = getLocationOnScreen();
         int   toastX = loc.x + getWidth()  - toast.getWidth()  - 24;
         int   toastY = loc.y + getHeight() - toast.getHeight() - 48;
@@ -404,9 +408,18 @@ public class MainFrame extends JFrame {
             ex.printStackTrace();
         }
 
-        // Constructor: (int id, String username, String pass, String correo, String rol, boolean activo)
-        Usuario test = new Usuario(1, "jesus", "hash123",
-                                   "jesus@zonemusic.com", "PRODUCTOR", true);
+        Usuario test = new Usuario(
+            1,
+            "jesus",
+            "hash123",
+            "jesus@zonemusic.com",
+            "Jesús Pérez",
+            Usuario.ROL_PRODUCTOR,
+            "PRODUCTOR",
+            true,
+            java.time.LocalDate.now(),
+            null
+        );
 
         SwingUtilities.invokeLater(() -> new MainFrame(test).setVisible(true));
     }

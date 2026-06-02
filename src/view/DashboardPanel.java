@@ -1,12 +1,15 @@
 package view;
 
 import model.Usuario;
+import services.EstadisticasService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.List;
+import java.util.Map;
 
 import static view.formProductor.*;
 
@@ -18,6 +21,16 @@ import static view.formProductor.*;
 public class DashboardPanel extends JPanel {
 
     private final Usuario usuario;
+    private final EstadisticasService stats = new EstadisticasService();
+
+    // ── Valores en vivo ──
+    private int totalArtistas, totalProductores, totalSesiones, totalCabinas, totalCanciones;
+    private int artistasNuevos, cabinasDisp, sesionesMes, productoresActivos, cancionesPubMes;
+    private int totalSesionesGlobal, totalCancionesGlobal, totalArtistasActivos;
+    private int[] datosSesiones  = new int[7];
+    private int[] datosCanciones = new int[7];
+    private int[] datosArtistas  = new int[7];
+    private List<String[]> actividad;
 
     // ── Paleta (reutiliza la de formProductor) ────────────────────────
     // BG_DEEP, BG_CARD, BG_FIELD, PURPLE, PURPLE_LT, CYAN, GREEN, AMBER, PINK
@@ -25,7 +38,38 @@ public class DashboardPanel extends JPanel {
 
     public DashboardPanel(Usuario usuario) {
         this.usuario = usuario;
+        cargarDatosReales();
         construirUI();
+    }
+
+    /** Carga TODO desde Oracle antes de pintar la UI */
+    private void cargarDatosReales() {
+        try {
+            totalArtistas    = stats.totalArtistas();
+            totalProductores = stats.totalProductores();
+            totalSesiones    = stats.totalSesiones();
+            totalCabinas     = stats.totalCabinas();
+            totalCanciones   = stats.totalCanciones();
+
+            artistasNuevos      = stats.artistasNuevosEsteMes();
+            productoresActivos  = stats.productoresActivos();
+            sesionesMes         = stats.sesionesEsteMes();
+            cabinasDisp         = stats.cabinasDisponibles();
+            cancionesPubMes     = stats.cancionesPublicadasEsteMes();
+
+            totalSesionesGlobal  = totalSesiones;
+            totalCancionesGlobal = totalCanciones;
+            totalArtistasActivos = stats.artistasActivos();
+
+            Map<String, int[]> sem = stats.actividadSemanal();
+            datosSesiones  = sem.get("sesiones");
+            datosCanciones = sem.get("canciones");
+            datosArtistas  = sem.get("artistas");
+
+            actividad = stats.actividadReciente();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
     // ── CONSTRUCCIÓN ─────────────────────────────────────────────────
@@ -36,14 +80,14 @@ public class DashboardPanel extends JPanel {
 
         JPanel izq = new JPanel(new BorderLayout(0, 18));
         izq.setOpaque(false);
-        izq.add(encabezado(),       BorderLayout.NORTH);
-        izq.add(cuerpoIzquierdo(),  BorderLayout.CENTER);
+        izq.add(encabezado(),      BorderLayout.NORTH);
+        izq.add(cuerpoIzquierdo(), BorderLayout.CENTER);
 
         JPanel der = new JPanel(new BorderLayout(0, 14));
         der.setOpaque(false);
         der.setBorder(new EmptyBorder(0, 14, 0, 0));
-        der.add(panelAcciones(),    BorderLayout.NORTH);
-        der.add(panelActividad(),   BorderLayout.CENTER);
+        der.add(panelAcciones(),  BorderLayout.NORTH);
+        der.add(panelActividad(), BorderLayout.CENTER);
         der.setPreferredSize(new Dimension(280, 0));
 
         add(izq, BorderLayout.CENTER);
@@ -70,14 +114,12 @@ public class DashboardPanel extends JPanel {
         titulos.add(Box.createVerticalStrut(2));
         titulos.add(sub);
 
-        // Badge de bienvenida
         JPanel badge = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
                 g2.setColor(new Color(PURPLE.getRed(), PURPLE.getGreen(), PURPLE.getBlue(), 40));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                 g2.setColor(new Color(PURPLE.getRed(), PURPLE.getGreen(), PURPLE.getBlue(), 100));
-                g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
                 g2.dispose();
                 super.paintComponent(g);
@@ -88,9 +130,10 @@ public class DashboardPanel extends JPanel {
         badge.setBorder(new EmptyBorder(10, 16, 10, 16));
 
         JLabel bienvenido = mk("Bienvenido de vuelta,", F_BODY, TXT_SEC);
-        JLabel nombreUser = mk(usuario.getNombre() + "  ✦",
+        JLabel nombreUser = mk(usuario.getNombreCompleto() + "  ✦",
                 new Font("Segoe UI", Font.BOLD, 16), PURPLE_LT);
-        JLabel rolUser    = mk(usuario.getRol().toUpperCase(),
+        JLabel rolUser = mk(usuario.getNombreRol() != null
+                ? usuario.getNombreRol().toUpperCase() : "USUARIO",
                 new Font("Segoe UI", Font.BOLD, 9), CYAN);
         bienvenido.setAlignmentX(RIGHT_ALIGNMENT);
         nombreUser.setAlignmentX(RIGHT_ALIGNMENT);
@@ -117,18 +160,25 @@ public class DashboardPanel extends JPanel {
         return p;
     }
 
-    // ── FILA STATS ───────────────────────────────────────────────────
+    // ── FILA STATS (datos reales de Oracle) ─────────────────────────
     private JPanel filaStats() {
         JPanel p = new JPanel(new GridLayout(1, 5, 12, 0));
         p.setOpaque(false);
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
         p.setAlignmentX(LEFT_ALIGNMENT);
 
-        p.add(statCard("ARTISTAS",    "24", "+3 este mes",    new Color(59,130,246), "🎤"));
-        p.add(statCard("PRODUCTORES", "8",  "todos activos",  PURPLE,               "🎚"));
-        p.add(statCard("SESIONES",    "12", "este mes",       AMBER,                "📅"));
-        p.add(statCard("CABINAS",     "3",  "disponibles",    CYAN,                 "🎙"));
-        p.add(statCard("CANCIONES",   "87", "+5 publicadas",  PINK,                 "🎵"));
+        p.add(statCard("ARTISTAS",    String.valueOf(totalArtistas),
+                artistasNuevos > 0 ? "+" + artistasNuevos + " este mes" : "registrados",
+                new Color(59,130,246), "🎤"));
+        p.add(statCard("PRODUCTORES", String.valueOf(totalProductores),
+                productoresActivos + " activos", PURPLE, "🎚"));
+        p.add(statCard("SESIONES",    String.valueOf(totalSesiones),
+                sesionesMes + " este mes", AMBER, "📅"));
+        p.add(statCard("CABINAS",     String.valueOf(totalCabinas),
+                cabinasDisp + " disponibles", CYAN, "🎙"));
+        p.add(statCard("CANCIONES",   String.valueOf(totalCanciones),
+                cancionesPubMes > 0 ? "+" + cancionesPubMes + " publicadas" : "en catálogo",
+                PINK, "🎵"));
         return p;
     }
 
@@ -149,17 +199,14 @@ public class DashboardPanel extends JPanel {
                 Graphics2D g2 = g2d(g);
                 g2.setColor(BG_CARD);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-                // borde
                 g2.setColor(hover
                     ? new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 180)
                     : new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 60));
                 g2.setStroke(new BasicStroke(hover ? 1.5f : 1f));
                 g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
-                // línea de acento superior
                 g2.setColor(acento);
                 g2.setStroke(new BasicStroke(2f));
                 g2.drawLine(14, 1, getWidth()-14, 1);
-                // halo del emoji
                 if (hover) {
                     g2.setColor(new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 20));
                     g2.fillOval(getWidth()-46, 8, 38, 38);
@@ -195,7 +242,7 @@ public class DashboardPanel extends JPanel {
         return card;
     }
 
-    // ── GRÁFICO DE BARRAS ─────────────────────────────────────────────
+    // ── GRÁFICO DE BARRAS (datos reales) ─────────────────────────────
     private JPanel panelGrafico() {
         JPanel card = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -203,7 +250,6 @@ public class DashboardPanel extends JPanel {
                 g2.setColor(BG_CARD);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
                 g2.setColor(COL_BRD);
-                g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 14, 14);
                 g2.dispose();
                 super.paintComponent(g);
@@ -213,13 +259,13 @@ public class DashboardPanel extends JPanel {
         card.setLayout(new BorderLayout(0, 0));
         card.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Cabecera del gráfico
+        // Cabecera
         JPanel cab = new JPanel(new BorderLayout(8, 0));
         cab.setOpaque(false);
         cab.setBorder(new EmptyBorder(14, 18, 10, 18));
 
         JLabel titulo = mk("📊  ACTIVIDAD SEMANAL", new Font("Segoe UI", Font.BOLD, 12), TXT_PRI);
-        JLabel sub    = mk("sesiones · canciones · artistas", F_SUB, TXT_SEC);
+        JLabel sub    = mk("sesiones · canciones · artistas (últimos 7 días)", F_SUB, TXT_SEC);
 
         JPanel cabTxt = new JPanel();
         cabTxt.setOpaque(false);
@@ -257,7 +303,6 @@ public class DashboardPanel extends JPanel {
         cab.add(cabTxt,  BorderLayout.WEST);
         cab.add(leyenda, BorderLayout.EAST);
 
-        // Separador
         JPanel sep = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
@@ -274,14 +319,10 @@ public class DashboardPanel extends JPanel {
         cabFull.add(cab, BorderLayout.CENTER);
         cabFull.add(sep, BorderLayout.SOUTH);
 
-        // Área del gráfico
+        // Área del gráfico — usa datos reales
         JPanel grafico = new JPanel() {
-            // Datos simulados por día de la semana
-            final String[] dias    = {"Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"};
-            final int[]    ses     = {3, 5, 2, 6, 4, 7, 1};
-            final int[]    canc    = {5, 3, 7, 4, 6, 8, 2};
-            final int[]    art     = {2, 4, 3, 5, 3, 6, 1};
-            final Color[]  colores = {CYAN, PINK, new Color(59,130,246)};
+            final String[] dias   = {"Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"};
+            final Color[] colores = {CYAN, PINK, new Color(59,130,246)};
 
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
@@ -292,9 +333,16 @@ public class DashboardPanel extends JPanel {
                 int padL = 40, padR = 20, padT = 20, padB = 36;
                 int chartW = getWidth()  - padL - padR;
                 int chartH = getHeight() - padT - padB;
-                int maxVal = 10;
 
-                // Líneas horizontales de guía
+                // Calcular maxVal dinámicamente
+                int maxVal = 1;
+                for (int v : datosSesiones)  if (v > maxVal) maxVal = v;
+                for (int v : datosCanciones) if (v > maxVal) maxVal = v;
+                for (int v : datosArtistas)  if (v > maxVal) maxVal = v;
+                // Redondear arriba al múltiplo de 5 más cercano
+                maxVal = Math.max(5, ((maxVal + 4) / 5) * 5);
+
+                // Líneas guía
                 g2.setStroke(new BasicStroke(0.6f));
                 for (int i = 0; i <= 5; i++) {
                     int y = padT + chartH - (int)(chartH * i / 5.0);
@@ -302,16 +350,15 @@ public class DashboardPanel extends JPanel {
                     g2.drawLine(padL, y, padL + chartW, y);
                     g2.setFont(new Font("Consolas", Font.PLAIN, 9));
                     g2.setColor(TXT_SEC);
-                    g2.drawString(String.valueOf(i*2), padL-22, y+4);
+                    g2.drawString(String.valueOf(maxVal * i / 5), padL-22, y+4);
                 }
 
-                // Grupos de barras
                 int groupW   = chartW / n;
                 int barCount = 3;
                 int barW     = Math.max(6, (groupW - 12) / barCount);
                 int gap      = 3;
 
-                int[][] datos = {ses, canc, art};
+                int[][] datos = {datosSesiones, datosCanciones, datosArtistas};
 
                 for (int d = 0; d < n; d++) {
                     int gx = padL + d * groupW + 6;
@@ -319,21 +366,18 @@ public class DashboardPanel extends JPanel {
                         int bh = (int)(chartH * datos[b][d] / (double)maxVal);
                         int bx = gx + b * (barW + gap);
                         int by = padT + chartH - bh;
-                        // Barra con gradiente
                         Color c = colores[b];
                         GradientPaint gp = new GradientPaint(
                             bx, by, c,
                             bx, by + bh, new Color(c.getRed(), c.getGreen(), c.getBlue(), 80));
                         g2.setPaint(gp);
                         g2.fillRoundRect(bx, by, barW, bh, 4, 4);
-                        // Valor encima
                         if (bh > 18) {
                             g2.setColor(Color.WHITE);
                             g2.setFont(new Font("Consolas", Font.BOLD, 8));
                             g2.drawString(String.valueOf(datos[b][d]), bx+2, by-3);
                         }
                     }
-                    // Etiqueta del día
                     g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
                     g2.setColor(TXT_SEC);
                     FontMetrics fm = g2.getFontMetrics();
@@ -341,7 +385,6 @@ public class DashboardPanel extends JPanel {
                     g2.drawString(dias[d], lx, padT + chartH + 18);
                 }
 
-                // Eje Y
                 g2.setColor(new Color(255,255,255,20));
                 g2.setStroke(new BasicStroke(1f));
                 g2.drawLine(padL, padT, padL, padT + chartH);
@@ -355,15 +398,16 @@ public class DashboardPanel extends JPanel {
         card.add(cabFull, BorderLayout.NORTH);
         card.add(grafico, BorderLayout.CENTER);
 
-        // Footer con totales de la semana
+        // Footer con totales reales
         JPanel footer = new JPanel(new GridLayout(1, 3, 0, 0));
         footer.setOpaque(false);
         footer.setBorder(new EmptyBorder(8, 14, 14, 14));
-        for (Object[] it : new Object[][]{
-            {"28", "Total sesiones", CYAN},
-            {"35", "Canciones creadas", PINK},
-            {"24", "Artistas activos", new Color(59,130,246)}
-        }) {
+        Object[][] tot = {
+            {String.valueOf(totalSesionesGlobal),  "Total sesiones",    CYAN},
+            {String.valueOf(totalCancionesGlobal), "Canciones creadas", PINK},
+            {String.valueOf(totalArtistasActivos), "Artistas activos",  new Color(59,130,246)}
+        };
+        for (Object[] it : tot) {
             JPanel fi = new JPanel();
             fi.setOpaque(false);
             fi.setLayout(new BoxLayout(fi, BoxLayout.Y_AXIS));
@@ -372,8 +416,6 @@ public class DashboardPanel extends JPanel {
             v.setAlignmentX(LEFT_ALIGNMENT);
             t.setAlignmentX(LEFT_ALIGNMENT);
             fi.add(v); fi.add(t);
-
-            // Separador vertical excepto último
             JPanel wrap = new JPanel(new BorderLayout());
             wrap.setOpaque(false);
             wrap.add(fi, BorderLayout.CENTER);
@@ -398,7 +440,7 @@ public class DashboardPanel extends JPanel {
         return card;
     }
 
-    // ── PANEL ACCIONES RÁPIDAS (derecha arriba) ───────────────────────
+    // ── PANEL ACCIONES RÁPIDAS ───────────────────────────────────────
     private JPanel panelAcciones() {
         JPanel inner = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -406,7 +448,6 @@ public class DashboardPanel extends JPanel {
                 g2.setColor(new Color(7, 5, 18));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
                 g2.setColor(COL_BRD);
-                g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
                 g2.dispose();
                 super.paintComponent(g);
@@ -416,21 +457,19 @@ public class DashboardPanel extends JPanel {
         inner.setLayout(new BorderLayout());
         inner.setPreferredSize(new Dimension(280, 240));
 
-        // Cabecera
         JPanel cab = cabeceraDer("⚡  ACCIONES RÁPIDAS", "un solo clic", AMBER);
         inner.add(cab, BorderLayout.NORTH);
 
-        // Acciones
         JPanel acciones = new JPanel();
         acciones.setOpaque(false);
         acciones.setLayout(new BoxLayout(acciones, BoxLayout.Y_AXIS));
         acciones.setBorder(new EmptyBorder(10, 10, 10, 10));
 
         Object[][] items = {
-            {"🎤", "Nuevo artista",     "Registrar artista",      new Color(59,130,246)},
-            {"🎵", "Nueva canción",     "Agregar al catálogo",    PINK},
-            {"📅", "Programar sesión",  "Reservar cabina",        AMBER},
-            {"📊", "Ver estadísticas",  "Top canciones",          PURPLE},
+            {"🎤", "Nuevo artista",    "Registrar artista",   new Color(59,130,246)},
+            {"🎵", "Nueva canción",    "Agregar al catálogo", PINK},
+            {"📅", "Programar sesión", "Reservar cabina",     AMBER},
+            {"📊", "Ver estadísticas", "Top canciones",       PURPLE},
         };
         for (Object[] it : items) {
             acciones.add(filaAccion(
@@ -452,17 +491,16 @@ public class DashboardPanel extends JPanel {
         JPanel fila = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(hover[0] ? new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 25) : BG_CARD);
+                g2.setColor(hover[0]
+                    ? new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 25)
+                    : BG_CARD);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 9, 9);
                 if (hover[0]) {
                     g2.setColor(new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 100));
-                    g2.setStroke(new BasicStroke(1.2f));
                     g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 9, 9);
                 }
-                // Barra izquierda
                 g2.setColor(acento);
                 g2.fillRoundRect(0, 6, 3, getHeight()-12, 3, 3);
-                // Flecha derecha
                 g2.setColor(hover[0] ? acento : TXT_SEC);
                 g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
                 int ax = getWidth()-14, ay = getHeight()/2;
@@ -502,7 +540,7 @@ public class DashboardPanel extends JPanel {
         return fila;
     }
 
-    // ── PANEL ACTIVIDAD RECIENTE (derecha abajo) ──────────────────────
+    // ── PANEL ACTIVIDAD RECIENTE (datos reales) ──────────────────────
     private JPanel panelActividad() {
         JPanel inner = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -510,7 +548,6 @@ public class DashboardPanel extends JPanel {
                 g2.setColor(new Color(7, 5, 18));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
                 g2.setColor(COL_BRD);
-                g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 12, 12);
                 g2.dispose();
                 super.paintComponent(g);
@@ -527,19 +564,20 @@ public class DashboardPanel extends JPanel {
         lista.setLayout(new BoxLayout(lista, BoxLayout.Y_AXIS));
         lista.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        Object[][] eventos = {
-            {"CV", "Carlos Vives grabó Pa Mayte",       "hace 2h",  GREEN},
-            {"SH", "Shakira publicó Hips Don't Lie",    "hace 5h",  CYAN},
-            {"JB", "Sesión programada con J Balvin",    "mañana",   PURPLE_LT},
-            {"MA", "Nuevo productor: Maluma",           "hace 1d",  AMBER},
-            {"OR", "Álbum Oral Fixation Vol. 2 listo",  "hace 2d",  PINK},
-            {"BB", "Bad Bunny agendó cabina B",         "hace 3d",  new Color(59,130,246)},
-        };
-
-        for (Object[] ev : eventos) {
-            lista.add(filaActividad(
-                (String)ev[0], (String)ev[1], (String)ev[2], (Color)ev[3]));
-            lista.add(Box.createVerticalStrut(5));
+        Color[] paleta = {GREEN, CYAN, PURPLE_LT, AMBER, PINK, new Color(59,130,246)};
+        if (actividad != null && !actividad.isEmpty()) {
+            int i = 0;
+            for (String[] ev : actividad) {
+                Color c = paleta[i % paleta.length];
+                lista.add(filaActividad(ev[0], ev[1], ev[2], c));
+                lista.add(Box.createVerticalStrut(5));
+                i++;
+            }
+        } else {
+            JLabel vacio = mk("No hay actividad reciente",
+                    new Font("Segoe UI", Font.PLAIN, 11), TXT_SEC);
+            vacio.setBorder(new EmptyBorder(20, 12, 20, 12));
+            lista.add(vacio);
         }
 
         JScrollPane scroll = new JScrollPane(lista);
@@ -570,14 +608,12 @@ public class DashboardPanel extends JPanel {
         fila.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
         fila.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Avatar con iniciales
         JLabel avatar = new JLabel(iniciales, SwingConstants.CENTER) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
                 g2.setColor(new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 50));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                 g2.setColor(new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 150));
-                g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 8, 8);
                 g2.dispose();
                 super.paintComponent(g);
@@ -591,7 +627,6 @@ public class DashboardPanel extends JPanel {
         JPanel txt = new JPanel();
         txt.setOpaque(false);
         txt.setLayout(new BoxLayout(txt, BoxLayout.Y_AXIS));
-        // Truncar texto si es muy largo
         String textoCorto = texto.length() > 28 ? texto.substring(0, 27) + "…" : texto;
         JLabel t = mk(textoCorto, new Font("Segoe UI", Font.PLAIN, 11), TXT_PRI);
         JLabel d = mk(tiempo,     new Font("Consolas", Font.PLAIN, 9),  TXT_SEC);
@@ -604,7 +639,7 @@ public class DashboardPanel extends JPanel {
         return fila;
     }
 
-    // ── CABECERA REUTILIZABLE PANEL DERECHO ───────────────────────────
+    // ── CABECERA REUTILIZABLE PANEL DERECHO ──────────────────────────
     private JPanel cabeceraDer(String titulo, String sub, Color acento) {
         JPanel cab = new JPanel(new BorderLayout(6, 0)) {
             @Override protected void paintComponent(Graphics g) {
@@ -641,7 +676,7 @@ public class DashboardPanel extends JPanel {
         return wrapper;
     }
 
-    // ── HELPERS ───────────────────────────────────────────────────────
+    // ── HELPERS ──────────────────────────────────────────────────────
     private static JLabel mk(String txt, Font f, Color c) {
         JLabel l = new JLabel(txt);
         l.setFont(f);

@@ -1,92 +1,70 @@
 package model;
 
+import java.time.LocalDate;
 
+/** Entidad Productor alineada con la tabla PRODUCTORES. */
 public class Productor {
 
-    private int    idProductor;
-    private int    idUsuario;       // FK a usuarios (0 si no tiene cuenta)
-    private String nombre;
-    private String fechaNacimiento;
-    private String genero;
-    private String nacionalidad;
-    private String especialidad;
-    private String experiencia;
-    private double tarifaHora;
-    private String estadoProductor;
-    private String fechaFirma;
+    private Integer   idProductor;
+    private Integer   idUsuario;
+    private String    nombre;
+    private String    correo;
+    private String    telefono;
+    private String    especialidad;
+    private double    tarifaHora;
+    private LocalDate fechaFirma;
+    private LocalDate fechaNacimiento;
+    private String    nacionalidad;
+    private String    generoPersona;
+    private String    generoMusical;
+    private String    estado;
+    private String    numIdentificacion;
 
-    // Constructor completo — para mapear desde BD
-    public Productor(int idProductor, int idUsuario, String nombre,
-                     String fechaNacimiento, String genero, String nacionalidad,
-                     String especialidad, String experiencia, double tarifaHora,
-                     String estadoProductor, String fechaFirma) {
-        this.idProductor    = idProductor;
-        this.idUsuario      = idUsuario;
-        this.nombre         = nombre;
-        this.fechaNacimiento= fechaNacimiento;
-        this.genero         = genero;
-        this.nacionalidad   = nacionalidad;
-        this.especialidad   = especialidad;
-        this.experiencia    = experiencia;
-        this.tarifaHora     = tarifaHora;
-        this.estadoProductor= estadoProductor;
-        this.fechaFirma     = fechaFirma;
-    }
-
-    // Constructor para registro nuevo desde la UI
-    public Productor(String nombre, String especialidad,
-                     String experiencia, double tarifaHora,
-                     String nacionalidad) {
-        this(0, 0, nombre, null, null, nacionalidad,
-             especialidad, experiencia, tarifaHora, "Disponible", null);
-    }
-
-    // Constructor vacío
     public Productor() {}
 
-    // Constructor de compatibilidad con código viejo
-    // formProductor usaba: Productor(int, String, String, String, String, double)
-    public Productor(int idProductor, String nombre, String correo,
+    public Productor(Integer idProductor, String nombre, String correo,
                      String telefono, String especialidad, double tarifaHora) {
-        this(idProductor, 0, nombre, null, null, null,
-             especialidad, null, tarifaHora, "Disponible", null);
+        this.idProductor  = idProductor;
+        this.nombre       = nombre;
+        this.correo       = correo;
+        this.telefono     = telefono;
+        this.especialidad = especialidad;
+        this.tarifaHora   = tarifaHora;
     }
 
-    // ── Getters ───────────────────────────────────────────────────────
-    public int    getIdProductor()     { return idProductor; }
-    public int    getIdUsuario()       { return idUsuario; }
-    public String getNombre()          { return nombre; }
-    public String getFechaNacimiento() { return fechaNacimiento; }
-    public String getGenero()          { return genero; }
-    public String getNacionalidad()    { return nacionalidad; }
-    public String getEspecialidad()    { return especialidad; }
-    public String getExperiencia()     { return experiencia; }
-    public double getTarifaHora()      { return tarifaHora; }
-    public String getEstadoProductor() { return estadoProductor; }
-    public String getFechaFirma()      { return fechaFirma; }
+    // ── Getters / Setters ──
+    public Integer   getIdProductor()       { return idProductor; }
+    public Integer   getIdUsuario()         { return idUsuario; }
+    public String    getNombre()            { return nombre; }
+    public String    getCorreo()            { return correo; }
+    public String    getTelefono()          { return telefono; }
+    public String    getEspecialidad()      { return especialidad; }
+    public double    getTarifaHora()        { return tarifaHora; }
+    public LocalDate getFechaFirma()        { return fechaFirma; }
+    public LocalDate getFechaNacimiento()   { return fechaNacimiento; }
+    public String    getNacionalidad()      { return nacionalidad; }
+    public String    getGeneroPersona()     { return generoPersona; }
+    public String    getGeneroMusical()     { return generoMusical; }
+    public String    getEstado()            { return estado; }
+    public String    getNumIdentificacion() { return numIdentificacion; }
 
-    // Alias para compatibilidad con código viejo
-    public int    getIdentificacion()  { return idProductor; }
-
-    // ── Setters ───────────────────────────────────────────────────────
-    public void setIdProductor(int id)          { this.idProductor = id; }
-    public void setIdentificacion(int id)       { this.idProductor = id; }
-    public void setIdUsuario(int id)            { this.idUsuario = id; }
-    public void setNombre(String n)             { this.nombre = n; }
-    public void setEspecialidad(String e)       { this.especialidad = e; }
-    public void setExperiencia(String e)        { this.experiencia = e; }
-    public void setTarifaHora(double t)         { this.tarifaHora = t; }
-    public void setNacionalidad(String n)       { this.nacionalidad = n; }
-    public void setEstadoProductor(String e)    { this.estadoProductor = e; }
-    public void setFechaNacimiento(String f)    { this.fechaNacimiento = f; }
-    public void setGenero(String g)             { this.genero = g; }
-    public void setFechaFirma(String f)         { this.fechaFirma = f; }
+    public void setIdProductor(Integer id)         { this.idProductor = id; }
+    public void setIdUsuario(Integer id)            { this.idUsuario = id; }
+    public void setNombre(String s)                 { this.nombre = s; }
+    public void setCorreo(String s)                 { this.correo = s; }
+    public void setTelefono(String s)               { this.telefono = s; }
+    public void setEspecialidad(String s)           { this.especialidad = s; }
+    public void setTarifaHora(double v)             { this.tarifaHora = v; }
+    public void setFechaFirma(LocalDate f)          { this.fechaFirma = f; }
+    public void setFechaNacimiento(LocalDate f)     { this.fechaNacimiento = f; }
+    public void setNacionalidad(String s)           { this.nacionalidad = s; }
+    public void setGeneroPersona(String s)          { this.generoPersona = s; }
+    public void setGeneroMusical(String s)          { this.generoMusical = s; }
+    public void setEstado(String s)                 { this.estado = s; }
+    public void setNumIdentificacion(String s)      { this.numIdentificacion = s; }
 
     @Override
     public String toString() {
-        return "Productor{id=" + idProductor
-             + ", nombre='" + nombre + "'"
-             + ", especialidad='" + especialidad + "'"
-             + ", tarifa=" + tarifaHora + "}";
+        return nombre != null ? nombre : "Productor#" + idProductor;
     }
 }

@@ -4,6 +4,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 public class PasswordUtil {
+
+    public static String sha256(String passNueva) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
     private PasswordUtil() {}
     public static String hashPassword(String password) {
         if (password == null || password.isEmpty()) {
