@@ -7,7 +7,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
 
-public class Jesusitochatview extends JPanel {
+public class Zbotchatview extends JPanel {
 
     private JPanel      messagesPanel;
     private JScrollPane scrollPane;
@@ -40,7 +40,7 @@ public class Jesusitochatview extends JPanel {
     private float alpha = 0f;
     private javax.swing.Timer timerFade;
 
-    public Jesusitochatview() {
+    public Zbotchatview() {
         setLayout(new BorderLayout());
         setOpaque(false);
         controller = new Chatcontroller(this);
@@ -148,7 +148,7 @@ public class Jesusitochatview extends JPanel {
         infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
         infoPanel.setOpaque(false);
 
-        JLabel nameLabel = new JLabel("Jesusito");
+        JLabel nameLabel = new JLabel("Z-BOT");
         nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 17));
         nameLabel.setForeground(WHITE);
         nameLabel.setAlignmentX(LEFT_ALIGNMENT);
@@ -173,7 +173,7 @@ public class Jesusitochatview extends JPanel {
                 super.paintComponent(g);
             }
         };
-        bubbleLabel.setText(wrapHtml("Hola! Soy Jesusito, tu asistente musical. "
+        bubbleLabel.setText(wrapHtml("Hola! Soy Z-BOT, tu asistente musical. "
                 + "Preguntame sobre canciones, artistas y recomendaciones!"));
         bubbleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         bubbleLabel.setForeground(TEXT_PRI);
@@ -244,7 +244,6 @@ public class Jesusitochatview extends JPanel {
         // Labels sin emoji — solo texto claro
         String[] chips   = {"Recomiendame algo", "Top reggaeton", "Para estudiar", "Dato curioso"};
         // Prefijos dibujados como íconos musicales ASCII
-        String[] prefixes= {" ♪ ", " ♬ ", " ♩ ", " ★ "};
         String[] prompts = {
             "Recomiendame una cancion para hoy",
             "Cual es el mejor artista de reggaeton ahora?",
@@ -253,7 +252,7 @@ public class Jesusitochatview extends JPanel {
         };
         for (int i = 0; i < chips.length; i++) {
             final String p = prompts[i];
-            final String label = prefixes[i] + chips[i];
+            final String label = chips[i];
             JButton chip = new JButton(label) {
                 boolean hov = false;
                 { addMouseListener(new MouseAdapter(){

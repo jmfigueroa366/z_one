@@ -220,7 +220,7 @@ public class formConfiguracion extends JPanel {
     // ════════════════════════════════════════════════════════════════
     private JComponent cardTema() {
         JPanel card = cardBase(C_PURPLE);
-        card.add(headerCard("🎨  Tema de la interfaz",
+        card.add(headerCard("Tema de la interfaz",
                 "Personaliza la apariencia visual", C_PURPLE), BorderLayout.NORTH);
 
         JPanel body = bodyPanel();
@@ -230,9 +230,9 @@ public class formConfiguracion extends JPanel {
 
         String temaActual = servicio.temaActual();
         ButtonGroup grupo = new ButtonGroup();
-        JRadioButton rbOscuro = radio("🌙  Tema oscuro (recomendado)", "oscuro".equals(temaActual));
-        JRadioButton rbClaro  = radio("☀  Tema claro",                 "claro".equals(temaActual));
-        JRadioButton rbAuto   = radio("🔄  Automático (según hora)",    "auto".equals(temaActual));
+        JRadioButton rbOscuro = radio("Tema oscuro (recomendado)", "oscuro".equals(temaActual));
+        JRadioButton rbClaro  = radio("Tema claro",                 "claro".equals(temaActual));
+        JRadioButton rbAuto   = radio("Automático (según hora)",    "auto".equals(temaActual));
         grupo.add(rbOscuro); grupo.add(rbClaro); grupo.add(rbAuto);
 
         for (JRadioButton rb : new JRadioButton[]{rbOscuro, rbClaro, rbAuto}) {

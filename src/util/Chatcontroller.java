@@ -2,14 +2,14 @@ package util;
 
 import dao.Historialdao;
 import services.Geminiservice;
-import view.Jesusitochatview;
+import view.Zbotchatview;
 
 public class Chatcontroller {
 
     private Geminiservice geminiService;
-    private Jesusitochatview vista;
+    private Zbotchatview vista;
 
-    public Chatcontroller(Jesusitochatview vista) {
+    public Chatcontroller(Zbotchatview vista) {
         this.vista = vista;
         Historialdao historialdao = new Historialdao();
         this.geminiService = new Geminiservice(historialdao);
