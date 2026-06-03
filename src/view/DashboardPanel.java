@@ -16,16 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-<<<<<<< HEAD
-import static view.formProductor.*;
-
-/**
- * DashboardPanel — Rediseñado con el mismo estilo oscuro de formProductor.
- * Paleta: fondo casi negro, tarjetas oscuras, bordes morados sutiles,
- * acentos cyan/verde/ámbar/rosa.
- */
-=======
->>>>>>> d739312be638ca602b5beb6bdb70b272567f437d
 public class DashboardPanel extends JPanel {
 
     // ════════════════════════════════════════════════════════════════
@@ -57,16 +47,11 @@ public class DashboardPanel extends JPanel {
     private int totalArtistas, totalProductores, totalSesiones, totalCabinas, totalCanciones;
     private int artistasNuevos, cabinasDisp, sesionesMes, productoresActivos, cancionesPubMes;
     private int totalSesionesGlobal, totalCancionesGlobal, totalArtistasActivos;
-    private int[] datosSesiones  = new int[7];
-    private int[] datosCanciones = new int[7];
-    private int[] datosArtistas  = new int[7];
+    private int[] datosSesiones   = new int[7];
+    private int[] datosCanciones  = new int[7];
+    private int[] datosArtistas   = new int[7];
     private List<String[]> actividad;
 
-<<<<<<< HEAD
-    // ── Paleta (reutiliza la de formProductor) ────────────────────────
-    // BG_DEEP, BG_CARD, BG_FIELD, PURPLE, PURPLE_LT, CYAN, GREEN, AMBER, PINK
-    // TXT_PRI, TXT_SEC, COL_BRD, ORO, PLATA, BRONCE — ya definidas en formProductor
-=======
     // ── REPRODUCTOR ──
     private List<Grabacion> playlist = new ArrayList<>();
     private int indiceActual = 0;
@@ -84,7 +69,6 @@ public class DashboardPanel extends JPanel {
     private JPanel coverAnimado;
     private JPanel ondasPanel;
     private JPanel listaCancionesBox;   // lista central de grabaciones
->>>>>>> d739312be638ca602b5beb6bdb70b272567f437d
 
     public DashboardPanel(Usuario usuario) {
         this.usuario = usuario;
@@ -105,17 +89,9 @@ public class DashboardPanel extends JPanel {
             sesionesMes         = stats.sesionesEsteMes();
             cabinasDisp         = stats.cabinasDisponibles();
             cancionesPubMes     = stats.cancionesPublicadasEsteMes();
-<<<<<<< HEAD
-
-            totalSesionesGlobal  = totalSesiones;
-            totalCancionesGlobal = totalCanciones;
-            totalArtistasActivos = stats.artistasActivos();
-
-=======
             totalSesionesGlobal   = totalSesiones;
             totalCancionesGlobal  = totalCanciones;
             totalArtistasActivos  = stats.artistasActivos();
->>>>>>> d739312be638ca602b5beb6bdb70b272567f437d
             Map<String, int[]> sem = stats.actividadSemanal();
             datosSesiones  = sem.get("sesiones");
             datosCanciones = sem.get("canciones");
@@ -126,28 +102,6 @@ public class DashboardPanel extends JPanel {
         }
     }
 
-<<<<<<< HEAD
-    // ── CONSTRUCCIÓN ─────────────────────────────────────────────────
-    private void construirUI() {
-        setOpaque(false);
-        setLayout(new BorderLayout(0, 0));
-        setBorder(new EmptyBorder(24, 24, 24, 24));
-
-        JPanel izq = new JPanel(new BorderLayout(0, 18));
-        izq.setOpaque(false);
-        izq.add(encabezado(),      BorderLayout.NORTH);
-        izq.add(cuerpoIzquierdo(), BorderLayout.CENTER);
-
-        JPanel der = new JPanel(new BorderLayout(0, 14));
-        der.setOpaque(false);
-        der.setBorder(new EmptyBorder(0, 14, 0, 0));
-        der.add(panelAcciones(),  BorderLayout.NORTH);
-        der.add(panelActividad(), BorderLayout.CENTER);
-        der.setPreferredSize(new Dimension(280, 0));
-
-        add(izq, BorderLayout.CENTER);
-        add(der, BorderLayout.EAST);
-=======
     private void cargarPlaylist() {
         try {
             playlist = new GrabacionDAO().listarTodos();
@@ -156,7 +110,6 @@ public class DashboardPanel extends JPanel {
             ex.printStackTrace();
             playlist = new ArrayList<>();
         }
->>>>>>> d739312be638ca602b5beb6bdb70b272567f437d
     }
 
     private void construirUI() {
@@ -1010,158 +963,16 @@ public class DashboardPanel extends JPanel {
         }
         leyenda.setPreferredSize(new Dimension(100, 0));
 
-<<<<<<< HEAD
-        cab.add(cabTxt,  BorderLayout.WEST);
-        cab.add(leyenda, BorderLayout.EAST);
-
-        JPanel sep = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = g2d(g);
-                g2.setPaint(new GradientPaint(0,0, PURPLE, getWidth()*0.6f,0, new Color(0,0,0,0)));
-                g2.fillRect(0, 0, getWidth(), 1);
-                g2.dispose();
-            }
-        };
-        sep.setOpaque(false);
-        sep.setPreferredSize(new Dimension(0, 1));
-
-        JPanel cabFull = new JPanel(new BorderLayout());
-        cabFull.setOpaque(false);
-        cabFull.add(cab, BorderLayout.CENTER);
-        cabFull.add(sep, BorderLayout.SOUTH);
-
-        // Área del gráfico — usa datos reales
-        JPanel grafico = new JPanel() {
-            final String[] dias   = {"Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"};
-            final Color[] colores = {CYAN, PINK, new Color(59,130,246)};
-
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = g2d(g);
-                g2.setColor(BG_CARD);
-                g2.fillRect(0, 0, getWidth(), getHeight());
-
-                int n = dias.length;
-                int padL = 40, padR = 20, padT = 20, padB = 36;
-                int chartW = getWidth()  - padL - padR;
-                int chartH = getHeight() - padT - padB;
-
-                // Calcular maxVal dinámicamente
-                int maxVal = 1;
-                for (int v : datosSesiones)  if (v > maxVal) maxVal = v;
-                for (int v : datosCanciones) if (v > maxVal) maxVal = v;
-                for (int v : datosArtistas)  if (v > maxVal) maxVal = v;
-                // Redondear arriba al múltiplo de 5 más cercano
-                maxVal = Math.max(5, ((maxVal + 4) / 5) * 5);
-
-                // Líneas guía
-                g2.setStroke(new BasicStroke(0.6f));
-                for (int i = 0; i <= 5; i++) {
-                    int y = padT + chartH - (int)(chartH * i / 5.0);
-                    g2.setColor(new Color(255,255,255,15));
-                    g2.drawLine(padL, y, padL + chartW, y);
-                    g2.setFont(new Font("Consolas", Font.PLAIN, 9));
-                    g2.setColor(TXT_SEC);
-                    g2.drawString(String.valueOf(maxVal * i / 5), padL-22, y+4);
-                }
-
-                int groupW   = chartW / n;
-                int barCount = 3;
-                int barW     = Math.max(6, (groupW - 12) / barCount);
-                int gap      = 3;
-
-                int[][] datos = {datosSesiones, datosCanciones, datosArtistas};
-
-                for (int d = 0; d < n; d++) {
-                    int gx = padL + d * groupW + 6;
-                    for (int b = 0; b < barCount; b++) {
-                        int bh = (int)(chartH * datos[b][d] / (double)maxVal);
-                        int bx = gx + b * (barW + gap);
-                        int by = padT + chartH - bh;
-                        Color c = colores[b];
-                        GradientPaint gp = new GradientPaint(
-                            bx, by, c,
-                            bx, by + bh, new Color(c.getRed(), c.getGreen(), c.getBlue(), 80));
-                        g2.setPaint(gp);
-                        g2.fillRoundRect(bx, by, barW, bh, 4, 4);
-                        if (bh > 18) {
-                            g2.setColor(Color.WHITE);
-                            g2.setFont(new Font("Consolas", Font.BOLD, 8));
-                            g2.drawString(String.valueOf(datos[b][d]), bx+2, by-3);
-                        }
-                    }
-                    g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
-                    g2.setColor(TXT_SEC);
-                    FontMetrics fm = g2.getFontMetrics();
-                    int lx = gx + (groupW - 12)/2 - fm.stringWidth(dias[d])/2;
-                    g2.drawString(dias[d], lx, padT + chartH + 18);
-                }
-
-                g2.setColor(new Color(255,255,255,20));
-                g2.setStroke(new BasicStroke(1f));
-                g2.drawLine(padL, padT, padL, padT + chartH);
-
-                g2.dispose();
-            }
-        };
-        grafico.setOpaque(false);
-        grafico.setPreferredSize(new Dimension(0, 200));
-
-        card.add(cabFull, BorderLayout.NORTH);
-=======
         card.add(izq, BorderLayout.WEST);
->>>>>>> d739312be638ca602b5beb6bdb70b272567f437d
         card.add(grafico, BorderLayout.CENTER);
         card.add(leyenda, BorderLayout.EAST);
 
-<<<<<<< HEAD
-        // Footer con totales reales
-        JPanel footer = new JPanel(new GridLayout(1, 3, 0, 0));
-        footer.setOpaque(false);
-        footer.setBorder(new EmptyBorder(8, 14, 14, 14));
-        Object[][] tot = {
-            {String.valueOf(totalSesionesGlobal),  "Total sesiones",    CYAN},
-            {String.valueOf(totalCancionesGlobal), "Canciones creadas", PINK},
-            {String.valueOf(totalArtistasActivos), "Artistas activos",  new Color(59,130,246)}
-        };
-        for (Object[] it : tot) {
-            JPanel fi = new JPanel();
-            fi.setOpaque(false);
-            fi.setLayout(new BoxLayout(fi, BoxLayout.Y_AXIS));
-            JLabel v = mk((String)it[0], new Font("Segoe UI", Font.BOLD, 18), (Color)it[2]);
-            JLabel t = mk((String)it[1], new Font("Segoe UI", Font.PLAIN, 9), TXT_SEC);
-            v.setAlignmentX(LEFT_ALIGNMENT);
-            t.setAlignmentX(LEFT_ALIGNMENT);
-            fi.add(v); fi.add(t);
-            JPanel wrap = new JPanel(new BorderLayout());
-            wrap.setOpaque(false);
-            wrap.add(fi, BorderLayout.CENTER);
-            footer.add(wrap);
-        }
-
-        JPanel sepFooter = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                g.setColor(COL_BRD);
-                g.fillRect(0, 0, getWidth(), 1);
-            }
-        };
-        sepFooter.setOpaque(false);
-        sepFooter.setPreferredSize(new Dimension(0, 1));
-
-        JPanel footerFull = new JPanel(new BorderLayout());
-        footerFull.setOpaque(false);
-        footerFull.add(sepFooter, BorderLayout.NORTH);
-        footerFull.add(footer,    BorderLayout.CENTER);
-
-        card.add(footerFull, BorderLayout.SOUTH);
-        return card;
-=======
         JPanel wrap = new JPanel(new BorderLayout());
         wrap.setOpaque(false);
         wrap.setBorder(new EmptyBorder(10, 0, 12, 0));
         wrap.add(card, BorderLayout.CENTER);
         wrap.setPreferredSize(new Dimension(0, 130));
         return wrap;
->>>>>>> d739312be638ca602b5beb6bdb70b272567f437d
     }
 
     // ════════════════════════════════════════════════════════════════

@@ -43,12 +43,6 @@ public class formProductor extends JPanel {
     static final Font F_MONO   = new Font("Consolas", Font.PLAIN, 11);
     static final Font F_MONO_B = new Font("Consolas", Font.BOLD,  11);
 
-<<<<<<< HEAD
-    // ══════════════════════════════════════════════════════════════════
-    //  COLUMNAS
-    // ══════════════════════════════════════════════════════════════════
-=======
->>>>>>> d739312be638ca602b5beb6bdb70b272567f437d
     static final String[] COLS = {
         "ID", "Nombre", "Especialidad", "Nacionalidad", "Tarifa/h", "Estado"
     };
@@ -236,9 +230,9 @@ public class formProductor extends JPanel {
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
         p.setAlignmentX(LEFT_ALIGNMENT);
         p.add(statCard("TOTAL PRODUCTORES", lblTotal,          PURPLE, "🎚"));
-        p.add(statCard("ESPECIALIDADES",    lblEspecialidades, CYAN,   "🎛"));
-        p.add(statCard("TARIFA PROMEDIO",   lblTarifaProm,     GREEN,  "💵"));
-        p.add(statCard("TARIFA MÁXIMA",     lblTarifaMax,      AMBER,  "⭐"));
+        p.add(statCard("ESPECIALIDADES",     lblEspecialidades, CYAN,   "🎛"));
+        p.add(statCard("TARIFA PROMEDIO",    lblTarifaProm,     GREEN,  "💵"));
+        p.add(statCard("TARIFA MÁXIMA",      lblTarifaMax,      AMBER,  "⭐"));
         return p;
     }
 
@@ -422,16 +416,8 @@ public class formProductor extends JPanel {
                 return l;
             }
         });
-<<<<<<< HEAD
-
-        int[] w = {52, 155, 130, 110, 90, 90};
-        for (int i = 0; i < w.length; i++)
-            tabla.getColumnModel().getColumn(i).setPreferredWidth(w[i]);
-
-=======
         int[] w = {52,155,130,110,90,90};
         for (int i=0;i<w.length;i++) tabla.getColumnModel().getColumn(i).setPreferredWidth(w[i]);
->>>>>>> d739312be638ca602b5beb6bdb70b272567f437d
         tabla.setDefaultRenderer(Object.class, new CeldaRenderer());
     }
 
@@ -464,29 +450,12 @@ public class formProductor extends JPanel {
             }
         };
         cab.setOpaque(false);
-<<<<<<< HEAD
-        cab.setBorder(new EmptyBorder(11, 14, 11, 14));
-        JLabel titulo = new JLabel("🏆  TOP TARIFAS");
-        titulo.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        titulo.setForeground(ORO);
-
-        JPanel cabDer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
-        cabDer.setOpaque(false);
-        JLabel lblMas = mkLabel("más", F_MONO.deriveFont(9f), TXT_SEC);
-        JLabel lblOpc = mkLabel("···", new Font("Segoe UI", Font.BOLD, 13), TXT_SEC);
-        lblOpc.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        cabDer.add(lblMas);
-        cabDer.add(lblOpc);
-        cab.add(titulo, BorderLayout.WEST);
-        cab.add(cabDer, BorderLayout.EAST);
-=======
         cab.setBorder(new EmptyBorder(11,14,11,14));
         JLabel t = new JLabel("🏆  TOP TARIFAS");
         t.setFont(new Font("Segoe UI",Font.BOLD,13));
         t.setForeground(ORO);
         cab.add(t, BorderLayout.WEST);
         cab.add(mkLabel("por tarifa/hora", new Font("Segoe UI",Font.PLAIN,9), TXT_SEC), BorderLayout.EAST);
->>>>>>> d739312be638ca602b5beb6bdb70b272567f437d
 
         JPanel sep = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -548,17 +517,10 @@ public class formProductor extends JPanel {
         rankingContainer.repaint();
     }
 
-<<<<<<< HEAD
-    private JPanel filaRanking(int puesto, Productor p, double maxTarifa, boolean esPodio) {
-        Color acento  = puesto == 1 ? ORO : puesto == 2 ? PLATA : puesto == 3 ? BRONCE : PURPLE_LT;
-        String medalla = puesto == 1 ? "🥇" : puesto == 2 ? "🥈" : puesto == 3 ? "🥉" : "#"+puesto;
-        final Color ac = acento;
-=======
     private JPanel filaRanking(int puesto, Productor p, double maxT, boolean podio) {
         Color ac = puesto==1?ORO : puesto==2?PLATA : puesto==3?BRONCE : PURPLE_LT;
         String med = puesto==1?"🥇":puesto==2?"🥈":puesto==3?"🥉":"#"+puesto;
         final boolean[] hov = {false};
->>>>>>> d739312be638ca602b5beb6bdb70b272567f437d
 
         JPanel fila = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -705,64 +667,6 @@ public class formProductor extends JPanel {
             super.paintComponent(g);
             if (datos.isEmpty()) return;
             Graphics2D g2 = g2d(g);
-<<<<<<< HEAD
-
-            int W = getWidth(), H = getHeight();
-            int n = Math.min(datos.size(), 8);
-            double maxTar = datos.stream().mapToDouble(Productor::getTarifaHora).max().orElse(1);
-            if (maxTar <= 0) maxTar = 1;
-            int marginTop = 28, marginBot = 42;
-            int areaH = H - marginTop - marginBot;
-            if (areaH < 10) { g2.dispose(); return; }
-            int barW   = Math.min(32, (W - 20) / n - 8);
-            int totalW = n * (barW + 8) - 8;
-            int startX = (W - totalW) / 2;
-
-            g2.setColor(new Color(35, 26, 80, 120));
-            g2.setStroke(new BasicStroke(0.8f, BasicStroke.CAP_BUTT,
-                BasicStroke.JOIN_MITER, 1, new float[]{4,4}, 0));
-            for (int row = 1; row <= 3; row++) {
-                int y = marginTop + (areaH * row / 4);
-                g2.drawLine(10, y, W-10, y);
-            }
-
-            for (int i = 0; i < n; i++) {
-                Productor p = datos.get(i);
-                double ratio = p.getTarifaHora() / maxTar;
-                int bH = (int)(areaH * ratio);
-                int bX = startX + i * (barW + 8);
-                int bY = marginTop + areaH - bH;
-                Color c = BARES[i % BARES.length];
-
-                g2.setColor(new Color(c.getRed(), c.getGreen(), c.getBlue(), 35));
-                g2.fillRoundRect(bX-2, bY-2, barW+4, bH+4, 8, 8);
-                g2.setStroke(new BasicStroke(1f));
-                g2.setColor(c);
-                g2.fillRoundRect(bX, bY, barW, bH, 6, 6);
-
-                String val = "$" + (int)p.getTarifaHora();
-                g2.setFont(new Font("Consolas", Font.BOLD, 9));
-                g2.setColor(c);
-                FontMetrics fm = g2.getFontMetrics();
-                g2.drawString(val, bX + (barW - fm.stringWidth(val)) / 2, bY - 5);
-
-                String nombre = abreviar(p.getNombre(), 7);
-                g2.setFont(new Font("Segoe UI", Font.PLAIN, 9));
-                g2.setColor(TXT_SEC);
-                FontMetrics fm2 = g2.getFontMetrics();
-                g2.drawString(nombre, bX + (barW - fm2.stringWidth(nombre)) / 2,
-                    marginTop + areaH + 14);
-                g2.setColor(c);
-                g2.fillOval(bX + barW/2 - 3, marginTop + areaH + 22, 6, 6);
-            }
-            g2.dispose();
-        }
-
-        private String abreviar(String s, int max) {
-            if (s == null || s.isEmpty()) return "";
-            String first = s.trim().split("\\s+")[0];
-            return first.length() > max ? first.substring(0, max) : first;
-=======
             int W=getWidth(), H=getHeight();
             int n=Math.min(datos.size(),8);
             double maxT=datos.stream().mapToDouble(Productor::getTarifaHora).max().orElse(1);
@@ -812,7 +716,6 @@ public class formProductor extends JPanel {
             if (s==null||s.isEmpty()) return "";
             String f=s.trim().split("\\s+")[0];
             return f.length()>max?f.substring(0,max):f;
->>>>>>> d739312be638ca602b5beb6bdb70b272567f437d
         }
     }
 
@@ -929,20 +832,11 @@ public class formProductor extends JPanel {
         modeloTabla.setRowCount(0);
         for (Productor p:lista) {
             modeloTabla.addRow(new Object[]{
-<<<<<<< HEAD
-                p.getIdProductor(),
-                p.getNombre(),
-                p.getEspecialidad()  != null ? p.getEspecialidad()  : "",
-                p.getNacionalidad()  != null ? p.getNacionalidad()  : "",
-                String.format("$%.0f", p.getTarifaHora()),
-                p.getEstado()        != null ? p.getEstado()        : "Disponible"
-=======
                 p.getIdProductor(), p.getNombre(),
                 p.getEspecialidad()!=null?p.getEspecialidad():"",
                 p.getNacionalidad()!=null?p.getNacionalidad():"",
                 String.format("$%.0f",p.getTarifaHora()),
                 p.getEstado()!=null?p.getEstado():"Disponible"
->>>>>>> d739312be638ca602b5beb6bdb70b272567f437d
             });
         }
         // Fade-in tabla
@@ -1003,219 +897,6 @@ public class formProductor extends JPanel {
                 poblar(lista); toast("Productor eliminado",MainFrame.ToastType.SUCCESS);
             },"Error al eliminar");
         }
-    }
-
-    // ══════════════════════════════════════════════════════════════════
-    //  DIÁLOGO CREAR / EDITAR
-    // ══════════════════════════════════════════════════════════════════
-    private void dialogFormulario(Integer filaEditar) {
-        boolean esEdit = filaEditar != null;
-        int    id  = esEdit ? (int)    modeloTabla.getValueAt(filaEditar, COL_ID)           : 0;
-        String nom = esEdit ? (String) modeloTabla.getValueAt(filaEditar, COL_NOMBRE)       : "";
-        String esp = esEdit ? (String) modeloTabla.getValueAt(filaEditar, COL_ESPECIALIDAD) : "";
-        String nac = esEdit ? (String) modeloTabla.getValueAt(filaEditar, COL_NACIONALIDAD) : "";
-        String tar = esEdit
-            ? modeloTabla.getValueAt(filaEditar, COL_TARIFA).toString().replace("$", "")
-            : "0";
-        String est = esEdit ? (String) modeloTabla.getValueAt(filaEditar, COL_ESTADO) : "Disponible";
-
-        JDialog dlg = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
-            esEdit ? "Editar productor" : "Nuevo productor", true);
-        dlg.setResizable(false);
-
-        JPanel root = new JPanel(new BorderLayout()) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(10, 8, 24));
-                g2.fillRect(0, 0, getWidth(), getHeight());
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        root.add(bandaCabecera(esEdit), BorderLayout.NORTH);
-
-        JPanel main = new JPanel();
-        main.setOpaque(false);
-        main.setLayout(new BoxLayout(main, BoxLayout.Y_AXIS));
-        main.setBorder(new EmptyBorder(24, 30, 24, 30));
-
-        JTextField fNom = dlgField(nom);
-        JTextField fEsp = dlgField(esp);
-        JTextField fNac = dlgField(nac);
-        JTextField fTar = dlgField(tar);
-        JTextField fEst = dlgField(est);
-
-        main.add(dlgFilaDoble("NOMBRE COMPLETO *", fNom, "ESPECIALIDAD *", fEsp));
-        main.add(Box.createVerticalStrut(15));
-        main.add(dlgFilaDoble("NACIONALIDAD",      fNac, "TARIFA POR HORA ($)", fTar));
-        main.add(Box.createVerticalStrut(15));
-        main.add(dlgFilaCampo("ESTADO",            fEst));
-        main.add(Box.createVerticalStrut(26));
-
-        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        btnRow.setOpaque(false);
-        btnRow.setAlignmentX(LEFT_ALIGNMENT);
-        btnRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
-
-        ZBtn btnCanc = new ZBtn("Cancelar", false);
-        ZBtn btnSave = new ZBtn(esEdit ? "💾  Guardar cambios" : "✦  Crear productor", true);
-        btnCanc.setPreferredSize(new Dimension(112, 40));
-        btnSave.setPreferredSize(new Dimension(186, 40));
-        btnCanc.addActionListener(e -> dlg.dispose());
-        btnSave.addActionListener(e -> guardar(esEdit, id, fNom, fEsp, fNac, fTar, fEst, dlg));
-        btnRow.add(btnCanc);
-        btnRow.add(btnSave);
-        main.add(btnRow);
-
-        root.add(main, BorderLayout.CENTER);
-        dlg.setContentPane(root);
-        dlg.getRootPane().setDefaultButton(btnSave);
-        dlg.pack();
-        dlg.setMinimumSize(new Dimension(560, dlg.getPreferredSize().height));
-        dlg.setLocationRelativeTo(this);
-        dlg.setVisible(true);
-    }
-
-    private JPanel bandaCabecera(boolean esEdit) {
-        JPanel band = new JPanel(new BorderLayout(14, 0)) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = g2d(g);
-                g2.setPaint(new GradientPaint(0, 0, new Color(37, 99, 235),
-                    getWidth(), getHeight(), new Color(14, 50, 140)));
-                g2.fillRect(0, 0, getWidth(), getHeight());
-                g2.setPaint(new GradientPaint(0, 0, new Color(255,255,255,45),
-                    0, getHeight(), new Color(255,255,255,0)));
-                g2.fillRect(0, 0, getWidth(), getHeight()/2);
-                g2.setColor(CYAN);
-                g2.fillRect(0, getHeight()-2, getWidth(), 2);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        band.setOpaque(false);
-        band.setBorder(new EmptyBorder(20, 26, 20, 26));
-        band.setPreferredSize(new Dimension(0, 90));
-
-        JLabel ico = new JLabel(esEdit ? "✏" : "🎚", SwingConstants.CENTER) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(255,255,255,40));
-                g2.fillRoundRect(0,0,getWidth(),getHeight(),13,13);
-                g2.setColor(new Color(255,255,255,95));
-                g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,13,13);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        ico.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 24));
-        ico.setForeground(Color.WHITE);
-        ico.setPreferredSize(new Dimension(50, 50));
-
-        JPanel txt = new JPanel();
-        txt.setOpaque(false);
-        txt.setLayout(new BoxLayout(txt, BoxLayout.Y_AXIS));
-        JLabel t = mkLabel(esEdit ? "Editar productor" : "Nuevo productor",
-            new Font("Segoe UI", Font.BOLD, 21), Color.WHITE);
-        JLabel s = mkLabel(esEdit
-            ? "ACTUALIZA LA INFORMACIÓN DEL PRODUCTOR"
-            : "REGISTRA UN NUEVO PRODUCTOR EN Z-ONE",
-            F_SUB, new Color(255,255,255,185));
-        t.setAlignmentX(LEFT_ALIGNMENT);
-        s.setAlignmentX(LEFT_ALIGNMENT);
-        txt.add(Box.createVerticalGlue());
-        txt.add(t);
-        txt.add(Box.createVerticalStrut(3));
-        txt.add(s);
-        txt.add(Box.createVerticalGlue());
-
-        band.add(ico, BorderLayout.WEST);
-        band.add(txt, BorderLayout.CENTER);
-        return band;
-    }
-
-    private void guardar(boolean esEdit, int id,
-            JTextField fNom, JTextField fEsp,
-            JTextField fNac, JTextField fTar, JTextField fEst,
-            JDialog dlg) {
-        String nom = fNom.getText().trim();
-        String esp = fEsp.getText().trim();
-        String nac = fNac.getText().trim();
-        String est = fEst.getText().trim().isEmpty() ? "Disponible" : fEst.getText().trim();
-        double tarifa;
-        try {
-            tarifa = fTar.getText().trim().isEmpty()
-                ? 0 : Double.parseDouble(fTar.getText().trim());
-        } catch (NumberFormatException ex) {
-            toast("La tarifa debe ser un número", MainFrame.ToastType.ERROR);
-            return;
-        }
-
-        worker(() -> {
-            if (esEdit) {
-                svc.modificar(id, nom, esp, tarifa, nac, est);
-            } else {
-                svc.registrar(nom, esp, tarifa, nac);
-            }
-            return svc.obtenerTodos();
-        }, lista -> {
-            poblar(lista);
-            toast(esEdit ? "Productor actualizado" : "Productor creado: " + nom,
-                MainFrame.ToastType.SUCCESS);
-            dlg.dispose();
-        }, "Error al guardar");
-    }
-
-    // ── Helpers dialog ────────────────────────────────────────────────
-    private JTextField dlgField(String val) {
-        JTextField f = new JTextField(val) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = g2d(g);
-                boolean foco = isFocusOwner();
-                if (foco) {
-                    g2.setColor(new Color(37,99,235,60));
-                    g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
-                }
-                g2.setColor(foco ? new Color(10,22,60) : BG_FIELD);
-                g2.fillRoundRect(2,2,getWidth()-5,getHeight()-5,10,10);
-                g2.setColor(foco ? PURPLE : COL_BRD);
-                g2.setStroke(new BasicStroke(foco ? 1.8f : 1f));
-                g2.drawRoundRect(2,2,getWidth()-6,getHeight()-6,10,10);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        f.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        f.setForeground(TXT_PRI);
-        f.setOpaque(false);
-        f.setCaretColor(PURPLE_LT);
-        f.setBorder(new EmptyBorder(0, 14, 0, 14));
-        f.setPreferredSize(new Dimension(200, 44));
-        f.addFocusListener(new java.awt.event.FocusAdapter() {
-            public void focusGained(java.awt.event.FocusEvent e) { f.repaint(); }
-            public void focusLost (java.awt.event.FocusEvent e) { f.repaint(); }
-        });
-        return f;
-    }
-
-    private JPanel dlgFilaCampo(String label, JComponent campo) {
-        JPanel p = new JPanel(new BorderLayout(0, 7));
-        p.setOpaque(false);
-        p.setAlignmentX(LEFT_ALIGNMENT);
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
-        JLabel l = mkLabel(label, new Font("Segoe UI", Font.BOLD, 10), PURPLE_LT);
-        p.add(l,     BorderLayout.NORTH);
-        p.add(campo, BorderLayout.CENTER);
-        return p;
-    }
-
-    private JPanel dlgFilaDoble(String l1, JComponent c1, String l2, JComponent c2) {
-        JPanel p = new JPanel(new GridLayout(1, 2, 14, 0));
-        p.setOpaque(false);
-        p.setAlignmentX(LEFT_ALIGNMENT);
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
-        p.add(dlgFilaCampo(l1, c1));
-        p.add(dlgFilaCampo(l2, c2));
-        return p;
     }
 
     // ══════════════════════════════════════════════════════════════════
