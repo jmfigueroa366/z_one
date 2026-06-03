@@ -12,7 +12,7 @@ public class CabinaDAO {
     private static final String SELECT_BASE =
         "SELECT c.id_cabina, c.nombre_cabina, c.id_estado_cabina, " +
         "       ec.nombre AS nombre_estado " +
-        "FROM cabinas c " +
+        "FROM cabina c " +
         "LEFT JOIN estado_cabina ec ON c.id_estado_cabina = ec.id_estado_cabina ";
 
     public List<Cabina> listarTodos() throws SQLException {
@@ -28,7 +28,7 @@ public class CabinaDAO {
         Integer idEstado = resolverId("estado_cabina", "id_estado_cabina", "nombre",
                 c.getNombreEstado(), "Estado cabina");
 
-        String sql = "INSERT INTO cabinas (nombre_cabina, id_estado_cabina) VALUES (?, ?)";
+        String sql = "INSERT INTO cabina (nombre_cabina, id_estado_cabina) VALUES (?, ?)";
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(sql, new String[]{"id_cabina"})) {
             ps.setString(1, c.getNombreCabina());
@@ -45,7 +45,7 @@ public class CabinaDAO {
         Integer idEstado = resolverId("estado_cabina", "id_estado_cabina", "nombre",
                 c.getNombreEstado(), "Estado cabina");
 
-        String sql = "UPDATE cabinas SET nombre_cabina = ?, id_estado_cabina = ? " +
+        String sql = "UPDATE cabina SET nombre_cabina = ?, id_estado_cabina = ? " +
                      "WHERE id_cabina = ?";
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -57,7 +57,7 @@ public class CabinaDAO {
     }
 
     public boolean eliminar(int id) throws SQLException {
-        String sql = "DELETE FROM cabinas WHERE id_cabina = ?";
+        String sql = "DELETE FROM cabina WHERE id_cabina = ?";
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -69,7 +69,7 @@ public class CabinaDAO {
     public boolean cambiarEstado(int idCabina, String nuevoEstado) throws SQLException {
         Integer idEstado = resolverId("estado_cabina", "id_estado_cabina", "nombre",
                 nuevoEstado, "Estado cabina");
-        String sql = "UPDATE cabinas SET id_estado_cabina = ? WHERE id_cabina = ?";
+        String sql = "UPDATE cabina SET id_estado_cabina = ? WHERE id_cabina = ?";
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
             setIntOrNull(ps, 1, idEstado);

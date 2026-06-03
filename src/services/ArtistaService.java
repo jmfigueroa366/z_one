@@ -46,93 +46,109 @@ public class ArtistaService {
 
     // ── Operaciones de negocio ───────────────────────────────────────
 
-    public Artista registrar(String nombreArtista, String nombreReal,
-                             LocalDate fechaNacimiento, String genero,
-                             String nacionalidad, String generoMusical,
-                             String redesSociales, LocalDate fechaFirma,
-                             String estadoArtista, String tipoArtista) {
-        try {
-            validarNombreNoVacio(nombreArtista);
-            validarGeneroMusicalNoVacio(generoMusical);
-            validarEstadoPermitido(estadoArtista);
-            validarTipoPermitido(tipoArtista);
+public Artista registrar(String nombreArtista, String nombreReal,
+                         LocalDate fechaNacimiento, String genero,
+                         String nacionalidad, String generoMusical,
+                         String redesSociales, LocalDate fechaFirma,
+                         String estadoArtista, String tipoArtista) {
+    // Las validaciones están FUERA del try — si fallan, el IllegalArgumentException
+    // sube limpio a la UI con su mensaje descriptivo
+    validarNombreNoVacio(nombreArtista);
+    validarGeneroMusicalNoVacio(generoMusical);
+    validarEstadoPermitido(estadoArtista);
+    validarTipoPermitido(tipoArtista);
 
-            Artista artista = new Artista();
-            artista.setNombreArtista(nombreArtista.trim());
-            artista.setNombreReal(nombreReal);
-            artista.setFechaNacimiento(fechaNacimiento);
-            artista.setGeneroPersona(genero);
-            artista.setNacionalidad(nacionalidad);
-            artista.setGeneroMusical(generoMusical.trim());
-            artista.setRedesSociales(redesSociales);
-            artista.setFechaFirma(fechaFirma);
-            artista.setEstadoArtista(estadoArtista);
-            artista.setTipoArtista(tipoArtista);
+    try {
+        Artista artista = new Artista();
+        artista.setNombreArtista(nombreArtista.trim());
+        artista.setNombreReal(nombreReal);
+        artista.setFechaNacimiento(fechaNacimiento);
+        artista.setGeneroPersona(genero);
+        artista.setNacionalidad(nacionalidad);
+        artista.setGenerosMusicales(
+    Arrays.stream(generoMusical.split(","))
+          .map(String::trim)
+          .filter(s -> !s.isEmpty())
+          .collect(java.util.stream.Collectors.toList())
+);
+        artista.setRedesSociales(redesSociales);
+        artista.setFechaFirma(fechaFirma);
+        artista.setEstadoArtista(estadoArtista);
+        artista.setTipoArtista(tipoArtista);
 
-            int idGenerado = dao.crear(artista);
-            artista.setIdArtista(idGenerado);
-            return artista;
+        int idGenerado = dao.crear(artista);
+        artista.setIdArtista(idGenerado);
+        return artista;
 
-        } catch (SQLException e) {
-            throw new RuntimeException("Error al registrar artista.", e);
-        }
+    } catch (SQLException e) {
+        throw new RuntimeException("Error al registrar artista: " + e.getMessage(), e);
     }
+}
 
-    public void modificar(int idArtista, String nombreArtista, String nombreReal,
-                          LocalDate fechaNacimiento, String genero,
-                          String nacionalidad, String generoMusical,
-                          String redesSociales, LocalDate fechaFirma,
-                          String estadoArtista, String tipoArtista) {
-        try {
-            validarNombreNoVacio(nombreArtista);
-            validarGeneroMusicalNoVacio(generoMusical);
-            validarEstadoPermitido(estadoArtista);
-            validarTipoPermitido(tipoArtista);
+public void modificar(int idArtista, String nombreArtista, String nombreReal,
+                      LocalDate fechaNacimiento, String genero,
+                      String nacionalidad, String generoMusical,
+                      String redesSociales, LocalDate fechaFirma,
+                      String estadoArtista, String tipoArtista) {
+    validarNombreNoVacio(nombreArtista);
+    validarGeneroMusicalNoVacio(generoMusical);
+    validarEstadoPermitido(estadoArtista);
+    validarTipoPermitido(tipoArtista);
 
-            Artista artista = new Artista();
-            artista.setIdArtista(idArtista);
-            artista.setNombreArtista(nombreArtista.trim());
-            artista.setNombreReal(nombreReal);
-            artista.setFechaNacimiento(fechaNacimiento);
-            artista.setGeneroPersona(genero);
-            artista.setNacionalidad(nacionalidad);
-            artista.setGeneroMusical(generoMusical.trim());
-            artista.setRedesSociales(redesSociales);
-            artista.setFechaFirma(fechaFirma);
-            artista.setEstadoArtista(estadoArtista);
-            artista.setTipoArtista(tipoArtista);
+    try {
+        Artista artista = new Artista();
+        artista.setIdArtista(idArtista);
+        artista.setNombreArtista(nombreArtista.trim());
+        artista.setNombreReal(nombreReal);
+        artista.setFechaNacimiento(fechaNacimiento);
+        artista.setGeneroPersona(genero);
+        artista.setNacionalidad(nacionalidad);
+        artista.setGenerosMusicales(
+    Arrays.stream(generoMusical.split(","))
+          .map(String::trim)
+          .filter(s -> !s.isEmpty())
+          .collect(java.util.stream.Collectors.toList())
+);
+        artista.setRedesSociales(redesSociales);
+        artista.setFechaFirma(fechaFirma);
+        artista.setEstadoArtista(estadoArtista);
+        artista.setTipoArtista(tipoArtista);
 
-            dao.actualizar(artista);
+        dao.actualizar(artista);
 
-        } catch (SQLException e) {
-            throw new RuntimeException("Error al modificar artista.", e);
-        }
+    } catch (SQLException e) {
+        throw new RuntimeException("Error al modificar artista: " + e.getMessage(), e);
     }
+}
 
-    /** Elimina el artista de la BD. */
-    public void eliminar(int idArtista) {
-        try {
-            dao.eliminar(idArtista);
-        } catch (SQLException e) {
-            throw new RuntimeException("Error al eliminar el artista.", e);
-        }
-    }
+public List<String> listarNacionalidades() {
+    try { return dao.listarNacionalidades(); }
+    catch (SQLException e) { throw new RuntimeException("Error al cargar nacionalidades.", e); }
+}
 
-    /**
-     * Baja logica: cambia el estado del artista a "Retirado".
-     * No lo borra de la BD, solo lo marca como retirado.
-     */
-    public void darDeBaja(int idArtista) {
-        try {
-            Artista a = dao.buscarPorId(idArtista);
-            if (a == null)
-                throw new IllegalArgumentException("Artista no encontrado: " + idArtista);
-            a.setEstadoArtista(Artista.ESTADO_RETIRADO);
-            dao.actualizar(a);
-        } catch (SQLException e) {
-            throw new RuntimeException("Error al dar de baja al artista.", e);
-        }
+public List<String> listarGenerosMusicales() {
+    try { return dao.listarGenerosMusicales(); }
+    catch (SQLException e) { throw new RuntimeException("Error al cargar géneros musicales.", e); }
+}
+public void eliminar(int idArtista) {
+    try {
+        dao.eliminar(idArtista);
+    } catch (SQLException e) {
+        throw new RuntimeException("Error al eliminar el artista: " + e.getMessage(), e);
     }
+}
+
+public void darDeBaja(int idArtista) {
+    try {
+        Artista a = dao.buscarPorId(idArtista);
+        if (a == null)
+            throw new IllegalArgumentException("Artista no encontrado: " + idArtista);
+        a.setEstadoArtista(Artista.ESTADO_RETIRADO);
+        dao.actualizar(a);
+    } catch (SQLException e) {
+        throw new RuntimeException("Error al dar de baja al artista: " + e.getMessage(), e);
+    }
+}
 
     // ── Validaciones privadas ────────────────────────────────────────
 

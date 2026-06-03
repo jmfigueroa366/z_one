@@ -4,8 +4,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 public class ConexionDB { 
-    private static final String DB_USER  = "zone_app";  
-    private static final String DB_PASS  = "ZoneMusic2026"; 
+    private static final String DB_USER  = "PRODUCTORA_BD";  
+    private static final String DB_PASS  = "productora123"; 
   private static final String URL = "jdbc:oracle:thin:@localhost:1521/XEPDB1";
   static {
         try {

@@ -4,22 +4,22 @@ import model.Evento;
 import util.ConexionDB;
 
 import java.sql.*;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class EventoDAO {
 
+    private static final String SCHEMA = "PRODUCTORA_BD.";
+
     private static final String SELECT_BASE =
-        "SELECT e.id_evento, e.tipo_evento, e.fecha, e.hora_inicio, e.hora_fin, " +
-        "       e.descripcion, e.id_artista, a.nombre_artista, " +
+        "SELECT e.id_evento, e.id_tipo_evento, te.nombre AS nombre_tipo_evento, " +
+        "       e.id_artista, a.nombre_artista, " +
         "       e.id_productor, p.nombre AS nombre_productor, " +
-        "       e.id_formato, " +
-        "       e.id_tipo_evento, te.nombre AS nombre_tipo_evento " +
-        "FROM eventos_agendados e " +
-        "LEFT JOIN artistas       a  ON e.id_artista     = a.id_artista " +
-        "LEFT JOIN productores    p  ON e.id_productor   = p.id_productor " +
-        "LEFT JOIN tipos_eventos  te ON e.id_tipo_evento = te.id_tipo_evento ";
+        "       e.id_formato, e.fecha, e.hora_inicio, e.hora_final, e.descripcion " +
+        "FROM " + SCHEMA + "evento_agenda e " +
+        "JOIN " + SCHEMA + "tipo_evento    te ON e.id_tipo_evento = te.id_tipo_evento " +
+        "LEFT JOIN " + SCHEMA + "artista    a  ON e.id_artista   = a.id_artista " +
+        "LEFT JOIN " + SCHEMA + "productor  p  ON e.id_productor = p.id_productor ";
 
     public List<Evento> listarTodos() throws SQLException {
         return ejecutar(SELECT_BASE + "ORDER BY e.fecha DESC, e.hora_inicio", null);
@@ -36,26 +36,23 @@ public class EventoDAO {
     }
 
     public int crear(Evento e) throws SQLException {
-        Integer idTipo = resolverId("tipos_eventos", "id_tipo_evento", "nombre",
-                e.getNombreTipoEvento(), "Tipo evento");
+        Integer idTipo = resolverIdTipo(e.getNombreTipoEvento());
+        e.setIdTipoEvento(idTipo);
 
-        String sql = "INSERT INTO eventos_agendados (tipo_evento, fecha, hora_inicio, hora_fin, " +
-                     "descripcion, id_artista, id_productor, id_formato, id_tipo_evento) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
+        String sql = "INSERT INTO " + SCHEMA + "evento_agenda " +
+                     "(id_tipo_evento, id_artista, id_productor, id_formato, " +
+                     " fecha, hora_inicio, hora_final, descripcion) " +
+                     "VALUES (?,?,?,?,?,?,?,?)";
         try (Connection con = ConexionDB.getConexion();
-             PreparedStatement ps = con.prepareStatement(sql, new String[]{"id_evento"})) {
-            ps.setString(1, e.getTipoEvento());
-            ps.setDate(2, e.getFecha() != null ? Date.valueOf(e.getFecha()) : null);
-            ps.setTimestamp(3, e.getFecha() != null && e.getHoraInicio() != null
-                    ? Timestamp.valueOf(LocalDateTime.of(e.getFecha(), e.getHoraInicio())) : null);
-            ps.setTimestamp(4, e.getFecha() != null && e.getHoraFin() != null
-                    ? Timestamp.valueOf(LocalDateTime.of(e.getFecha(), e.getHoraFin())) : null);
-            ps.setString(5, e.getDescripcion());
-            setIntOrNull(ps, 6, e.getIdArtista());
-            setIntOrNull(ps, 7, e.getIdProductor());
-            setIntOrNull(ps, 8, e.getIdFormato());
-            setIntOrNull(ps, 9, idTipo);
+             PreparedStatement ps = con.prepareStatement(sql, new String[]{"ID_EVENTO"})) {
+            ps.setInt(1, e.getIdTipoEvento());
+            setIntOrNull(ps, 2, e.getIdArtista());
+            setIntOrNull(ps, 3, e.getIdProductor());
+            setIntOrNull(ps, 4, e.getIdFormato());
+            ps.setDate(5, e.getFecha() != null ? Date.valueOf(e.getFecha()) : null);
+            ps.setTimestamp(6, e.getHoraInicio() != null ? Timestamp.valueOf(e.getHoraInicio()) : null);
+            ps.setTimestamp(7, e.getHoraFin()    != null ? Timestamp.valueOf(e.getHoraFin())    : null);
+            ps.setString(8, e.getDescripcion());
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) return rs.getInt(1);
@@ -65,55 +62,35 @@ public class EventoDAO {
     }
 
     public boolean actualizar(Evento e) throws SQLException {
-        Integer idTipo = resolverId("tipos_eventos", "id_tipo_evento", "nombre",
-                e.getNombreTipoEvento(), "Tipo evento");
+        Integer idTipo = resolverIdTipo(e.getNombreTipoEvento());
+        e.setIdTipoEvento(idTipo);
 
-        String sql = "UPDATE eventos_agendados SET tipo_evento = ?, fecha = ?, " +
-                     "hora_inicio = ?, hora_fin = ?, descripcion = ?, " +
-                     "id_artista = ?, id_productor = ?, id_formato = ?, id_tipo_evento = ? " +
-                     "WHERE id_evento = ?";
-
+        String sql = "UPDATE " + SCHEMA + "evento_agenda SET " +
+                     "id_tipo_evento=?, id_artista=?, id_productor=?, id_formato=?, " +
+                     "fecha=?, hora_inicio=?, hora_final=?, descripcion=? " +
+                     "WHERE id_evento=?";
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, e.getTipoEvento());
-            ps.setDate(2, e.getFecha() != null ? Date.valueOf(e.getFecha()) : null);
-            ps.setTimestamp(3, e.getFecha() != null && e.getHoraInicio() != null
-                    ? Timestamp.valueOf(LocalDateTime.of(e.getFecha(), e.getHoraInicio())) : null);
-            ps.setTimestamp(4, e.getFecha() != null && e.getHoraFin() != null
-                    ? Timestamp.valueOf(LocalDateTime.of(e.getFecha(), e.getHoraFin())) : null);
-            ps.setString(5, e.getDescripcion());
-            setIntOrNull(ps, 6, e.getIdArtista());
-            setIntOrNull(ps, 7, e.getIdProductor());
-            setIntOrNull(ps, 8, e.getIdFormato());
-            setIntOrNull(ps, 9, idTipo);
-            ps.setInt(10, e.getIdEvento());
+            ps.setInt(1, e.getIdTipoEvento());
+            setIntOrNull(ps, 2, e.getIdArtista());
+            setIntOrNull(ps, 3, e.getIdProductor());
+            setIntOrNull(ps, 4, e.getIdFormato());
+            ps.setDate(5, e.getFecha() != null ? Date.valueOf(e.getFecha()) : null);
+            ps.setTimestamp(6, e.getHoraInicio() != null ? Timestamp.valueOf(e.getHoraInicio()) : null);
+            ps.setTimestamp(7, e.getHoraFin()    != null ? Timestamp.valueOf(e.getHoraFin())    : null);
+            ps.setString(8, e.getDescripcion());
+            ps.setInt(9, e.getIdEvento());
             return ps.executeUpdate() > 0;
         }
     }
 
     public boolean eliminar(int id) throws SQLException {
-        String sql = "DELETE FROM eventos_agendados WHERE id_evento = ?";
+        String sql = "DELETE FROM " + SCHEMA + "evento_agenda WHERE id_evento=?";
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, id);
             return ps.executeUpdate() > 0;
         }
-    }
-
-    // ── Helpers ──
-    private Integer resolverId(String tabla, String colId, String colNombre,
-                                String valor, String etiqueta) throws SQLException {
-        if (valor == null || valor.isBlank()) return null;
-        String sql = "SELECT " + colId + " FROM " + tabla +
-                     " WHERE UPPER(TRIM(" + colNombre + ")) = UPPER(TRIM(?))";
-        try (Connection con = ConexionDB.getConexion();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, valor);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getInt(1);
-            }
-        }
-        throw new SQLException(etiqueta + " '" + valor + "' no existe en la BD.");
     }
 
     private void setIntOrNull(PreparedStatement ps, int idx, Integer val) throws SQLException {
@@ -137,14 +114,8 @@ public class EventoDAO {
     private Evento mapear(ResultSet rs) throws SQLException {
         Evento e = new Evento();
         e.setIdEvento(rs.getInt("id_evento"));
-        e.setTipoEvento(rs.getString("tipo_evento"));
-        Date f = rs.getDate("fecha");
-        e.setFecha(f != null ? f.toLocalDate() : null);
-        Timestamp hi = rs.getTimestamp("hora_inicio");
-        e.setHoraInicio(hi != null ? hi.toLocalDateTime().toLocalTime() : null);
-        Timestamp hf = rs.getTimestamp("hora_fin");
-        e.setHoraFin(hf != null ? hf.toLocalDateTime().toLocalTime() : null);
-        e.setDescripcion(rs.getString("descripcion"));
+        e.setIdTipoEvento(rs.getInt("id_tipo_evento"));
+        e.setNombreTipoEvento(rs.getString("nombre_tipo_evento"));
         int idA = rs.getInt("id_artista");
         e.setIdArtista(rs.wasNull() ? null : idA);
         e.setNombreArtista(rs.getString("nombre_artista"));
@@ -153,9 +124,28 @@ public class EventoDAO {
         e.setNombreProductor(rs.getString("nombre_productor"));
         int idF = rs.getInt("id_formato");
         e.setIdFormato(rs.wasNull() ? null : idF);
-        int idT = rs.getInt("id_tipo_evento");
-        e.setIdTipoEvento(rs.wasNull() ? null : idT);
-        e.setNombreTipoEvento(rs.getString("nombre_tipo_evento"));
+        Date f = rs.getDate("fecha");
+        e.setFecha(f != null ? f.toLocalDate() : null);
+        Timestamp hi = rs.getTimestamp("hora_inicio");
+        e.setHoraInicio(hi != null ? hi.toLocalDateTime() : null);
+        Timestamp hf = rs.getTimestamp("hora_final");
+        e.setHoraFin(hf != null ? hf.toLocalDateTime() : null);
+        e.setDescripcion(rs.getString("descripcion"));
         return e;
+    }
+
+    private Integer resolverIdTipo(String nombre) throws SQLException {
+        if (nombre == null || nombre.isBlank())
+            throw new SQLException("El tipo de evento es obligatorio");
+        String sql = "SELECT id_tipo_evento FROM " + SCHEMA +
+                     "tipo_evento WHERE UPPER(TRIM(nombre)) = UPPER(TRIM(?))";
+        try (Connection con = ConexionDB.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, nombre);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        }
+        throw new SQLException("Tipo de evento '" + nombre + "' no existe en la BD.");
     }
 }

@@ -27,7 +27,6 @@ public class ProductorService {
 
     public List<Productor> buscar(String texto) {
         try {
-            // dao.buscar() ya maneja el caso null/vacío internamente
             return dao.buscar(texto == null ? "" : texto.trim());
         } catch (SQLException e) {
             throw new RuntimeException("Error al buscar productores: " + e.getMessage(), e);
@@ -42,41 +41,45 @@ public class ProductorService {
         }
     }
 
+    public List<String> listarNacionalidades() {
+        try { return dao.listarNacionalidades(); }
+        catch (SQLException e) { throw new RuntimeException("Error al cargar nacionalidades.", e); }
+    }
+
+    public List<String> listarGenerosMusicales() {
+        try { return dao.listarGenerosMusicales(); }
+        catch (SQLException e) { throw new RuntimeException("Error al cargar géneros musicales.", e); }
+    }
+
+    public List<String> listarEstados() {
+        try { return dao.listarEstados(); }
+        catch (SQLException e) { throw new RuntimeException("Error al cargar estados.", e); }
+    }
+
     // ── Crear ─────────────────────────────────────────────────────────
 
-    /**
-     * Registra un nuevo productor con los campos que maneja el DAO.
-     * Los campos correo/telefono no están en la tabla PRODUCTORES
-     * (no los inserta el DAO) pero se pueden setear en el objeto
-     * si tu BD los tiene; por ahora se deja como en el modelo.
-     */
     public Productor registrar(String nombre,
                                 String especialidad,
-                                double tarifaHora,
-                                LocalDate fechaFirma,
-                                LocalDate fechaNacimiento,
                                 String numIdentificacion,
+                                LocalDate fechaNacimiento,
+                                LocalDate fechaFirma,
                                 String nacionalidad,
                                 String generoPersona,
                                 String generoMusical,
-                                String estado,
-                                Integer idUsuario) {
+                                String estado) {
         validarNombreNoVacio(nombre);
         validarEspecialidadNoVacia(especialidad);
-        validarTarifaNoNegativa(tarifaHora);
 
         Productor p = new Productor();
-        p.setNombre(nombre);
-        p.setEspecialidad(especialidad);
-        p.setTarifaHora(tarifaHora);
-        p.setFechaFirma(fechaFirma);
-        p.setFechaNacimiento(fechaNacimiento);
+        p.setNombre           (nombre.trim());
+        p.setEspecialidad     (especialidad.trim());
         p.setNumIdentificacion(numIdentificacion);
-        p.setNacionalidad(nacionalidad);
-        p.setGeneroPersona(generoPersona);
-        p.setGeneroMusical(generoMusical);
-        p.setEstado(estado);
-        p.setIdUsuario(idUsuario);
+        p.setFechaNacimiento  (fechaNacimiento);
+        p.setFechaFirma       (fechaFirma);
+        p.setNacionalidad     (nacionalidad);
+        p.setGeneroPersona    (generoPersona);
+        p.setGeneroMusical    (generoMusical);
+        p.setEstado           (estado);
 
         try {
             int nuevoId = dao.crear(p);
@@ -92,30 +95,27 @@ public class ProductorService {
     public void modificar(int id,
                            String nombre,
                            String especialidad,
-                           double tarifaHora,
-                           LocalDate fechaFirma,
-                           LocalDate fechaNacimiento,
                            String numIdentificacion,
+                           LocalDate fechaNacimiento,
+                           LocalDate fechaFirma,
                            String nacionalidad,
                            String generoPersona,
                            String generoMusical,
                            String estado) {
         validarNombreNoVacio(nombre);
         validarEspecialidadNoVacia(especialidad);
-        validarTarifaNoNegativa(tarifaHora);
 
         Productor p = new Productor();
-        p.setIdProductor(id);
-        p.setNombre(nombre);
-        p.setEspecialidad(especialidad);
-        p.setTarifaHora(tarifaHora);
-        p.setFechaFirma(fechaFirma);
-        p.setFechaNacimiento(fechaNacimiento);
+        p.setIdProductor      (id);
+        p.setNombre           (nombre.trim());
+        p.setEspecialidad     (especialidad.trim());
         p.setNumIdentificacion(numIdentificacion);
-        p.setNacionalidad(nacionalidad);
-        p.setGeneroPersona(generoPersona);
-        p.setGeneroMusical(generoMusical);
-        p.setEstado(estado);
+        p.setFechaNacimiento  (fechaNacimiento);
+        p.setFechaFirma       (fechaFirma);
+        p.setNacionalidad     (nacionalidad);
+        p.setGeneroPersona    (generoPersona);
+        p.setGeneroMusical    (generoMusical);
+        p.setEstado           (estado);
 
         try {
             dao.actualizar(p);
@@ -144,10 +144,5 @@ public class ProductorService {
     private void validarEspecialidadNoVacia(String especialidad) {
         if (especialidad == null || especialidad.trim().isEmpty())
             throw new IllegalArgumentException("La especialidad es obligatoria.");
-    }
-
-    private void validarTarifaNoNegativa(double tarifa) {
-        if (tarifa < 0)
-            throw new IllegalArgumentException("La tarifa no puede ser negativa.");
     }
 }

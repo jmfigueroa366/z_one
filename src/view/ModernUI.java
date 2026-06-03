@@ -9,6 +9,7 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+<<<<<<< HEAD
 /**
  * ModernUI — Biblioteca de componentes visuales globales de Z-One.
  *
@@ -19,6 +20,9 @@ import java.awt.event.MouseEvent;
  * COLORES Y FUENTES: se toman de CSS.CSSCancion para mantener
  * una única fuente de verdad de diseño en el proyecto.
  */
+=======
+
+>>>>>>> d739312be638ca602b5beb6bdb70b272567f437d
 public final class ModernUI {
 
     private ModernUI() {}

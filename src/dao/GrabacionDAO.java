@@ -10,13 +10,13 @@ import java.util.List;
 public class GrabacionDAO {
 
 
+ // id_session -> id_sesion
 private static final String SELECT_BASE =
-    "SELECT g.id_grabacion_audio, g.id_sesion, s.nombre_sesion, " +
-    "       g.nombre_archivo, g.ruta_archivo, g.duracion_segundos, " +
-    "       g.tamano_kb, g.fecha_grabacion, g.observaciones " +
-    "FROM grabaciones g " +
-    "LEFT JOIN sesion_grabaciones s ON g.id_sesion = s.id_sesion "; // id_session -> id_sesion
-
+        "SELECT g.id_grabacion_audio, g.id_sesion, s.nombre_sesion, " +
+        "       g.nombre_archivo, g.ruta_archivo, g.duracion_segundos, " +
+        "       g.tamano_kb, g.fecha_grabacion, g.observaciones " +
+        "FROM grabaciones g " +
+        "LEFT JOIN sesion_grabacion s ON g.id_sesion = s.id_grabacion ";
     public List<Grabacion> listarTodos() throws SQLException {
         return ejecutar(SELECT_BASE + "ORDER BY g.fecha_grabacion DESC", null);
     }

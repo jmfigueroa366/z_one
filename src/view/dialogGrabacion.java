@@ -44,6 +44,7 @@ public class dialogGrabacion extends JDialog {
         this.nombreSesion = nombreSesion;
         
         construirUI();
+        AudioRecorder.listarDispositivos(); 
     }
 
     public void setOnGrabacionGuardada(Runnable callback) {

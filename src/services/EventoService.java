@@ -2,7 +2,6 @@ package services;
 
 import dao.EventoDAO;
 import model.Evento;
-
 import java.sql.SQLException;
 import java.util.List;
 
@@ -35,6 +34,7 @@ public class EventoService {
     }
 
     private String validar(Evento e) {
+       
         if (e.getFecha() == null)
             return "La fecha del evento es obligatoria";
         if (e.getHoraInicio() != null && e.getHoraFin() != null

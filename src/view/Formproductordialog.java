@@ -14,21 +14,15 @@ import static view.formProductor.*;
 
 /**
  * Diálogo para crear o editar un Productor.
- * Separado de formProductor para mantener cada clase enfocada.
- *
- * Uso:
- *   new formProductorDialog(panelPadre, null).setVisible(true);   // crear
- *   new formProductorDialog(panelPadre, filaSeleccionada).setVisible(true); // editar
  */
 public class Formproductordialog extends JDialog {
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final formProductor parent;
-    private final Integer       filaEditar; // null = crear, Integer = editar
+    private final Integer       filaEditar;
 
-    // Campos del formulario
-    private JTextField fNom, fEsp, fNac, fTar, fEst, fNumId, fFechaFirma, fFechaNac;
+    private JTextField fNom, fEsp, fNac, fEst, fNumId, fFechaFirma, fFechaNac;
 
     public Formproductordialog(formProductor parent, Integer filaEditar) {
         super((Frame) SwingUtilities.getWindowAncestor(parent),
@@ -42,18 +36,12 @@ public class Formproductordialog extends JDialog {
         setLocationRelativeTo(parent);
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  VALORES INICIALES (al editar, se leen de la fila seleccionada)
-    // ══════════════════════════════════════════════════════════════════
     private String val(int col) {
         if (filaEditar == null) return "";
         Object o = parent.modeloTabla.getValueAt(filaEditar, col);
         return o != null ? o.toString() : "";
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    //  CONSTRUCCIÓN UI
-    // ══════════════════════════════════════════════════════════════════
     private void construirUI() {
         boolean esEdit = filaEditar != null;
 
@@ -74,48 +62,42 @@ public class Formproductordialog extends JDialog {
         main.setLayout(new BoxLayout(main, BoxLayout.Y_AXIS));
         main.setBorder(new EmptyBorder(24, 30, 24, 30));
 
-        // Pre-cargar valores si es edición
-        String nomVal  = val(COL_NOMBRE);
-        String espVal  = val(COL_ESPECIALIDAD);
-        String nacVal  = val(COL_NACIONALIDAD);
-        String tarVal  = val(COL_TARIFA).replace("$","").trim();
-        String estVal  = val(COL_ESTADO).replace("● ","").trim();
-        if (estVal.isEmpty()) estVal = "Disponible";
+        String nomVal = val(COL_NOMBRE);
+        String espVal = val(COL_ESPECIALIDAD);
+        String nacVal = val(COL_NACIONALIDAD);
+        String estVal = val(COL_ESTADO).replace("● ", "").trim();
+        if (estVal.isEmpty()) estVal = "Activo";
 
-        // Campos
-        fNom      = dlgField(nomVal);
-        fEsp      = dlgField(espVal);
-        fNac      = dlgField(nacVal);
-        fTar      = dlgField(tarVal.isEmpty() ? "0" : tarVal);
-        fEst      = dlgField(estVal);
-        fNumId    = dlgField("");
+        fNom        = dlgField(nomVal);
+        fEsp        = dlgField(espVal);
+        fNac        = dlgField(nacVal);
+        fEst        = dlgField(estVal);
+        fNumId      = dlgField("");
         fFechaFirma = dlgField("dd/MM/yyyy");
         fFechaNac   = dlgField("dd/MM/yyyy");
 
-        // Si es edición, intentar cargar datos completos del servicio
+        // Si es edición, cargar datos completos desde BD
         if (esEdit) {
             try {
                 int id = (int) parent.modeloTabla.getValueAt(filaEditar, COL_ID);
                 Productor p = parent.svc.buscarPorId(id);
                 if (p != null) {
                     if (p.getNumIdentificacion() != null) fNumId.setText(p.getNumIdentificacion());
-                    if (p.getFechaFirma()       != null) fFechaFirma.setText(p.getFechaFirma().format(FMT));
-                    if (p.getFechaNacimiento()  != null) fFechaNac.setText(p.getFechaNacimiento().format(FMT));
+                    if (p.getFechaFirma()        != null) fFechaFirma.setText(p.getFechaFirma().format(FMT));
+                    if (p.getFechaNacimiento()   != null) fFechaNac.setText(p.getFechaNacimiento().format(FMT));
                 }
             } catch (Exception ignored) {}
         }
 
-        main.add(filaDos("NOMBRE COMPLETO *", fNom,       "ESPECIALIDAD *",      fEsp));
+        main.add(filaDos("NOMBRE COMPLETO *",           fNom,        "ESPECIALIDAD *",              fEsp));
         main.add(Box.createVerticalStrut(15));
-        main.add(filaDos("NACIONALIDAD",       fNac,       "TARIFA POR HORA ($)", fTar));
+        main.add(filaDos("NACIONALIDAD",                fNac,        "ESTADO",                      fEst));
         main.add(Box.createVerticalStrut(15));
-        main.add(filaDos("NUM. IDENTIFICACIÓN", fNumId,    "ESTADO",              fEst));
+        main.add(filaDos("NUM. IDENTIFICACIÓN",         fNumId,      "FECHA FIRMA (dd/MM/yyyy)",    fFechaFirma));
         main.add(Box.createVerticalStrut(15));
-        main.add(filaDos("FECHA FIRMA (dd/MM/yyyy)", fFechaFirma,
-                          "FECHA NACIMIENTO (dd/MM/yyyy)", fFechaNac));
+        main.add(filaCampo("FECHA NACIMIENTO (dd/MM/yyyy)", fFechaNac));
         main.add(Box.createVerticalStrut(26));
 
-        // Botones
         JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         btnRow.setOpaque(false);
         btnRow.setAlignmentX(LEFT_ALIGNMENT);
@@ -137,21 +119,23 @@ public class Formproductordialog extends JDialog {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  GUARDAR — llama al servicio con los parámetros correctos
+    //  GUARDAR — firma alineada con ProductorService actualizado
     // ══════════════════════════════════════════════════════════════════
     private void guardar() {
         String nom   = fNom.getText().trim();
         String esp   = fEsp.getText().trim();
         String nac   = fNac.getText().trim();
         String numId = fNumId.getText().trim();
-        String est   = fEst.getText().trim().isEmpty() ? "Disponible" : fEst.getText().trim();
+        String est   = fEst.getText().trim().isEmpty() ? "Activo" : fEst.getText().trim();
 
-        double tarifa;
-        try {
-            tarifa = fTar.getText().trim().isEmpty() ? 0
-                   : Double.parseDouble(fTar.getText().trim());
-        } catch (NumberFormatException ex) {
-            parent.toast("La tarifa debe ser un número", MainFrame.ToastType.ERROR);
+        if (nom.isEmpty()) {
+            parent.toast("El nombre es obligatorio", MainFrame.ToastType.ERROR);
+            fNom.requestFocus();
+            return;
+        }
+        if (esp.isEmpty()) {
+            parent.toast("La especialidad es obligatoria", MainFrame.ToastType.ERROR);
+            fEsp.requestFocus();
             return;
         }
 
@@ -163,19 +147,30 @@ public class Formproductordialog extends JDialog {
         parent.worker(() -> {
             if (esEdit) {
                 int id = (int) parent.modeloTabla.getValueAt(filaEditar, COL_ID);
-                // ✔ firma correcta: modificar(id, nom, esp, tarifa, fechaFirma,
-                //                             fechaNac, numId, nac, generoPersona,
-                //                             generoMusical, estado)
-                parent.svc.modificar(id, nom, esp, tarifa,
-                        fechaFirma, fechaNacimiento, numId,
-                        nac, null, null, est);
+                parent.svc.modificar(
+                    id,
+                    nom,
+                    esp,
+                    numId.isEmpty() ? null : numId,
+                    fechaNacimiento,
+                    fechaFirma,
+                    nac.isEmpty()   ? null : nac,
+                    null,   // generoPersona — no está en el formulario
+                    null,   // generoMusical — no está en el formulario
+                    est
+                );
             } else {
-                // ✔ firma correcta: registrar(nom, esp, tarifa, fechaFirma,
-                //                             fechaNac, numId, nac, generoPersona,
-                //                             generoMusical, estado, idUsuario)
-                parent.svc.registrar(nom, esp, tarifa,
-                        fechaFirma, fechaNacimiento, numId,
-                        nac, null, null, est, null);
+                parent.svc.registrar(
+                    nom,
+                    esp,
+                    numId.isEmpty() ? null : numId,
+                    fechaNacimiento,
+                    fechaFirma,
+                    nac.isEmpty()   ? null : nac,
+                    null,   // generoPersona — no está en el formulario
+                    null,   // generoMusical — no está en el formulario
+                    est
+                );
             }
             return parent.svc.obtenerTodos();
         }, lista -> {
@@ -194,8 +189,8 @@ public class Formproductordialog extends JDialog {
         JPanel band = new JPanel(new BorderLayout(14, 0)) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setPaint(new GradientPaint(0, 0, new Color(37,99,235),
-                    getWidth(), getHeight(), new Color(14,50,140)));
+                g2.setPaint(new GradientPaint(0, 0, new Color(37, 99, 235),
+                    getWidth(), getHeight(), new Color(14, 50, 140)));
                 g2.fillRect(0, 0, getWidth(), getHeight());
                 g2.setPaint(new GradientPaint(0, 0, new Color(255,255,255,45),
                     0, getHeight(), new Color(255,255,255,0)));
@@ -273,7 +268,7 @@ public class Formproductordialog extends JDialog {
         f.setPreferredSize(new Dimension(200, 44));
         f.addFocusListener(new java.awt.event.FocusAdapter() {
             public void focusGained(java.awt.event.FocusEvent e) { f.repaint(); }
-            public void focusLost (java.awt.event.FocusEvent e) { f.repaint(); }
+            public void focusLost (java.awt.event.FocusEvent e)  { f.repaint(); }
         });
         return f;
     }

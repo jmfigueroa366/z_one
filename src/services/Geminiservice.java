@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 
 public class Geminiservice {
 
- private static final String API_KEY = System.getenv("GEMINI_API_KEY");
+   private static final String API_KEY = "AQ.Ab8RN6IWZKGyOjupqkQC006__TxHfoTSJvTBg6CjnhBC3y20fw";
    private static final String API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=" + API_KEY;
     private static final String SYSTEM_PROMPT = "Eres Jesusito, un asistente personal experto en musica de todos los generos: reggaeton, pop, rock, electronica, clasica, jazz, salsa, cumbia, metal y mas. Respondes en espanol, eres amigable, entusiasta y das recomendaciones personalizadas. Cuando alguien pide recomendaciones, sugiere artistas, canciones y albums concretos. Eres breve y directo pero siempre util.";
 
