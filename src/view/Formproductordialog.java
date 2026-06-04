@@ -48,7 +48,7 @@ public class Formproductordialog extends JDialog {
         JPanel root = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(10, 8, 24));
+                g2.setColor(new Color(255, 255, 255));
                 g2.fillRect(0, 0, getWidth(), getHeight());
                 g2.dispose();
                 super.paintComponent(g);
@@ -242,36 +242,40 @@ public class Formproductordialog extends JDialog {
         return band;
     }
 
-    private JTextField dlgField(String val) {
-        JTextField f = new JTextField(val) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = g2d(g);
-                boolean foco = isFocusOwner();
-                if (foco) {
-                    g2.setColor(new Color(37,99,235,60));
-                    g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
-                }
-                g2.setColor(foco ? new Color(10,22,60) : BG_FIELD);
-                g2.fillRoundRect(2,2,getWidth()-5,getHeight()-5,10,10);
-                g2.setColor(foco ? PURPLE : COL_BRD);
-                g2.setStroke(new BasicStroke(foco ? 1.8f : 1f));
-                g2.drawRoundRect(2,2,getWidth()-6,getHeight()-6,10,10);
-                g2.dispose();
-                super.paintComponent(g);
+   private JTextField dlgField(String val) {
+    JTextField f = new JTextField(val) {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                                RenderingHints.VALUE_ANTIALIAS_ON);
+            // Fondo: blanco con foco, gris claro sin foco
+            g2.setColor(hasFocus() ? Color.WHITE : new Color(240, 242, 248));
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+            // Borde: violeta con foco, gris sin foco
+            g2.setColor(hasFocus() ? new Color(99, 91, 255) : new Color(220, 225, 240));
+            g2.setStroke(new BasicStroke(hasFocus() ? 1.8f : 1f));
+            g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
+            // Glow sutil al hacer focus
+            if (hasFocus()) {
+                g2.setColor(new Color(139, 92, 246, 30));
+                g2.setStroke(new BasicStroke(3f));
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
             }
-        };
-        f.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        f.setForeground(TXT_PRI);
-        f.setOpaque(false);
-        f.setCaretColor(PURPLE_LT);
-        f.setBorder(new EmptyBorder(0, 14, 0, 14));
-        f.setPreferredSize(new Dimension(200, 44));
-        f.addFocusListener(new java.awt.event.FocusAdapter() {
-            public void focusGained(java.awt.event.FocusEvent e) { f.repaint(); }
-            public void focusLost (java.awt.event.FocusEvent e)  { f.repaint(); }
-        });
-        return f;
-    }
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    };
+    f.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    f.setForeground(new Color(30, 30, 60));   // TXT_PRI claro
+    f.setOpaque(false);
+    f.setCaretColor(new Color(99, 91, 255));  // PURPLE
+    f.setBorder(new EmptyBorder(8, 12, 8, 12));
+    f.addFocusListener(new java.awt.event.FocusAdapter() {
+        @Override public void focusGained(java.awt.event.FocusEvent e) { f.repaint(); }
+        @Override public void focusLost(java.awt.event.FocusEvent e)   { f.repaint(); }
+    });
+    return f;
+}
 
     private JPanel filaCampo(String label, JComponent campo) {
         JPanel p = new JPanel(new BorderLayout(0, 7));

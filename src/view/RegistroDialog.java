@@ -535,10 +535,11 @@ cmbRol = new JComboBox<>(new RolItem[]{
             mostrarEstado("❌ Todos los campos son obligatorios.", ModernUI.ACCENT_PINK);
             return;
         }
-        if (!correo.contains("@")) {
-            mostrarEstado("❌ Correo electrónico inválido.", ModernUI.ACCENT_PINK);
+        // DESPUÉS
+        if (!correo.matches("^[\\w.+\\-]+@[a-zA-Z0-9\\-]+(\\.[a-zA-Z0-9\\-]+)*\\.[a-zA-Z]{2,}$")) {
+            mostrarEstado("❌ Correo inválido. Usa el formato: usuario@dominio.com", ModernUI.ACCENT_PINK);
             return;
-        }
+}
         if (pass.length() < 4) {
             mostrarEstado("❌ La contraseña debe tener al menos 4 caracteres.", ModernUI.ACCENT_PINK);
             return;
