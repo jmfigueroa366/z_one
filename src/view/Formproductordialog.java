@@ -22,7 +22,8 @@ public class Formproductordialog extends JDialog {
     private final formProductor parent;
     private final Integer       filaEditar;
 
-    private JTextField fNom, fEsp, fNac, fEst, fNumId, fFechaFirma, fFechaNac;
+    private JTextField      fNom, fEsp, fNac, fEst, fNumId;
+    private PickerFecha fFechaFirma, fFechaNac;
 
     public Formproductordialog(formProductor parent, Integer filaEditar) {
         super((Frame) SwingUtilities.getWindowAncestor(parent),
@@ -73,8 +74,8 @@ public class Formproductordialog extends JDialog {
         fNac        = dlgField(nacVal);
         fEst        = dlgField(estVal);
         fNumId      = dlgField("");
-        fFechaFirma = dlgField("dd/MM/yyyy");
-        fFechaNac   = dlgField("dd/MM/yyyy");
+        fFechaFirma = new PickerFecha();
+        fFechaNac   = new PickerFecha();
 
         // Si es edición, cargar datos completos desde BD
         if (esEdit) {
@@ -83,19 +84,19 @@ public class Formproductordialog extends JDialog {
                 Productor p = parent.svc.buscarPorId(id);
                 if (p != null) {
                     if (p.getNumIdentificacion() != null) fNumId.setText(p.getNumIdentificacion());
-                    if (p.getFechaFirma()        != null) fFechaFirma.setText(p.getFechaFirma().format(FMT));
-                    if (p.getFechaNacimiento()   != null) fFechaNac.setText(p.getFechaNacimiento().format(FMT));
+                    if (p.getFechaFirma()        != null) fFechaFirma.setValue(p.getFechaFirma());
+                    if (p.getFechaNacimiento()   != null) fFechaNac.setValue(p.getFechaNacimiento());
                 }
             } catch (Exception ignored) {}
         }
 
-        main.add(filaDos("NOMBRE COMPLETO *",           fNom,        "ESPECIALIDAD *",              fEsp));
+        main.add(filaDos("NOMBRE COMPLETO *",        fNom,        "ESPECIALIDAD *",           fEsp));
         main.add(Box.createVerticalStrut(15));
-        main.add(filaDos("NACIONALIDAD",                fNac,        "ESTADO",                      fEst));
+        main.add(filaDos("NACIONALIDAD",             fNac,        "ESTADO",                   fEst));
         main.add(Box.createVerticalStrut(15));
-        main.add(filaDos("NUM. IDENTIFICACIÓN",         fNumId,      "FECHA FIRMA (dd/MM/yyyy)",    fFechaFirma));
+        main.add(filaDos("NUM. IDENTIFICACIÓN",      fNumId,      "FECHA FIRMA",              fFechaFirma));
         main.add(Box.createVerticalStrut(15));
-        main.add(filaCampo("FECHA NACIMIENTO (dd/MM/yyyy)", fFechaNac));
+        main.add(filaCampo("FECHA NACIMIENTO",       fFechaNac));
         main.add(Box.createVerticalStrut(26));
 
         JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
@@ -119,7 +120,7 @@ public class Formproductordialog extends JDialog {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  GUARDAR — firma alineada con ProductorService actualizado
+    //  GUARDAR
     // ══════════════════════════════════════════════════════════════════
     private void guardar() {
         String nom   = fNom.getText().trim();
@@ -139,8 +140,8 @@ public class Formproductordialog extends JDialog {
             return;
         }
 
-        LocalDate fechaFirma      = parseFecha(fFechaFirma.getText().trim());
-        LocalDate fechaNacimiento = parseFecha(fFechaNac.getText().trim());
+        LocalDate fechaFirma      = fFechaFirma.getValue();
+        LocalDate fechaNacimiento = fFechaNac.getValue();
 
         boolean esEdit = filaEditar != null;
 
@@ -155,8 +156,8 @@ public class Formproductordialog extends JDialog {
                     fechaNacimiento,
                     fechaFirma,
                     nac.isEmpty()   ? null : nac,
-                    null,   // generoPersona — no está en el formulario
-                    null,   // generoMusical — no está en el formulario
+                    null,
+                    null,
                     est
                 );
             } else {
@@ -167,8 +168,8 @@ public class Formproductordialog extends JDialog {
                     fechaNacimiento,
                     fechaFirma,
                     nac.isEmpty()   ? null : nac,
-                    null,   // generoPersona — no está en el formulario
-                    null,   // generoMusical — no está en el formulario
+                    null,
+                    null,
                     est
                 );
             }
@@ -242,46 +243,47 @@ public class Formproductordialog extends JDialog {
         return band;
     }
 
-   private JTextField dlgField(String val) {
-    JTextField f = new JTextField(val) {
-        @Override protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                                RenderingHints.VALUE_ANTIALIAS_ON);
-            // Fondo: blanco con foco, gris claro sin foco
-            g2.setColor(hasFocus() ? Color.WHITE : new Color(240, 242, 248));
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-            // Borde: violeta con foco, gris sin foco
-            g2.setColor(hasFocus() ? new Color(99, 91, 255) : new Color(220, 225, 240));
-            g2.setStroke(new BasicStroke(hasFocus() ? 1.8f : 1f));
-            g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
-            // Glow sutil al hacer focus
-            if (hasFocus()) {
-                g2.setColor(new Color(139, 92, 246, 30));
-                g2.setStroke(new BasicStroke(3f));
+    private JTextField dlgField(String val) {
+        JTextField f = new JTextField(val) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                                    RenderingHints.VALUE_ANTIALIAS_ON);
+                // Fondo: blanco con foco, gris claro sin foco
+                g2.setColor(hasFocus() ? Color.WHITE : new Color(240, 242, 248));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                // Borde: violeta con foco, gris sin foco
+                g2.setColor(hasFocus() ? new Color(99, 91, 255) : new Color(220, 225, 240));
+                g2.setStroke(new BasicStroke(hasFocus() ? 1.8f : 1f));
                 g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
+                // Glow sutil al hacer focus
+                if (hasFocus()) {
+                    g2.setColor(new Color(139, 92, 246, 30));
+                    g2.setStroke(new BasicStroke(3f));
+                    g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
+                }
+                g2.dispose();
+                super.paintComponent(g);
             }
-            g2.dispose();
-            super.paintComponent(g);
-        }
-    };
-    f.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-    f.setForeground(new Color(30, 30, 60));   // TXT_PRI claro
-    f.setOpaque(false);
-    f.setCaretColor(new Color(99, 91, 255));  // PURPLE
-    f.setBorder(new EmptyBorder(8, 12, 8, 12));
-    f.addFocusListener(new java.awt.event.FocusAdapter() {
-        @Override public void focusGained(java.awt.event.FocusEvent e) { f.repaint(); }
-        @Override public void focusLost(java.awt.event.FocusEvent e)   { f.repaint(); }
-    });
-    return f;
-}
+        };
+        f.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        f.setForeground(new Color(30, 30, 60));
+        f.setOpaque(false);
+        f.setCaretColor(new Color(99, 91, 255));
+        f.setBorder(new EmptyBorder(8, 12, 8, 12));
+        f.setPreferredSize(new Dimension(200, 44));
+        f.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent e) { f.repaint(); }
+            public void focusLost (java.awt.event.FocusEvent e)  { f.repaint(); }
+        });
+        return f;
+    }
 
     private JPanel filaCampo(String label, JComponent campo) {
         JPanel p = new JPanel(new BorderLayout(0, 7));
         p.setOpaque(false);
         p.setAlignmentX(LEFT_ALIGNMENT);
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
         p.add(mkLabel(label, new Font("Segoe UI", Font.BOLD, 10), PURPLE_LT), BorderLayout.NORTH);
         p.add(campo, BorderLayout.CENTER);
         return p;
@@ -291,7 +293,7 @@ public class Formproductordialog extends JDialog {
         JPanel p = new JPanel(new GridLayout(1, 2, 14, 0));
         p.setOpaque(false);
         p.setAlignmentX(LEFT_ALIGNMENT);
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
         p.add(filaCampo(l1, c1));
         p.add(filaCampo(l2, c2));
         return p;
@@ -304,5 +306,11 @@ public class Formproductordialog extends JDialog {
         } catch (DateTimeParseException e) {
             return null;
         }
+    }
+
+    private static Graphics2D g2d(Graphics g) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        return g2;
     }
 }
