@@ -1211,7 +1211,7 @@ public class formSesion extends JPanel {
 
         FieldFx fFecha = new FieldFx(
                 isEdit && se.getFechaGrabacion() != null ? se.getFechaGrabacion().format(FMT) : "",
-                "dd/MM/yyyy", timersDlg);
+                "dd/mm/yyyy", timersDlg);
 
         String hiStr = (isEdit && se.getHoraInicio() != null)
                 ? se.getHoraInicio().toLocalTime().toString().substring(0, 5) : "09:00";

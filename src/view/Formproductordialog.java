@@ -76,8 +76,8 @@ public class Formproductordialog extends JDialog {
         fNumId      = dlgField("");
         fFechaFirma = dlgField("");
         fFechaNac   = dlgField("");
-        fFechaFirma.putClientProperty("JTextField.placeholderText", "dd/MM/yyyy");
-        fFechaNac  .putClientProperty("JTextField.placeholderText", "dd/MM/yyyy");
+        fFechaFirma.putClientProperty("placeholder", "dd/mm/yyyy");
+        fFechaNac  .putClientProperty("placeholder", "dd/mm/yyyy");
 
         // Si es edición, cargar datos completos desde BD
         if (esEdit) {
@@ -246,40 +246,56 @@ public class Formproductordialog extends JDialog {
     }
 
     private JTextField dlgField(String val) {
-        JTextField f = new JTextField(val) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                                    RenderingHints.VALUE_ANTIALIAS_ON);
-                // Fondo: blanco con foco, gris claro sin foco
-                g2.setColor(hasFocus() ? Color.WHITE : new Color(240, 242, 248));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                // Borde: violeta con foco, gris sin foco
-                g2.setColor(hasFocus() ? new Color(99, 91, 255) : new Color(220, 225, 240));
-                g2.setStroke(new BasicStroke(hasFocus() ? 1.8f : 1f));
+    JTextField f = new JTextField(val) {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                                RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(hasFocus() ? Color.WHITE : new Color(240, 242, 248));
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+            g2.setColor(hasFocus() ? new Color(99, 91, 255) : new Color(220, 225, 240));
+            g2.setStroke(new BasicStroke(hasFocus() ? 1.8f : 1f));
+            g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
+            if (hasFocus()) {
+                g2.setColor(new Color(139, 92, 246, 30));
+                g2.setStroke(new BasicStroke(3f));
                 g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
-                // Glow sutil al hacer focus
-                if (hasFocus()) {
-                    g2.setColor(new Color(139, 92, 246, 30));
-                    g2.setStroke(new BasicStroke(3f));
-                    g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
-                }
-                g2.dispose();
-                super.paintComponent(g);
             }
-        };
-        f.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        f.setForeground(new Color(30, 30, 60));
-        f.setOpaque(false);
-        f.setCaretColor(new Color(99, 91, 255));
-        f.setBorder(new EmptyBorder(8, 12, 8, 12));
-        f.setPreferredSize(new Dimension(200, 44));
-        f.addFocusListener(new java.awt.event.FocusAdapter() {
-            public void focusGained(java.awt.event.FocusEvent e) { f.repaint(); }
-            public void focusLost (java.awt.event.FocusEvent e)  { f.repaint(); }
-        });
-        return f;
-    }
+            g2.dispose();
+            super.paintComponent(g);
+        }
+
+        @Override protected void paintChildren(Graphics g) {
+            super.paintChildren(g);
+            // Placeholder: solo si vacío y sin foco
+            if (!hasFocus() && getText().isEmpty()) {
+                String placeholder = (String) getClientProperty("placeholder");
+                if (placeholder != null && !placeholder.isEmpty()) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                                        RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                    g2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                    g2.setColor(new Color(160, 165, 190));
+                    FontMetrics fm = g2.getFontMetrics();
+                    int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                    g2.drawString(placeholder, 12, y);
+                    g2.dispose();
+                }
+            }
+        }
+    };
+    f.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+    f.setForeground(new Color(30, 30, 60));
+    f.setOpaque(false);
+    f.setCaretColor(new Color(99, 91, 255));
+    f.setBorder(new EmptyBorder(8, 12, 8, 12));
+    f.setPreferredSize(new Dimension(200, 44));
+    f.addFocusListener(new java.awt.event.FocusAdapter() {
+        public void focusGained(java.awt.event.FocusEvent e) { f.repaint(); }
+        public void focusLost (java.awt.event.FocusEvent e)  { f.repaint(); }
+    });
+    return f;
+}
     
     private JComboBox<String> dlgCombo(String sel, String[] opciones) {
         JComboBox<String> cb = new JComboBox<>(opciones);
