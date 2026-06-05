@@ -22,8 +22,8 @@ public class Formproductordialog extends JDialog {
     private final formProductor parent;
     private final Integer       filaEditar;
 
-    private JTextField      fNom, fEsp, fNac, fEst, fNumId;
-    private PickerFecha fFechaFirma, fFechaNac;
+    private JTextField      fNom, fEsp, fNac ,fNumId, fFechaFirma, fFechaNac;
+    private JComboBox<String> fEst;
 
     public Formproductordialog(formProductor parent, Integer filaEditar) {
         super((Frame) SwingUtilities.getWindowAncestor(parent),
@@ -72,10 +72,12 @@ public class Formproductordialog extends JDialog {
         fNom        = dlgField(nomVal);
         fEsp        = dlgField(espVal);
         fNac        = dlgField(nacVal);
-        fEst        = dlgField(estVal);
+        fEst = dlgCombo(estVal, new String[]{"Activo", "Inactivo"});
         fNumId      = dlgField("");
-        fFechaFirma = new PickerFecha();
-        fFechaNac   = new PickerFecha();
+        fFechaFirma = dlgField("");
+        fFechaNac   = dlgField("");
+        fFechaFirma.putClientProperty("JTextField.placeholderText", "dd/MM/yyyy");
+        fFechaNac  .putClientProperty("JTextField.placeholderText", "dd/MM/yyyy");
 
         // Si es edición, cargar datos completos desde BD
         if (esEdit) {
@@ -84,8 +86,8 @@ public class Formproductordialog extends JDialog {
                 Productor p = parent.svc.buscarPorId(id);
                 if (p != null) {
                     if (p.getNumIdentificacion() != null) fNumId.setText(p.getNumIdentificacion());
-                    if (p.getFechaFirma()        != null) fFechaFirma.setValue(p.getFechaFirma());
-                    if (p.getFechaNacimiento()   != null) fFechaNac.setValue(p.getFechaNacimiento());
+                    if (p.getFechaFirma()      != null) fFechaFirma.setText(p.getFechaFirma().format(FMT));
+                    if (p.getFechaNacimiento() != null) fFechaNac  .setText(p.getFechaNacimiento().format(FMT));
                 }
             } catch (Exception ignored) {}
         }
@@ -127,7 +129,7 @@ public class Formproductordialog extends JDialog {
         String esp   = fEsp.getText().trim();
         String nac   = fNac.getText().trim();
         String numId = fNumId.getText().trim();
-        String est   = fEst.getText().trim().isEmpty() ? "Activo" : fEst.getText().trim();
+        String est = (String) fEst.getSelectedItem();
 
         if (nom.isEmpty()) {
             parent.toast("El nombre es obligatorio", MainFrame.ToastType.ERROR);
@@ -140,8 +142,8 @@ public class Formproductordialog extends JDialog {
             return;
         }
 
-        LocalDate fechaFirma      = fFechaFirma.getValue();
-        LocalDate fechaNacimiento = fFechaNac.getValue();
+        LocalDate fechaFirma      = parseFecha(fFechaFirma.getText().trim());
+        LocalDate fechaNacimiento = parseFecha(fFechaNac.getText().trim());
 
         boolean esEdit = filaEditar != null;
 
@@ -278,7 +280,29 @@ public class Formproductordialog extends JDialog {
         });
         return f;
     }
-
+    
+    private JComboBox<String> dlgCombo(String sel, String[] opciones) {
+        JComboBox<String> cb = new JComboBox<>(opciones);
+        cb.setSelectedItem(sel);
+        cb.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cb.setForeground(new Color(30, 30, 60));
+        cb.setBackground(new Color(240, 242, 248));
+        cb.setBorder(new EmptyBorder(8, 12, 8, 12));
+        cb.setPreferredSize(new Dimension(200, 44));
+        cb.setRenderer(new DefaultListCellRenderer() {
+            @Override public Component getListCellRendererComponent(
+                    JList<?> l, Object v, int i, boolean s, boolean f) {
+                JLabel lb = new JLabel(v == null ? "" : " " + v);
+                lb.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                lb.setForeground(s ? Color.WHITE : new Color(30, 30, 60));
+                lb.setBorder(new EmptyBorder(8, 12, 8, 12));
+                lb.setOpaque(true);
+                lb.setBackground(s ? new Color(99, 91, 255) : new Color(240, 242, 248));
+                return lb;
+            }
+        });
+        return cb;
+    }
     private JPanel filaCampo(String label, JComponent campo) {
         JPanel p = new JPanel(new BorderLayout(0, 7));
         p.setOpaque(false);
