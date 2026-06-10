@@ -11,7 +11,6 @@ public class ArtistaDAO {
 
     private static final String SCHEMA = "PRODUCTORA_BD.";
 
-    // ── Ya NO incluye genero_musical en el SELECT ni en el JOIN ──────
     private static final String SELECT_BASE =
         "SELECT a.id_artista, a.nombre_artista, a.nombre_real, " +
         "       a.fecha_nacimiento, a.redes_sociales, a.fecha_firma, a.num_identificacion, " +
@@ -25,34 +24,25 @@ public class ArtistaDAO {
         "LEFT JOIN " + SCHEMA + "TIPO_ARTISTA    ta ON a.id_tipo_artista    = ta.id_tipo_artista " +
         "LEFT JOIN " + SCHEMA + "ESTADO_ART_PRO  es ON a.id_estado_art_pro  = es.id_estado_art_pro ";
 
-    // ── LISTAR / BUSCAR ──────────────────────────────────────────────
-
     public List<Artista> listarTodos() throws SQLException {
-        List<Artista> lista = ejecutar(SELECT_BASE + "ORDER BY a.nombre_artista", null);
-        // Cargar géneros de cada artista desde la tabla intermedia
-        for (Artista a : lista) {
-            a.setGenerosMusicales(listarGenerosDe(a.getIdArtista()));
+        List<Artista> artistas = ejecutar(SELECT_BASE + "ORDER BY a.nombre_artista", null);
+        for (Artista artista : artistas) {
+            artista.setGenerosMusicales(listarGenerosDe(artista.getIdArtista()));
         }
-        return lista;
+        return artistas;
     }
 
     public Artista buscarPorId(int id) throws SQLException {
-        List<Artista> r = ejecutar(SELECT_BASE + "WHERE a.id_artista = ?", new Object[]{id});
-        if (r.isEmpty()) return null;
-        Artista a = r.get(0);
-        a.setGenerosMusicales(listarGenerosDe(a.getIdArtista()));
-        return a;
+        List<Artista> resultado = ejecutar(SELECT_BASE + "WHERE a.id_artista = ?", new Object[]{id});
+        if (resultado.isEmpty()) return null;
+        Artista artista = resultado.get(0);
+        artista.setGenerosMusicales(listarGenerosDe(artista.getIdArtista()));
+        return artista;
     }
 
-    // ── INSERTAR ─────────────────────────────────────────────────────
+    public int crear(Artista artista) throws SQLException {
+        IdsArtista ids = resolverIdsArtista(artista);
 
-    public int crear(Artista a) throws SQLException {
-        Integer idNac    = resolverId("NACIONALIDAD",   "id_nacionalidad",   "nombre",      a.getNacionalidad(),  "Nacionalidad");
-        Integer idGenPer = resolverId("GENERO_PERSONA", "id_genero_persona", "descripcion", a.getGeneroPersona(), "Genero persona");
-        Integer idTipo   = resolverId("TIPO_ARTISTA",   "id_tipo_artista",   "nombre",      a.getTipoArtista(),   "Tipo artista");
-        Integer idEstado = resolverId("ESTADO_ART_PRO", "id_estado_art_pro", "nombre",      a.getEstadoArtista(), "Estado");
-
-        // id_genero_musical NO va aquí — va en ARTISTA_GENERO_MUSICAL
         String sql =
             "INSERT INTO " + SCHEMA + "ARTISTA " +
             "(nombre_artista, nombre_real, fecha_nacimiento, redes_sociales, fecha_firma, " +
@@ -64,37 +54,23 @@ public class ArtistaDAO {
         try (Connection c = ConexionDB.getConexion();
              PreparedStatement ps = c.prepareStatement(sql, new String[]{"ID_ARTISTA"})) {
 
-            ps.setString(1, a.getNombreArtista());
-            ps.setString(2, a.getNombreReal());
-            ps.setDate  (3, a.getFechaNacimiento() != null ? Date.valueOf(a.getFechaNacimiento()) : null);
-            ps.setString(4, a.getRedesSociales());
-            ps.setDate  (5, a.getFechaFirma()      != null ? Date.valueOf(a.getFechaFirma())      : null);
-            ps.setString(6, a.getNumIdentificacion());
-            setIntOrNull(ps, 7,  idNac);
-            setIntOrNull(ps, 8,  idGenPer);
-            setIntOrNull(ps, 9,  idTipo);
-            setIntOrNull(ps, 10, idEstado);
-
+            asignarParametrosArtista(ps, artista, ids);
             ps.executeUpdate();
+
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) idGenerado = rs.getInt(1);
             }
         }
 
-        // Insertar géneros en la tabla intermedia
-        if (idGenerado > 0 && a.getGenerosMusicales() != null) {
-            insertarGenerosMusicales(idGenerado, a.getGenerosMusicales());
+        // Los géneros musicales se guardan en la tabla intermedia, no en ARTISTA
+        if (idGenerado > 0 && artista.getGenerosMusicales() != null) {
+            insertarGenerosMusicales(idGenerado, artista.getGenerosMusicales());
         }
         return idGenerado;
     }
 
-    // ── ACTUALIZAR ───────────────────────────────────────────────────
-
-    public boolean actualizar(Artista a) throws SQLException {
-        Integer idNac    = resolverId("NACIONALIDAD",   "id_nacionalidad",   "nombre",      a.getNacionalidad(),  "Nacionalidad");
-        Integer idGenPer = resolverId("GENERO_PERSONA", "id_genero_persona", "descripcion", a.getGeneroPersona(), "Genero persona");
-        Integer idTipo   = resolverId("TIPO_ARTISTA",   "id_tipo_artista",   "nombre",      a.getTipoArtista(),   "Tipo artista");
-        Integer idEstado = resolverId("ESTADO_ART_PRO", "id_estado_art_pro", "nombre",      a.getEstadoArtista(), "Estado");
+    public boolean actualizar(Artista artista) throws SQLException {
+        IdsArtista ids = resolverIdsArtista(artista);
 
         String sql =
             "UPDATE " + SCHEMA + "ARTISTA SET " +
@@ -107,33 +83,21 @@ public class ArtistaDAO {
         try (Connection c = ConexionDB.getConexion();
              PreparedStatement ps = c.prepareStatement(sql)) {
 
-            ps.setString(1, a.getNombreArtista());
-            ps.setString(2, a.getNombreReal());
-            ps.setDate  (3, a.getFechaNacimiento() != null ? Date.valueOf(a.getFechaNacimiento()) : null);
-            ps.setString(4, a.getRedesSociales());
-            ps.setDate  (5, a.getFechaFirma()      != null ? Date.valueOf(a.getFechaFirma())      : null);
-            ps.setString(6, a.getNumIdentificacion());
-            setIntOrNull(ps, 7,  idNac);
-            setIntOrNull(ps, 8,  idGenPer);
-            setIntOrNull(ps, 9,  idTipo);
-            setIntOrNull(ps, 10, idEstado);
-            ps.setInt   (11, a.getIdArtista());
+            asignarParametrosArtista(ps, artista, ids);
+            ps.setInt(11, artista.getIdArtista());
 
-            boolean ok = ps.executeUpdate() > 0;
+            boolean actualizado = ps.executeUpdate() > 0;
 
-            // Reemplazar géneros: borrar los viejos e insertar los nuevos
-            if (a.getGenerosMusicales() != null) {
-                eliminarGenerosMusicales(a.getIdArtista());
-                insertarGenerosMusicales(a.getIdArtista(), a.getGenerosMusicales());
+            if (artista.getGenerosMusicales() != null) {
+                eliminarGenerosMusicales(artista.getIdArtista());
+                insertarGenerosMusicales(artista.getIdArtista(), artista.getGenerosMusicales());
             }
-            return ok;
+            return actualizado;
         }
     }
 
-    // ── ELIMINAR ─────────────────────────────────────────────────────
-
     public boolean eliminar(int idArtista) throws SQLException {
-        // Primero borrar géneros de la tabla intermedia
+        // Los géneros de la tabla intermedia deben borrarse antes que el artista
         eliminarGenerosMusicales(idArtista);
         String sql = "DELETE FROM " + SCHEMA + "ARTISTA WHERE id_artista = ?";
         try (Connection c = ConexionDB.getConexion();
@@ -143,18 +107,16 @@ public class ArtistaDAO {
         }
     }
 
-    // ── TABLA INTERMEDIA ARTISTA_GENERO_MUSICAL ──────────────────────
-
     private void insertarGenerosMusicales(int idArtista, List<String> generos) throws SQLException {
-        for (String gen : generos) {
-            if (gen == null || gen.isBlank()) continue;
-            Integer idGen = resolverId("GENERO_MUSICAL", "id_genero_musical", "nombre", gen, "Genero musical");
-            if (idGen == null) continue;
+        for (String genero : generos) {
+            if (genero == null || genero.isBlank()) continue;
+            Integer idGenero = resolverId("GENERO_MUSICAL", "id_genero_musical", "nombre", genero, "Genero musical");
+            if (idGenero == null) continue;
             String sql = "INSERT INTO " + SCHEMA + "ARTISTA_GENERO_MUSICAL (id_artista, id_genero_musical) VALUES (?, ?)";
             try (Connection c = ConexionDB.getConexion();
                  PreparedStatement ps = c.prepareStatement(sql)) {
                 ps.setInt(1, idArtista);
-                ps.setInt(2, idGen);
+                ps.setInt(2, idGenero);
                 ps.executeUpdate();
             }
         }
@@ -170,7 +132,7 @@ public class ArtistaDAO {
     }
 
     public List<String> listarGenerosDe(int idArtista) throws SQLException {
-        List<String> out = new ArrayList<>();
+        List<String> generos = new ArrayList<>();
         String sql =
             "SELECT gm.nombre FROM " + SCHEMA + "ARTISTA_GENERO_MUSICAL ag " +
             "JOIN " + SCHEMA + "GENERO_MUSICAL gm ON ag.id_genero_musical = gm.id_genero_musical " +
@@ -179,37 +141,61 @@ public class ArtistaDAO {
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setInt(1, idArtista);
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) out.add(rs.getString(1));
+                while (rs.next()) generos.add(rs.getString(1));
             }
         }
-        return out;
+        return generos;
     }
 
-    // ── CATÁLOGOS ────────────────────────────────────────────────────
-
     public List<String> listarNacionalidades() throws SQLException {
-        List<String> out = new ArrayList<>();
+        List<String> nacionalidades = new ArrayList<>();
         String sql = "SELECT nombre FROM " + SCHEMA + "NACIONALIDAD ORDER BY nombre";
         try (Connection c = ConexionDB.getConexion();
              PreparedStatement ps = c.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) out.add(rs.getString(1));
+            while (rs.next()) nacionalidades.add(rs.getString(1));
         }
-        return out;
+        return nacionalidades;
     }
 
     public List<String> listarGenerosMusicales() throws SQLException {
-        List<String> out = new ArrayList<>();
+        List<String> generos = new ArrayList<>();
         String sql = "SELECT nombre FROM " + SCHEMA + "GENERO_MUSICAL ORDER BY nombre";
         try (Connection c = ConexionDB.getConexion();
              PreparedStatement ps = c.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) out.add(rs.getString(1));
+            while (rs.next()) generos.add(rs.getString(1));
         }
-        return out;
+        return generos;
     }
 
-    // ── HELPERS ──────────────────────────────────────────────────────
+    /**
+     * Resuelve todos los IDs de catálogo necesarios para insertar o actualizar un artista.
+     */
+    private IdsArtista resolverIdsArtista(Artista artista) throws SQLException {
+        IdsArtista ids = new IdsArtista();
+        ids.nacionalidad  = resolverId("NACIONALIDAD",   "id_nacionalidad",   "nombre",      artista.getNacionalidad(),  "Nacionalidad");
+        ids.generoPersona = resolverId("GENERO_PERSONA", "id_genero_persona", "descripcion", artista.getGeneroPersona(), "Genero persona");
+        ids.tipoArtista   = resolverId("TIPO_ARTISTA",   "id_tipo_artista",   "nombre",      artista.getTipoArtista(),   "Tipo artista");
+        ids.estado        = resolverId("ESTADO_ART_PRO", "id_estado_art_pro", "nombre",      artista.getEstadoArtista(), "Estado");
+        return ids;
+    }
+
+    /**
+     * Asigna los parámetros 1-10 del PreparedStatement para INSERT o UPDATE de artista.
+     */
+    private void asignarParametrosArtista(PreparedStatement ps, Artista artista, IdsArtista ids) throws SQLException {
+        ps.setString(1, artista.getNombreArtista());
+        ps.setString(2, artista.getNombreReal());
+        ps.setDate  (3, artista.getFechaNacimiento() != null ? Date.valueOf(artista.getFechaNacimiento()) : null);
+        ps.setString(4, artista.getRedesSociales());
+        ps.setDate  (5, artista.getFechaFirma()      != null ? Date.valueOf(artista.getFechaFirma())      : null);
+        ps.setString(6, artista.getNumIdentificacion());
+        setIntOrNull(ps, 7,  ids.nacionalidad);
+        setIntOrNull(ps, 8,  ids.generoPersona);
+        setIntOrNull(ps, 9,  ids.tipoArtista);
+        setIntOrNull(ps, 10, ids.estado);
+    }
 
     private Integer resolverId(String tabla, String colId, String colNombre,
                                 String valor, String etiqueta) throws SQLException {
@@ -227,40 +213,51 @@ public class ArtistaDAO {
                 "Verifica que esté registrado en la tabla " + SCHEMA + tabla + ".");
     }
 
-    private void setIntOrNull(PreparedStatement ps, int idx, Integer val) throws SQLException {
-        if (val != null) ps.setInt(idx, val);
-        else             ps.setNull(idx, Types.NUMERIC);
+    private void setIntOrNull(PreparedStatement ps, int indice, Integer valor) throws SQLException {
+        if (valor != null) ps.setInt(indice, valor);
+        else               ps.setNull(indice, Types.NUMERIC);
     }
 
     private List<Artista> ejecutar(String sql, Object[] params) throws SQLException {
-        List<Artista> out = new ArrayList<>();
+        List<Artista> artistas = new ArrayList<>();
         try (Connection c = ConexionDB.getConexion();
              PreparedStatement ps = c.prepareStatement(sql)) {
             if (params != null)
                 for (int i = 0; i < params.length; i++) ps.setObject(i + 1, params[i]);
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) out.add(mapear(rs));
+                while (rs.next()) artistas.add(mapear(rs));
             }
         }
-        return out;
+        return artistas;
     }
 
     private Artista mapear(ResultSet rs) throws SQLException {
-        Artista a = new Artista();
-        a.setIdArtista        (rs.getInt("id_artista"));
-        a.setNombreArtista    (rs.getString("nombre_artista"));
-        a.setNombreReal       (rs.getString("nombre_real"));
-        a.setNumIdentificacion(rs.getString("num_identificacion"));
-        Date fn = rs.getDate("fecha_nacimiento");
-        a.setFechaNacimiento  (fn != null ? fn.toLocalDate() : null);
-        Date ff = rs.getDate("fecha_firma");
-        a.setFechaFirma       (ff != null ? ff.toLocalDate() : null);
-        a.setRedesSociales    (rs.getString("redes_sociales"));
-        a.setGeneroPersona    (rs.getString("genero_persona"));
-        a.setNacionalidad     (rs.getString("nacionalidad"));
-        a.setTipoArtista      (rs.getString("tipo_artista"));
-        a.setEstadoArtista    (rs.getString("estado"));
-        // Los géneros se cargan aparte en listarTodos() / buscarPorId()
-        return a;
+        Artista artista = new Artista();
+        artista.setIdArtista        (rs.getInt("id_artista"));
+        artista.setNombreArtista    (rs.getString("nombre_artista"));
+        artista.setNombreReal       (rs.getString("nombre_real"));
+        artista.setNumIdentificacion(rs.getString("num_identificacion"));
+        Date fechaNacimiento = rs.getDate("fecha_nacimiento");
+        artista.setFechaNacimiento  (fechaNacimiento != null ? fechaNacimiento.toLocalDate() : null);
+        Date fechaFirma = rs.getDate("fecha_firma");
+        artista.setFechaFirma       (fechaFirma != null ? fechaFirma.toLocalDate() : null);
+        artista.setRedesSociales    (rs.getString("redes_sociales"));
+        artista.setGeneroPersona    (rs.getString("genero_persona"));
+        artista.setNacionalidad     (rs.getString("nacionalidad"));
+        artista.setTipoArtista      (rs.getString("tipo_artista"));
+        artista.setEstadoArtista    (rs.getString("estado"));
+        // Los géneros musicales se cargan aparte en listarTodos() y buscarPorId()
+        return artista;
+    }
+
+    /**
+     * Agrupa los IDs de catálogo resueltos para un artista,
+     * evitando repetir el bloque de resolución en crear() y actualizar().
+     */
+    private static class IdsArtista {
+        Integer nacionalidad;
+        Integer generoPersona;
+        Integer tipoArtista;
+        Integer estado;
     }
 }

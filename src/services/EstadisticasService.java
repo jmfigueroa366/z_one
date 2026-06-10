@@ -190,4 +190,4 @@ public class EstadisticasService {
         if (dias < 30) return "hace " + (dias / 7) + "sem";
         return "hace " + (dias / 30) + "mes";
     }
-}
+}   

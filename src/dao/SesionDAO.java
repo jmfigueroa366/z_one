@@ -11,6 +11,7 @@ public class SesionDAO {
 
     private static final String SCHEMA = "";
 
+    //SELECT el cual consulta los registros de las sesiones actuales
    private static final String SELECT_BASE =
         "SELECT s.id_grabacion, s.id_cancion, s.id_fase, s.id_artista, s.id_productor, " +
         "       s.id_cabina, s.id_estado_grabacion, s.nombre_sesion, s.numero_sesion, " +

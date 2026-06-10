@@ -10,7 +10,7 @@ import java.util.List;
 public class ProductorDAO {
 
     private static final String SCHEMA = "PRODUCTORA_BD.";
-
+    //SELECT general de registros de la base de datos
     private static final String SELECT_BASE =
         "SELECT p.id_productor, p.num_identificacion, p.nombre, " +
         "       p.fecha_nacimiento, p.fecha_firma, p.especialidad, " +
