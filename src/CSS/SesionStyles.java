@@ -140,5 +140,6 @@ public final class SesionStyles {
         String[] partes = nombre.trim().split("\\s+");
         if (partes.length == 1) return partes[0].substring(0, 1).toUpperCase();
         return (partes[0].charAt(0) + "" + partes[1].charAt(0)).toUpperCase();
+    
     }
 }

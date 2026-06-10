@@ -1121,14 +1121,14 @@ public class formArtista extends JPanel {
             nacionalidades.toArray(new String[0]));
 
         JTextField fFechaNac = dlgField(esEdit && aEdit != null && aEdit.getFechaNacimiento() != null
-                ? aEdit.getFechaNacimiento().format(DATE_FMT) : "");
-        fFechaNac.putClientProperty("JTextField.placeholderText", "aaaa-mm-dd");
+        ? aEdit.getFechaNacimiento().format(DATE_FMT) : "");
+        fFechaNac.putClientProperty("placeholder", "aaaa-mm-dd");
 
         JTextField fRedes = dlgField(esEdit && aEdit != null ? nvl(aEdit.getRedesSociales()) : "");
 
         JTextField fFechaFirma = dlgField(esEdit && aEdit != null && aEdit.getFechaFirma() != null
-                ? aEdit.getFechaFirma().format(DATE_FMT) : "");
-        fFechaFirma.putClientProperty("JTextField.placeholderText", "aaaa-mm-dd");
+        ? aEdit.getFechaFirma().format(DATE_FMT) : "");
+        fFechaFirma.putClientProperty("placeholder", "aaaa-mm-dd");  // ← cambiar "JTextField.placeholderText" por "placeholder"
 
         JComboBox<String> cEst = dlgCombo(
             esEdit && aEdit != null && aEdit.getEstadoArtista() != null
@@ -1302,31 +1302,55 @@ public class formArtista extends JPanel {
     //  HELPERS DIÁLOGO
     // ══════════════════════════════════════════════════════════════════
     private JTextField dlgField(String val) {
-        JTextField f = new JTextField(val);
-        f.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        f.setForeground(TXT_PRI);
-        f.setCaretColor(PURPLE);
-        f.setBackground(BG_FIELD);
-        f.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(COL_BRD, 1, true),
-            new EmptyBorder(0, 12, 0, 12)));
-        f.setPreferredSize(new Dimension(200, 40));
-        f.addFocusListener(new FocusAdapter() {
-            public void focusGained(FocusEvent e) {
-                f.setBackground(new Color(238, 236, 255));
-                f.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(PURPLE, 2, true),
-                    new EmptyBorder(0, 12, 0, 12)));
+    JTextField f = new JTextField(val) {
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                                RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(hasFocus() ? Color.WHITE : new Color(240, 242, 248));
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+            g2.setColor(hasFocus() ? new Color(99, 91, 255) : new Color(220, 225, 240));
+            g2.setStroke(new BasicStroke(hasFocus() ? 1.8f : 1f));
+            g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
+            if (hasFocus()) {
+                g2.setColor(new Color(139, 92, 246, 30));
+                g2.setStroke(new BasicStroke(3f));
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 10, 10);
             }
-            public void focusLost(FocusEvent e) {
-                f.setBackground(BG_FIELD);
-                f.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(COL_BRD, 1, true),
-                    new EmptyBorder(0, 12, 0, 12)));
+            g2.dispose();
+            super.paintComponent(g);
+        }
+
+        @Override protected void paintChildren(Graphics g) {
+            super.paintChildren(g);
+            if (!hasFocus() && getText().isEmpty()) {
+                String ph = (String) getClientProperty("placeholder");
+                if (ph != null && !ph.isEmpty()) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                                        RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                    g2.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                    g2.setColor(new Color(160, 165, 190));
+                    FontMetrics fm = g2.getFontMetrics();
+                    int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                    g2.drawString(ph, 12, y);
+                    g2.dispose();
+                }
             }
-        });
-        return f;
-    }
+        }
+    };
+        f.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        f.setForeground(new Color(30, 30, 60));
+        f.setOpaque(false);
+        f.setCaretColor(new Color(99, 91, 255));
+        f.setBorder(new EmptyBorder(8, 12, 8, 12));
+        f.setPreferredSize(new Dimension(200, 44));
+        f.addFocusListener(new java.awt.event.FocusAdapter() {
+        public void focusGained(java.awt.event.FocusEvent e) { f.repaint(); }
+        public void focusLost (java.awt.event.FocusEvent e)  { f.repaint(); }
+    });
+    return f;
+}
 
     private JComboBox<String> dlgCombo(String sel, String[] opciones) {
         JComboBox<String> cb = new JComboBox<>(opciones);

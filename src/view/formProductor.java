@@ -9,8 +9,9 @@ import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class formProductor extends JPanel {
 
@@ -32,9 +33,6 @@ public class formProductor extends JPanel {
     static final Color TXT_PRI   = new Color( 30,  30,  60);
     static final Color TXT_SEC   = new Color(130, 140, 170);
     static final Color SEL_BG    = new Color( 99,  91, 255,  50);
-    static final Color ORO       = new Color(234, 179,   8);
-    static final Color PLATA     = new Color(148, 163, 184);
-    static final Color BRONCE    = new Color(180, 120,  60);
 
     static final Font F_TITLE  = new Font("Segoe UI", Font.BOLD,  26);
     static final Font F_SUB    = new Font("Segoe UI", Font.BOLD,   9);
@@ -44,10 +42,10 @@ public class formProductor extends JPanel {
     static final Font F_MONO_B = new Font("Consolas", Font.BOLD,  11);
 
     static final String[] COLS = {
-        "ID", "Nombre", "Especialidad", "Nacionalidad", "Tarifa/h", "Estado"
+        "ID", "Nombre", "Especialidad", "Nacionalidad", "Estado"
     };
     static final int COL_ID=0, COL_NOMBRE=1, COL_ESPECIALIDAD=2,
-                     COL_NACIONALIDAD=3, COL_TARIFA=4, COL_ESTADO=5;
+                     COL_NACIONALIDAD=3, COL_ESTADO=4;
 
     // ══════════════════════════════════════════════════════════════════
     //  ESTADO
@@ -56,10 +54,8 @@ public class formProductor extends JPanel {
     DefaultTableModel modeloTabla;
     JTable            tabla;
     private JTextField campoBusqueda;
-    private JLabel     lblTotal, lblEspecialidades, lblTarifaProm, lblTarifaMax;
-    private JPanel     rankingContainer;
-    GraficoBarras      graficoBarras;
-    private JLabel     lblResTotal, lblResEsp, lblResTop;
+    private JLabel     lblTotal, lblEspecialidades, lblEstados, lblNacionalidades;
+    private DistribPanel distEstado, distEspecialidad, distNacionalidad;
 
     // Animación — fade-in al cargar filas
     private float tableAlpha = 0f;
@@ -93,24 +89,25 @@ public class formProductor extends JPanel {
         cuerpo.add(panelTabla());
         izq.add(cuerpo, BorderLayout.CENTER);
 
-        JPanel der = new JPanel(new BorderLayout(0, 10));
+        JPanel der = new JPanel(new GridLayout(3, 1, 0, 12));
         der.setOpaque(false);
         der.setBorder(new EmptyBorder(0, 14, 0, 0));
         der.setPreferredSize(new Dimension(275, 0));
-        JPanel rank = panelRanking();
-        rank.setPreferredSize(new Dimension(275, 280));
-        JPanel res = panelResumen();
-        res.setPreferredSize(new Dimension(275, 138));
-        der.add(rank,         BorderLayout.NORTH);
-        der.add(panelGrafico(),BorderLayout.CENTER);
-        der.add(res,          BorderLayout.SOUTH);
+
+        distEstado       = new DistribPanel("POR ESTADO",        "distribución de productores", CYAN);
+        distEspecialidad = new DistribPanel("POR ESPECIALIDAD",  "equipo técnico",              PURPLE_LT);
+        distNacionalidad = new DistribPanel("POR NACIONALIDAD",  "origen del equipo",           GREEN);
+
+        der.add(distEstado.contenedor());
+        der.add(distEspecialidad.contenedor());
+        der.add(distNacionalidad.contenedor());
 
         add(izq, BorderLayout.CENTER);
         add(der, BorderLayout.EAST);
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  ENCABEZADO — compacto, mismas proporciones que Artistas
+    //  ENCABEZADO
     // ══════════════════════════════════════════════════════════════════
     private JPanel encabezado() {
         JPanel card = new JPanel() {
@@ -122,35 +119,44 @@ public class formProductor extends JPanel {
                 g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 14, 14);
                 g2.setColor(PURPLE);
-                g2.fillRect(0, 12, 4, getHeight()-24);  // franja izquierda
+                g2.fillRect(0, 12, 4, getHeight()-24);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
         card.setOpaque(false);
         card.setLayout(new BorderLayout(12, 0));
-        // ↓ padding compacto: igual al de formArtista
         card.setBorder(new EmptyBorder(14, 20, 14, 20));
 
-        // — Icono + texto en una sola fila horizontal —
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         left.setOpaque(false);
 
-        // Icono pequeño en caja redondeada
-        JPanel icoBox = new JPanel(new GridBagLayout()) {
+        // Icono ecualizador animado (barras que suben y bajan)
+        final float[] eqFase = {0f};
+        JPanel icoBox = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
                 g2.setColor(new Color(99, 91, 255, 22));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                // 4 barras estilo ecualizador
+                int n = 4, bw = 4, gap = 4;
+                int totW = n*bw + (n-1)*gap;
+                int sx = (getWidth()-totW)/2;
+                int baseY = getHeight()-13, maxH = 18;
+                for (int i=0;i<n;i++) {
+                    double ph = eqFase[0] + i*0.7;
+                    int h = (int)(maxH*(0.35 + 0.65*Math.abs(Math.sin(ph))));
+                    int x = sx + i*(bw+gap);
+                    g2.setColor(PURPLE);
+                    g2.fillRoundRect(x, baseY-h, bw, h, 3, 3);
+                }
                 g2.dispose();
-                super.paintComponent(g);
             }
         };
         icoBox.setOpaque(false);
         icoBox.setPreferredSize(new Dimension(42, 42));
-        icoBox.add(mkLabel("🎚", new Font("Segoe UI Emoji", Font.PLAIN, 20), PURPLE));
+        new javax.swing.Timer(60, e -> { eqFase[0] += 0.18f; icoBox.repaint(); }).start();
 
-        // Texto: título + subtítulo + chips apilados
         JPanel txtCol = new JPanel();
         txtCol.setOpaque(false);
         txtCol.setLayout(new BoxLayout(txtCol, BoxLayout.Y_AXIS));
@@ -165,9 +171,9 @@ public class formProductor extends JPanel {
         JPanel chips = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         chips.setOpaque(false);
         chips.setAlignmentX(LEFT_ALIGNMENT);
-        chips.add(mkChip("● Conectado",      new Color(16,185,129,25), GREEN));
-        chips.add(mkChip("🎚  productores",   new Color(99, 91,255,18), PURPLE));
-        chips.add(mkChip("🎛  especialidades",new Color(6, 182,212,18), CYAN));
+        chips.add(mkChip("● Conectado",     new Color(16,185,129,25), GREEN));
+        chips.add(mkChip("productores",      new Color(99, 91,255,18), PURPLE));
+        chips.add(mkChip("especialidades",   new Color(6, 182,212,18), CYAN));
 
         txtCol.add(title);
         txtCol.add(Box.createVerticalStrut(1));
@@ -178,17 +184,16 @@ public class formProductor extends JPanel {
         left.add(icoBox);
         left.add(txtCol);
 
-        // — Acciones derecha —
         JPanel acc = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         acc.setOpaque(false);
-        campoBusqueda = mkTextField("🔍  Buscar productor...");
+        campoBusqueda = mkTextField("Buscar productor...");
         campoBusqueda.setPreferredSize(new Dimension(210, 36));
         campoBusqueda.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e)  { buscar(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e)  { buscar(); }
             public void changedUpdate(javax.swing.event.DocumentEvent e) { buscar(); }
         });
-        ZBtn btnNuevo = new ZBtn("＋ Nuevo productor", true);
+        ZBtn btnNuevo = new ZBtn("+  Nuevo productor", true);
         btnNuevo.setPreferredSize(new Dimension(170, 36));
         btnNuevo.addActionListener(e -> new Formproductordialog(this, null).setVisible(true));
         acc.add(campoBusqueda);
@@ -217,34 +222,32 @@ public class formProductor extends JPanel {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  STAT CARDS — con animación hover
+    //  STAT CARDS
     // ══════════════════════════════════════════════════════════════════
     private JPanel filaStats() {
         lblTotal          = new JLabel("0");
         lblEspecialidades = new JLabel("0");
-        lblTarifaProm     = new JLabel("$0");
-        lblTarifaMax      = new JLabel("$0");
+        lblEstados        = new JLabel("0");
+        lblNacionalidades = new JLabel("0");
 
         JPanel p = new JPanel(new GridLayout(1, 4, 12, 0));
         p.setOpaque(false);
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
         p.setAlignmentX(LEFT_ALIGNMENT);
-        p.add(statCard("TOTAL PRODUCTORES", lblTotal,          PURPLE, "🎚"));
-        p.add(statCard("ESPECIALIDADES",     lblEspecialidades, CYAN,   "🎛"));
-        p.add(statCard("TARIFA PROMEDIO",    lblTarifaProm,     GREEN,  "💵"));
-        p.add(statCard("TARIFA MÁXIMA",      lblTarifaMax,      AMBER,  "⭐"));
+        p.add(statCard("TOTAL PRODUCTORES", lblTotal,          PURPLE, ""));
+        p.add(statCard("ESPECIALIDADES",    lblEspecialidades, CYAN,   ""));
+        p.add(statCard("ESTADOS",           lblEstados,        GREEN,  ""));
+        p.add(statCard("NACIONALIDADES",    lblNacionalidades, AMBER,  ""));
         return p;
     }
 
     private JPanel statCard(String titulo, JLabel valor, Color acento, String emoji) {
-        // hover state
         final boolean[] hov = {false};
-        final float[] scale = {1f};
+        final JPanel[] emoRef = {null};
 
         JPanel card = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = g2d(g);
-                // sombra suave cuando hover
                 if (hov[0]) {
                     g2.setColor(new Color(acento.getRed(), acento.getGreen(), acento.getBlue(), 18));
                     g2.fillRoundRect(-3, 3, getWidth()+6, getHeight()+2, 14, 14);
@@ -267,15 +270,16 @@ public class formProductor extends JPanel {
         card.setBorder(new EmptyBorder(12, 14, 12, 14));
         card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        // Hover animation
         card.addMouseListener(new MouseAdapter() {
             javax.swing.Timer t;
             @Override public void mouseEntered(MouseEvent e) {
                 hov[0] = true; card.repaint();
+                if (emoRef[0]!=null) emoRef[0].repaint();
                 animateValue(valor, acento.brighter());
             }
             @Override public void mouseExited(MouseEvent e) {
                 hov[0] = false; card.repaint();
+                if (emoRef[0]!=null) emoRef[0].repaint();
                 valor.setForeground(acento);
             }
             private void animateValue(JLabel lbl, Color bright) {
@@ -294,7 +298,24 @@ public class formProductor extends JPanel {
             }
         });
 
-        JLabel emo = mkLabel(emoji, new Font("Segoe UI Emoji", Font.PLAIN, 20), acento);
+        // Icono dibujado: disco con anillo que crece al hacer hover
+        JPanel emo = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = g2d(g);
+                int cx = getWidth()/2, cy = getHeight()/2;
+                int ring = hov[0] ? 16 : 13;
+                g2.setColor(new Color(acento.getRed(),acento.getGreen(),acento.getBlue(),40));
+                g2.fillOval(cx-ring, cy-ring, ring*2, ring*2);
+                g2.setColor(acento);
+                g2.fillOval(cx-6, cy-6, 12, 12);
+                g2.setColor(BG_CARD);
+                g2.fillOval(cx-2, cy-2, 4, 4);
+                g2.dispose();
+            }
+        };
+        emo.setOpaque(false);
+        emo.setPreferredSize(new Dimension(38, 38));
+        emoRef[0] = emo;
         JPanel txt = new JPanel();
         txt.setOpaque(false);
         txt.setLayout(new BoxLayout(txt, BoxLayout.Y_AXIS));
@@ -336,7 +357,6 @@ public class formProductor extends JPanel {
         tabla = new JTable(modeloTabla);
         estilizarTabla();
 
-        // Wrap con fade-in al pintar
         JPanel fadeWrap = new JPanel(new BorderLayout()) {
             @Override protected void paintChildren(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -368,8 +388,8 @@ public class formProductor extends JPanel {
         JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         btnRow.setOpaque(false);
         btnRow.setBorder(new EmptyBorder(10, 14, 14, 14));
-        ZBtn btnEditar   = new ZBtn("✏  Editar",   false);
-        ZBtn btnEliminar = new ZBtn("🗑  Eliminar", false);
+        ZBtn btnEditar   = new ZBtn("Editar",   false);
+        ZBtn btnEliminar = new ZBtn("Eliminar", false);
         btnEliminar.setForeground(PINK);
         btnEditar.addActionListener(  e -> accionEditar());
         btnEliminar.addActionListener(e -> accionEliminar());
@@ -416,383 +436,261 @@ public class formProductor extends JPanel {
                 return l;
             }
         });
-        int[] w = {52,155,130,110,90,90};
+        int[] w = {52,180,150,130,100};
         for (int i=0;i<w.length;i++) tabla.getColumnModel().getColumn(i).setPreferredWidth(w[i]);
         tabla.setDefaultRenderer(Object.class, new CeldaRenderer());
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  RANKING
+    //  PANEL DE DISTRIBUCIÓN (análisis) — reutilizable
     // ══════════════════════════════════════════════════════════════════
-    private JPanel panelRanking() {
-        JPanel inner = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = g2d(g);
-                g2.setColor(BG_CARD);
-                g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
-                g2.setColor(COL_BRD);
-                g2.setStroke(new BasicStroke(1f));
-                g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,12,12);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        inner.setOpaque(false);
-        inner.setLayout(new BorderLayout());
+    class DistribPanel {
+        private final JPanel inner;
+        private final JPanel listaContainer;
+        private final Color acento;
+        private float pulsoNivel = 0f;   // 0..1 para el punto pulsante
 
-        JPanel cab = new JPanel(new BorderLayout()) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(255,251,235));
-                g2.fillRoundRect(0,0,getWidth(),getHeight()+12,12,12);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        cab.setOpaque(false);
-        cab.setBorder(new EmptyBorder(11,14,11,14));
-        JLabel t = new JLabel("🏆  TOP TARIFAS");
-        t.setFont(new Font("Segoe UI",Font.BOLD,13));
-        t.setForeground(ORO);
-        cab.add(t, BorderLayout.WEST);
-        cab.add(mkLabel("por tarifa/hora", new Font("Segoe UI",Font.PLAIN,9), TXT_SEC), BorderLayout.EAST);
+        DistribPanel(String titulo, String subtitulo, Color acento) {
+            this.acento = acento;
 
-        JPanel sep = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = g2d(g);
-                g2.setPaint(new GradientPaint(0,0,ORO,getWidth()*0.6f,0,new Color(0,0,0,0)));
-                g2.fillRect(0,0,getWidth(),1);
-                g2.dispose();
-            }
-        };
-        sep.setOpaque(false);
-        sep.setPreferredSize(new Dimension(0,1));
-
-        JPanel topSect = new JPanel(new BorderLayout());
-        topSect.setOpaque(false);
-        topSect.add(cab, BorderLayout.CENTER);
-        topSect.add(sep, BorderLayout.SOUTH);
-
-        rankingContainer = new JPanel();
-        rankingContainer.setOpaque(false);
-        rankingContainer.setLayout(new BoxLayout(rankingContainer, BoxLayout.Y_AXIS));
-        rankingContainer.setBorder(new EmptyBorder(10,10,10,10));
-
-        JScrollPane scroll = new JScrollPane(rankingContainer);
-        scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
-        scroll.getViewport().setBackground(new Color(0,0,0,0));
-        scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.getVerticalScrollBar().setPreferredSize(new Dimension(4,0));
-
-        inner.add(topSect, BorderLayout.NORTH);
-        inner.add(scroll,  BorderLayout.CENTER);
-        return inner;
-    }
-
-    void actualizarRanking(List<Productor> lista) {
-        rankingContainer.removeAll();
-        List<Productor> orden = new ArrayList<>(lista);
-        orden.sort(Comparator.comparingDouble(Productor::getTarifaHora).reversed());
-        if (orden.isEmpty()) {
-            rankingContainer.add(mkLabel("Sin productores", F_MONO.deriveFont(10f), TXT_SEC));
-        } else {
-            double max = orden.get(0).getTarifaHora();
-            if (max<=0) max=1;
-            for (int i=0;i<orden.size();i++) {
-                boolean podio = i<3;
-                JPanel fila = filaRanking(i+1, orden.get(i), max, podio);
-                // fade-in escalonado por fila
-                fila.setVisible(false);
-                final JPanel f = fila;
-                int delay = i * 60;
-                new javax.swing.Timer(delay, e -> {
-                    f.setVisible(true); ((javax.swing.Timer)e.getSource()).stop();
-                }).start();
-                rankingContainer.add(fila);
-                rankingContainer.add(Box.createVerticalStrut(podio?6:4));
-            }
-        }
-        rankingContainer.revalidate();
-        rankingContainer.repaint();
-    }
-
-    private JPanel filaRanking(int puesto, Productor p, double maxT, boolean podio) {
-        Color ac = puesto==1?ORO : puesto==2?PLATA : puesto==3?BRONCE : PURPLE_LT;
-        String med = puesto==1?"🥇":puesto==2?"🥈":puesto==3?"🥉":"#"+puesto;
-        final boolean[] hov = {false};
-
-        JPanel fila = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = g2d(g);
-                Color bg = hov[0]
-                    ? new Color(ac.getRed(),ac.getGreen(),ac.getBlue(),22)
-                    : (podio ? new Color(ac.getRed(),ac.getGreen(),ac.getBlue(),10) : BG_ROW_B);
-                g2.setColor(bg);
-                g2.fillRoundRect(0,0,getWidth(),getHeight(),9,9);
-                if (podio || hov[0]) {
-                    g2.setColor(new Color(ac.getRed(),ac.getGreen(),ac.getBlue(), hov[0]?90:50));
-                    g2.setStroke(new BasicStroke(1.2f));
-                    g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,9,9);
+            inner = new JPanel() {
+                @Override protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = g2d(g);
+                    g2.setColor(BG_CARD);
+                    g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
+                    g2.setColor(COL_BRD);
+                    g2.setStroke(new BasicStroke(1f));
+                    g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,12,12);
+                    g2.dispose();
+                    super.paintComponent(g);
                 }
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        fila.setOpaque(false);
-        fila.setLayout(new BorderLayout(8,0));
-        fila.setBorder(new EmptyBorder(podio?8:5,10,podio?8:5,10));
-        fila.setAlignmentX(LEFT_ALIGNMENT);
-        fila.setMaximumSize(new Dimension(Integer.MAX_VALUE,podio?50:38));
-        fila.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        fila.addMouseListener(new MouseAdapter(){
-            @Override public void mouseEntered(MouseEvent e){hov[0]=true; fila.repaint();}
-            @Override public void mouseExited(MouseEvent e) {hov[0]=false;fila.repaint();}
-        });
+            };
+            inner.setOpaque(false);
+            inner.setLayout(new BorderLayout());
 
-        JLabel lblM = new JLabel(med, SwingConstants.CENTER);
-        lblM.setFont(podio ? new Font("Segoe UI Emoji",Font.PLAIN,19)
-                           : new Font("Consolas",Font.BOLD,12));
-        lblM.setForeground(ac);
-        lblM.setPreferredSize(new Dimension(28,0));
+            JPanel cab = new JPanel(new BorderLayout(8,0)) {
+                @Override protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = g2d(g);
+                    g2.setColor(new Color(acento.getRed(),acento.getGreen(),acento.getBlue(),14));
+                    g2.fillRoundRect(0,0,getWidth(),getHeight()+12,12,12);
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            cab.setOpaque(false);
+            cab.setBorder(new EmptyBorder(10,14,10,14));
 
-        JPanel txt = new JPanel();
-        txt.setOpaque(false);
-        txt.setLayout(new BoxLayout(txt,BoxLayout.Y_AXIS));
-        JLabel nom = mkLabel(recortar(p.getNombre(),podio?16:18),
-            new Font("Segoe UI",Font.BOLD,podio?12:11), TXT_PRI);
-        nom.setAlignmentX(LEFT_ALIGNMENT);
-        txt.add(nom);
-        if (podio && p.getEspecialidad()!=null) {
-            JLabel esp=mkLabel(recortar(p.getEspecialidad(),18),F_MONO.deriveFont(8.5f),TXT_SEC);
-            esp.setAlignmentX(LEFT_ALIGNMENT);
-            txt.add(Box.createVerticalStrut(1));
-            txt.add(esp);
+            // Punto pulsante animado (reemplaza al emoji)
+            JPanel pulso = new JPanel() {
+                @Override protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = g2d(g);
+                    int cx = getWidth()/2, cy = getHeight()/2;
+                    // halo que late
+                    int halo = (int)(5 + 4*pulsoNivel);
+                    g2.setColor(new Color(acento.getRed(),acento.getGreen(),acento.getBlue(),(int)(60*(1-pulsoNivel))+15));
+                    g2.fillOval(cx-halo, cy-halo, halo*2, halo*2);
+                    // núcleo
+                    g2.setColor(acento);
+                    g2.fillOval(cx-3, cy-3, 6, 6);
+                    g2.dispose();
+                }
+            };
+            pulso.setOpaque(false);
+            pulso.setPreferredSize(new Dimension(18, 18));
+
+            JLabel t = new JLabel(titulo);
+            t.setFont(new Font("Segoe UI",Font.BOLD,12));
+            t.setForeground(acento);
+
+            JPanel tituloRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+            tituloRow.setOpaque(false);
+            tituloRow.add(pulso);
+            tituloRow.add(t);
+
+            cab.add(tituloRow, BorderLayout.WEST);
+            cab.add(mkLabel(subtitulo, new Font("Segoe UI",Font.PLAIN,9), TXT_SEC), BorderLayout.EAST);
+
+            // Timer del pulso continuo
+            final float[] dir = {0.06f};
+            new javax.swing.Timer(40, e -> {
+                pulsoNivel += dir[0];
+                if (pulsoNivel >= 1f) { pulsoNivel = 1f; dir[0] = -dir[0]; }
+                if (pulsoNivel <= 0f) { pulsoNivel = 0f; dir[0] = -dir[0]; }
+                pulso.repaint();
+            }).start();
+
+            JPanel sep = new JPanel() {
+                @Override protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = g2d(g);
+                    g2.setPaint(new GradientPaint(0,0,acento,getWidth()*0.6f,0,new Color(0,0,0,0)));
+                    g2.fillRect(0,0,getWidth(),1);
+                    g2.dispose();
+                }
+            };
+            sep.setOpaque(false);
+            sep.setPreferredSize(new Dimension(0,1));
+
+            JPanel topSect = new JPanel(new BorderLayout());
+            topSect.setOpaque(false);
+            topSect.add(cab, BorderLayout.CENTER);
+            topSect.add(sep, BorderLayout.SOUTH);
+
+            listaContainer = new JPanel();
+            listaContainer.setOpaque(false);
+            listaContainer.setLayout(new BoxLayout(listaContainer, BoxLayout.Y_AXIS));
+            listaContainer.setBorder(new EmptyBorder(8,10,8,10));
+
+            JScrollPane scroll = new JScrollPane(listaContainer);
+            scroll.setOpaque(false);
+            scroll.getViewport().setOpaque(false);
+            scroll.getViewport().setBackground(new Color(0,0,0,0));
+            scroll.setBorder(BorderFactory.createEmptyBorder());
+            scroll.getVerticalScrollBar().setPreferredSize(new Dimension(4,0));
+
+            inner.add(topSect, BorderLayout.NORTH);
+            inner.add(scroll,  BorderLayout.CENTER);
         }
 
-        JLabel monto = mkLabel(String.format("$%.0f",p.getTarifaHora()),
-            new Font("Consolas",Font.BOLD,podio?14:11), ac);
+        JPanel contenedor() { return inner; }
 
-        fila.add(lblM,  BorderLayout.WEST);
-        fila.add(txt,   BorderLayout.CENTER);
-        fila.add(monto, BorderLayout.EAST);
-        return fila;
-    }
-
-    // ══════════════════════════════════════════════════════════════════
-    //  GRÁFICO BARRAS — con animación de crecimiento
-    // ══════════════════════════════════════════════════════════════════
-    private JPanel panelGrafico() {
-        JPanel inner = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = g2d(g);
-                g2.setColor(BG_CARD);
-                g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
-                g2.setColor(COL_BRD);
-                g2.setStroke(new BasicStroke(1f));
-                g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,12,12);
-                g2.dispose();
-                super.paintComponent(g);
+        /** Recibe conteos ya agrupados (etiqueta → cantidad) */
+        void setDatos(Map<String,Integer> conteos, int total) {
+            listaContainer.removeAll();
+            if (conteos.isEmpty() || total<=0) {
+                listaContainer.add(mkLabel("Sin datos", F_MONO.deriveFont(10f), TXT_SEC));
+            } else {
+                int max = conteos.values().stream().mapToInt(Integer::intValue).max().orElse(1);
+                int idx = 0;
+                for (Map.Entry<String,Integer> e : conteos.entrySet()) {
+                    JPanel fila = filaBarra(e.getKey(), e.getValue(), max, total);
+                    fila.setVisible(false);
+                    final JPanel f = fila;
+                    new javax.swing.Timer(idx*55, ev -> {
+                        f.setVisible(true); ((javax.swing.Timer)ev.getSource()).stop();
+                    }).start();
+                    listaContainer.add(fila);
+                    listaContainer.add(Box.createVerticalStrut(5));
+                    idx++;
+                }
             }
-        };
-        inner.setOpaque(false);
-        inner.setLayout(new BorderLayout());
+            listaContainer.revalidate();
+            listaContainer.repaint();
+        }
 
-        JPanel cab = new JPanel(new BorderLayout()) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = g2d(g);
-                g2.setColor(new Color(240,252,255));
-                g2.fillRoundRect(0,0,getWidth(),getHeight()+12,12,12);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        cab.setOpaque(false);
-        cab.setBorder(new EmptyBorder(11,14,11,14));
-        JLabel tit = new JLabel("⊙  TARIFA POR PRODUCTOR");
-        tit.setFont(new Font("Segoe UI",Font.BOLD,12));
-        tit.setForeground(CYAN);
-        JPanel tp=new JPanel(); tp.setOpaque(false);
-        tp.setLayout(new BoxLayout(tp,BoxLayout.Y_AXIS));
-        tp.add(tit);
-        tp.add(Box.createVerticalStrut(2));
-        tp.add(mkLabel("TARIFA/HORA (USD)",F_SUB,TXT_SEC));
-        cab.add(tp, BorderLayout.WEST);
+        private JPanel filaBarra(String etiqueta, int cantidad, int max, int total) {
+            final float pct = total>0 ? (cantidad*100f/total) : 0;
+            final float ratio = max>0 ? (cantidad/(float)max) : 0;
 
-        JPanel sepC = new JPanel(){
-            @Override protected void paintComponent(Graphics g){
-                Graphics2D g2=g2d(g);
-                g2.setPaint(new GradientPaint(0,0,CYAN,getWidth()*0.6f,0,new Color(0,0,0,0)));
-                g2.fillRect(0,0,getWidth(),1); g2.dispose();
-            }
-        };
-        sepC.setOpaque(false); sepC.setPreferredSize(new Dimension(0,1));
+            // hov=hover · glow=intensidad hover · grow=crecimiento de carga 0..1
+            final boolean[] hov  = {false};
+            final float[]   glow = {0f};
+            final float[]   grow = {0f};
 
-        JPanel ts=new JPanel(new BorderLayout()); ts.setOpaque(false);
-        ts.add(cab,BorderLayout.CENTER); ts.add(sepC,BorderLayout.SOUTH);
+            JPanel fila = new JPanel() {
+                @Override protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = g2d(g);
+                    int alpha = (int)(26 * glow[0]);
+                    if (alpha > 0) {
+                        g2.setColor(new Color(acento.getRed(),acento.getGreen(),acento.getBlue(),alpha));
+                        g2.fillRoundRect(-6, -2, getWidth()+12, getHeight()+4, 9, 9);
+                        g2.setColor(new Color(acento.getRed(),acento.getGreen(),acento.getBlue(),(int)(70*glow[0])));
+                        g2.setStroke(new BasicStroke(1f));
+                        g2.drawRoundRect(-6, -2, getWidth()+11, getHeight()+3, 9, 9);
+                    }
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            fila.setOpaque(false);
+            fila.setLayout(new BoxLayout(fila, BoxLayout.Y_AXIS));
+            fila.setAlignmentX(LEFT_ALIGNMENT);
+            fila.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+            fila.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        graficoBarras = new GraficoBarras();
-        graficoBarras.setOpaque(false);
-        graficoBarras.setBorder(new EmptyBorder(10,14,14,14));
+            // Fila superior: etiqueta + conteo
+            JPanel top = new JPanel(new BorderLayout());
+            top.setOpaque(false);
+            top.setAlignmentX(LEFT_ALIGNMENT);
+            top.setMaximumSize(new Dimension(Integer.MAX_VALUE, 16));
+            JLabel lbl = mkLabel(recortar(etiqueta, 20),
+                new Font("Segoe UI",Font.BOLD,11), TXT_PRI);
+            final JLabel cnt = mkLabel(cantidad + "  ·  " + String.format("%.0f%%", pct),
+                new Font("Consolas",Font.BOLD,10), acento);
+            top.add(lbl, BorderLayout.WEST);
+            top.add(cnt, BorderLayout.EAST);
 
-        inner.add(ts,          BorderLayout.NORTH);
-        inner.add(graficoBarras,BorderLayout.CENTER);
-        return inner;
-    }
+            // Barra de progreso (crece al cargar, brilla y muestra destello)
+            JPanel barra = new JPanel() {
+                @Override protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = g2d(g);
+                    int w = getWidth(), h = getHeight();
+                    // pista de fondo
+                    g2.setColor(new Color(acento.getRed(),acento.getGreen(),acento.getBlue(),18));
+                    g2.fillRoundRect(0,0,w,h,h,h);
+                    // ancho con easing (out-cubic) y crecimiento
+                    float eased = 1f - (float)Math.pow(1 - grow[0], 3);
+                    int bw = (int)(w * ratio * eased);
+                    if (bw < h && ratio > 0) bw = h;
+                    int endAlpha = Math.min((int)(150 + 80*glow[0]), 255);
+                    g2.setPaint(new GradientPaint(0,0,acento, bw,0,
+                        new Color(acento.getRed(),acento.getGreen(),acento.getBlue(),endAlpha)));
+                    g2.fillRoundRect(0,0,bw,h,h,h);
+                    // destello que recorre la barra mientras crece
+                    if (grow[0] < 1f && bw > h) {
+                        Shape clip = new java.awt.geom.RoundRectangle2D.Float(0,0,bw,h,h,h);
+                        g2.setClip(clip);
+                        int sx = (int)(bw * grow[0]);
+                        g2.setPaint(new GradientPaint(sx-12,0,new Color(255,255,255,0),
+                                                      sx,0,new Color(255,255,255,150)));
+                        g2.fillRect(sx-12,0,12,h);
+                        g2.setPaint(new GradientPaint(sx,0,new Color(255,255,255,150),
+                                                      sx+12,0,new Color(255,255,255,0)));
+                        g2.fillRect(sx,0,12,h);
+                    }
+                    g2.dispose();
+                }
+            };
+            barra.setOpaque(false);
+            barra.setAlignmentX(LEFT_ALIGNMENT);
+            barra.setMaximumSize(new Dimension(Integer.MAX_VALUE, 7));
+            barra.setPreferredSize(new Dimension(0, 7));
 
-    class GraficoBarras extends JPanel {
-        private List<Productor> datos = new ArrayList<>();
-        private float animPct = 0f;   // 0..1 para la animación de crecimiento
-        private javax.swing.Timer growTimer;
-        private final Color[] BARES = {
-            PURPLE, CYAN, GREEN, AMBER, PINK, PURPLE_LT,
-            new Color(99,91,255), new Color(6,182,212)
-        };
-
-        void setDatos(List<Productor> lista) {
-            List<Productor> ord = new ArrayList<>(lista);
-            ord.sort(Comparator.comparingDouble(Productor::getTarifaHora).reversed());
-            datos = ord;
-            animPct = 0f;
-            if (growTimer!=null) growTimer.stop();
-            growTimer = new javax.swing.Timer(12, e -> {
-                animPct += 0.07f;
-                if (animPct >= 1f) { animPct=1f; ((javax.swing.Timer)e.getSource()).stop(); }
-                repaint();
+            // Crecimiento al aparecer la fila
+            final javax.swing.Timer growT = new javax.swing.Timer(16, null);
+            growT.addActionListener(ev -> {
+                grow[0] += 0.045f;
+                if (grow[0] >= 1f) { grow[0] = 1f; growT.stop(); }
+                barra.repaint();
             });
-            growTimer.start();
-        }
+            fila.addHierarchyListener(ev -> {
+                if (fila.isShowing() && grow[0] == 0f && !growT.isRunning()) growT.start();
+            });
 
-        @Override protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            if (datos.isEmpty()) return;
-            Graphics2D g2 = g2d(g);
-            int W=getWidth(), H=getHeight();
-            int n=Math.min(datos.size(),8);
-            double maxT=datos.stream().mapToDouble(Productor::getTarifaHora).max().orElse(1);
-            if (maxT<=0) maxT=1;
-            int mt=28, mb=42, aH=H-mt-mb;
-            if (aH<10){g2.dispose();return;}
-            int bW=Math.min(32,(W-20)/n-8);
-            int totW=n*(bW+8)-8, sX=(W-totW)/2;
-
-            g2.setColor(COL_BRD);
-            g2.setStroke(new BasicStroke(0.7f,BasicStroke.CAP_BUTT,BasicStroke.JOIN_MITER,1,new float[]{4,4},0));
-            for (int r=1;r<=3;r++) { int y=mt+(aH*r/4); g2.drawLine(10,y,W-10,y); }
-
-            for (int i=0;i<n;i++) {
-                Productor p=datos.get(i);
-                double ratio=p.getTarifaHora()/maxT;
-                int bHfull=(int)(aH*ratio);
-                int bH=(int)(bHfull*animPct);  // animado
-                int bX=sX+i*(bW+8);
-                int bY=mt+aH-bH;
-                Color c=BARES[i%BARES.length];
-
-                // Sombra
-                g2.setColor(new Color(c.getRed(),c.getGreen(),c.getBlue(),20));
-                g2.fillRoundRect(bX-2,bY-2,bW+4,bH+4,8,8);
-                // Barra con gradiente
-                g2.setPaint(new GradientPaint(bX,bY,c, bX,bY+bH, new Color(c.getRed(),c.getGreen(),c.getBlue(),160)));
-                g2.setStroke(new BasicStroke(1f));
-                g2.fillRoundRect(bX,bY,bW,bH,6,6);
-                // Valor
-                if (animPct>=0.85f) {
-                    String val="$"+(int)p.getTarifaHora();
-                    g2.setFont(new Font("Consolas",Font.BOLD,9));
-                    g2.setColor(c); FontMetrics fm=g2.getFontMetrics();
-                    g2.drawString(val,bX+(bW-fm.stringWidth(val))/2,bY-5);
+            // Hover: glow sube/baja suave; etiqueta colorea y conteo agranda
+            final javax.swing.Timer[] anim = {null};
+            fila.addMouseListener(new MouseAdapter() {
+                @Override public void mouseEntered(MouseEvent e) { hov[0]=true;  iniciar(); }
+                @Override public void mouseExited (MouseEvent e) { hov[0]=false; iniciar(); }
+                private void iniciar() {
+                    if (anim[0]!=null) anim[0].stop();
+                    anim[0] = new javax.swing.Timer(16, ev -> {
+                        glow[0] += hov[0] ? 0.15f : -0.15f;
+                        if (glow[0] >= 1f) { glow[0]=1f; ((javax.swing.Timer)ev.getSource()).stop(); }
+                        if (glow[0] <= 0f) { glow[0]=0f; ((javax.swing.Timer)ev.getSource()).stop(); }
+                        lbl.setForeground(mezclar(TXT_PRI, acento, glow[0]));
+                        cnt.setFont(new Font("Consolas",Font.BOLD, Math.round(10 + glow[0])));
+                        fila.repaint();
+                        barra.repaint();
+                    });
+                    anim[0].start();
                 }
-                // Nombre
-                String nom=abrev(p.getNombre(),7);
-                g2.setFont(new Font("Segoe UI",Font.PLAIN,9));
-                g2.setColor(TXT_SEC); FontMetrics fm2=g2.getFontMetrics();
-                g2.drawString(nom,bX+(bW-fm2.stringWidth(nom))/2,mt+aH+14);
-                g2.setColor(c); g2.fillOval(bX+bW/2-3,mt+aH+22,6,6);
-            }
-            g2.dispose();
+            });
+
+            fila.add(top);
+            fila.add(Box.createVerticalStrut(4));
+            fila.add(barra);
+            return fila;
         }
-        private String abrev(String s, int max) {
-            if (s==null||s.isEmpty()) return "";
-            String f=s.trim().split("\\s+")[0];
-            return f.length()>max?f.substring(0,max):f;
-        }
-    }
-
-    // ══════════════════════════════════════════════════════════════════
-    //  PANEL RESUMEN
-    // ══════════════════════════════════════════════════════════════════
-    private JPanel panelResumen() {
-        JPanel inner = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = g2d(g);
-                g2.setColor(BG_CARD);
-                g2.fillRoundRect(0,0,getWidth(),getHeight(),12,12);
-                g2.setColor(COL_BRD);
-                g2.setStroke(new BasicStroke(1f));
-                g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,12,12);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        inner.setOpaque(false);
-        inner.setLayout(new BorderLayout());
-
-        JPanel cab = new JPanel(new BorderLayout()) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2=g2d(g);
-                g2.setColor(new Color(246,245,255));
-                g2.fillRoundRect(0,0,getWidth(),getHeight()+12,12,12);
-                g2.dispose(); super.paintComponent(g);
-            }
-        };
-        cab.setOpaque(false); cab.setBorder(new EmptyBorder(11,14,11,14));
-        JLabel tl=new JLabel("⊙  RESUMEN");
-        tl.setFont(new Font("Segoe UI",Font.BOLD,12)); tl.setForeground(PURPLE_LT);
-        cab.add(tl,BorderLayout.WEST);
-
-        JPanel sepP=new JPanel(){
-            @Override protected void paintComponent(Graphics g){
-                Graphics2D g2=g2d(g);
-                g2.setPaint(new GradientPaint(0,0,PURPLE_LT,getWidth()*0.6f,0,new Color(0,0,0,0)));
-                g2.fillRect(0,0,getWidth(),1); g2.dispose();
-            }
-        };
-        sepP.setOpaque(false); sepP.setPreferredSize(new Dimension(0,1));
-
-        JPanel top=new JPanel(new BorderLayout()); top.setOpaque(false);
-        top.add(cab,BorderLayout.CENTER); top.add(sepP,BorderLayout.SOUTH);
-
-        lblResTotal=new JLabel("0"); lblResEsp=new JLabel("0"); lblResTop=new JLabel("—");
-
-        JPanel filas=new JPanel(); filas.setOpaque(false);
-        filas.setLayout(new BoxLayout(filas,BoxLayout.Y_AXIS));
-        filas.setBorder(new EmptyBorder(8,14,8,14));
-        filas.add(filaRes("Total productores",    lblResTotal,PURPLE_LT));
-        filas.add(Box.createVerticalStrut(2)); sepH(filas); filas.add(Box.createVerticalStrut(2));
-        filas.add(filaRes("Especialidades únicas",lblResEsp,CYAN));
-        filas.add(Box.createVerticalStrut(2)); sepH(filas); filas.add(Box.createVerticalStrut(2));
-        filas.add(filaRes("Productor top",        lblResTop,ORO));
-
-        inner.add(top,  BorderLayout.NORTH);
-        inner.add(filas,BorderLayout.CENTER);
-        return inner;
-    }
-
-    private JPanel filaRes(String lbl, JLabel val, Color ac) {
-        JPanel row=new JPanel(new BorderLayout()); row.setOpaque(false);
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE,26));
-        JLabel l=mkLabel(lbl,new Font("Segoe UI",Font.PLAIN,11),TXT_SEC);
-        val.setFont(new Font("Segoe UI",Font.BOLD,12)); val.setForeground(ac);
-        row.add(l,BorderLayout.WEST); row.add(val,BorderLayout.EAST);
-        return row;
-    }
-
-    private void sepH(JPanel parent) {
-        JPanel s=new JPanel(){@Override protected void paintComponent(Graphics g){
-            g.setColor(COL_BRD); g.fillRect(0,0,getWidth(),1);}};
-        s.setOpaque(false); s.setMaximumSize(new Dimension(Integer.MAX_VALUE,1));
-        s.setAlignmentX(LEFT_ALIGNMENT); parent.add(s);
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -808,7 +706,6 @@ public class formProductor extends JPanel {
             c.setForeground(TXT_PRI); c.setFont(F_BODY);
             if (col==COL_ID)           {c.setForeground(PURPLE);c.setFont(F_MONO_B);}
             if (col==COL_ESPECIALIDAD&&val!=null){c.setForeground(CYAN);c.setFont(F_BOLD);c.setText("● "+val);}
-            if (col==COL_TARIFA&&val!=null)      {c.setForeground(GREEN);c.setFont(F_BOLD);}
             if (col==COL_ESTADO&&val!=null){
                 String est=val.toString();
                 Color ce="Disponible".equals(est)?GREEN:"En proyecto".equals(est)?CYAN
@@ -835,7 +732,6 @@ public class formProductor extends JPanel {
                 p.getIdProductor(), p.getNombre(),
                 p.getEspecialidad()!=null?p.getEspecialidad():"",
                 p.getNacionalidad()!=null?p.getNacionalidad():"",
-                String.format("$%.0f",p.getTarifaHora()),
                 p.getEstado()!=null?p.getEstado():"Disponible"
             });
         }
@@ -849,23 +745,37 @@ public class formProductor extends JPanel {
         });
         fadeTimer.start();
 
-        long   esp =lista.stream().map(Productor::getEspecialidad).distinct().count();
-        double prom=lista.stream().mapToDouble(Productor::getTarifaHora).average().orElse(0);
-        double max =lista.stream().mapToDouble(Productor::getTarifaHora).max().orElse(0);
-        animarContador(lblTotal,          lista.size());
-        animarContadorDouble(lblEspecialidades,(int)esp,null);
-        lblTarifaProm.setText(String.format("$%.0f",prom));
-        lblTarifaMax.setText( String.format("$%.0f",max));
+        // Agrupaciones de conteo
+        Map<String,Integer> porEstado        = agrupar(lista, p -> p.getEstado()!=null?p.getEstado():"Disponible");
+        Map<String,Integer> porEspecialidad  = agrupar(lista, p -> vacioSi(p.getEspecialidad()));
+        Map<String,Integer> porNacionalidad  = agrupar(lista, p -> vacioSi(p.getNacionalidad()));
 
-        actualizarRanking(lista);
-        if (graficoBarras!=null) graficoBarras.setDatos(lista);
+        int total = lista.size();
+        animarContador(lblTotal,          total);
+        animarContador(lblEspecialidades, porEspecialidad.size());
+        animarContador(lblEstados,        porEstado.size());
+        animarContador(lblNacionalidades, porNacionalidad.size());
 
-        lblResTotal.setText(String.valueOf(lista.size()));
-        lblResEsp.setText(String.valueOf(esp));
-        if (!lista.isEmpty()) {
-            Productor top=lista.stream().max(Comparator.comparingDouble(Productor::getTarifaHora)).orElse(null);
-            lblResTop.setText(top!=null?recortar(top.getNombre(),18):"—");
-        } else lblResTop.setText("—");
+        distEstado.setDatos(porEstado, total);
+        distEspecialidad.setDatos(porEspecialidad, total);
+        distNacionalidad.setDatos(porNacionalidad, total);
+    }
+
+    private String vacioSi(String s) { return (s==null||s.trim().isEmpty())?"Sin definir":s; }
+
+    /** Agrupa la lista por una clave y cuenta, ordenado de mayor a menor */
+    private Map<String,Integer> agrupar(List<Productor> lista,
+                                        java.util.function.Function<Productor,String> clave) {
+        Map<String,Integer> tmp = new LinkedHashMap<>();
+        for (Productor p : lista) {
+            String k = clave.apply(p);
+            tmp.merge(k, 1, Integer::sum);
+        }
+        Map<String,Integer> ord = new LinkedHashMap<>();
+        tmp.entrySet().stream()
+           .sorted((a,b)->Integer.compare(b.getValue(),a.getValue()))
+           .forEach(e->ord.put(e.getKey(),e.getValue()));
+        return ord;
     }
 
     /** Anima un contador numérico de 0 → target */
@@ -876,9 +786,6 @@ public class formProductor extends JPanel {
             if(cur[0]>=target){cur[0]=target;((javax.swing.Timer)e.getSource()).stop();}
             lbl.setText(String.valueOf(cur[0]));
         }).start();
-    }
-    private void animarContadorDouble(JLabel lbl, int target, String unused) {
-        animarContador(lbl, target);
     }
 
     private void accionEditar() {
@@ -927,6 +834,14 @@ public class formProductor extends JPanel {
     String recortar(String s,int max){
         if(s==null)return "";
         return s.length()>max?s.substring(0,max-1)+"…":s;
+    }
+    /** Interpola entre dos colores: t=0 → a, t=1 → b */
+    static Color mezclar(Color a, Color b, float t) {
+        t = Math.max(0f, Math.min(1f, t));
+        int r = (int)(a.getRed()   + (b.getRed()   - a.getRed())   * t);
+        int g = (int)(a.getGreen() + (b.getGreen() - a.getGreen()) * t);
+        int bl= (int)(a.getBlue()  + (b.getBlue()  - a.getBlue())  * t);
+        return new Color(r, g, bl);
     }
     void worker(java.util.concurrent.Callable<List<Productor>> tarea,
                 java.util.function.Consumer<List<Productor>> fin, String err) {

@@ -303,12 +303,56 @@ public class formColaboracion extends JPanel {
             ));
 
             // Ícono box
-            JLabel iconBox = new JLabel(icono, SwingConstants.CENTER);
-            iconBox.setOpaque(true);
-            iconBox.setBackground(tipoBg);
-            iconBox.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
-            iconBox.setPreferredSize(new Dimension(42, 42));
-            iconBox.setBorder(BorderFactory.createEmptyBorder());
+            final int tIdx = tipoIdx;
+final Color tBg = tipoBg;
+final Color tAc = accent;
+
+Icon iconoDibujado = new Icon() {
+    public int getIconWidth()  { return 42; }
+    public int getIconHeight() { return 42; }
+    public void paintIcon(Component c, Graphics g, int x, int y) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        // Fondo redondeado
+        g2.setColor(tBg);
+        g2.fillRoundRect(x, y, 42, 42, 10, 10);
+        // Ícono centrado
+        g2.setColor(tAc);
+        g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        int cx = x + 21, cy = y + 21;
+        switch (tIdx) {
+            case 0: // Featuring — micrófono
+                g2.fillRoundRect(cx-4, cy-9, 8, 11, 4, 4);
+                g2.drawArc(cx-7, cy+1, 14, 8, 0, -180);
+                g2.drawLine(cx, cy+9, cx, cy+13);
+                g2.drawLine(cx-4, cy+13, cx+4, cy+13);
+                break;
+            case 1: // Lanzamiento — cohete
+                int[] rx = {cx, cx+5, cx+5, cx+8, cx, cx-8, cx-5, cx-5};
+                int[] ry = {cy-11, cy-3, cy+3, cy+8, cy+5, cy+8, cy+3, cy-3};
+                g2.fillPolygon(rx, ry, 8);
+                g2.setColor(tBg);
+                g2.fillOval(cx-3, cy-4, 6, 6);
+                break;
+            case 2: // Producción — auriculares
+                g2.drawArc(cx-8, cy-9, 16, 14, 0, 180);
+                g2.fillRoundRect(cx-12, cy+3, 5, 8, 3, 3);
+                g2.fillRoundRect(cx+7,  cy+3, 5, 8, 3, 3);
+                break;
+            case 3: // Remix — flecha circular
+                g2.drawArc(cx-8, cy-8, 16, 16, 50, 250);
+                int[] ax = {cx+6, cx+11, cx+5};
+                int[] ay = {cy-10, cy-4,  cy-3};
+                g2.fillPolygon(ax, ay, 3);
+                break;
+        }
+        g2.dispose();
+    }
+};
+
+JLabel iconBox = new JLabel(iconoDibujado);
+iconBox.setPreferredSize(new Dimension(42, 42));
+iconBox.setBorder(BorderFactory.createEmptyBorder());
 
             // Info
             JPanel info = new JPanel();

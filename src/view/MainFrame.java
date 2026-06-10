@@ -79,7 +79,7 @@ public class MainFrame extends JFrame {
         contentPanel.add(new formEvento(),                     "eventos");
         contentPanel.add(new formColaboracion(),               "colaboraciones");
         contentPanel.add(new formCalendario(),                 "calendario");
-        contentPanel.add(new Jesusitochatview(),               "asistente");
+        contentPanel.add(new Zbotchatview(),               "asistente");
         contentPanel.add(new formConfiguracion(usuarioActual), "configuracion");
 
         contenidoFondo.add(contentPanel,         BorderLayout.CENTER);
